@@ -163,7 +163,7 @@ bash scripts/run.sh
 ## Project structure
 
 ```
-Knowledge-AI/
+AI-Test-Studio/
 ├── backend/                 # Flask app and services
 │   ├── app.py              # Flask app, serves frontend and /api
 │   ├── api/                # auth, admin, customer blueprints
