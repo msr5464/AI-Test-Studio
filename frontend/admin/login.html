@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Test Studio - Admin Login</title>
+    <style>
+        /* Theme system – match Customer portal (dark default) */
+        :root, [data-theme="dark"] {
+            --primary: #06b6d4;
+            --primary-hover: #0891b2;
+            --primary-light: rgba(6, 182, 212, 0.15);
+            --bg-page: #0f172a;
+            --bg-page-gradient: radial-gradient(ellipse at top, #1e3a5f 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, #164e63 0%, transparent 50%);
+            --bg-card: #1e293b;
+            --bg-input: #0f172a;
+            --text: #f1f5f9;
+            --text-light: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --radius: 12px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] {
+            --primary: #0891b2;
+            --primary-hover: #0e7490;
+            --primary-light: rgba(6, 182, 212, 0.1);
+            --bg-page: #f1f5f9;
+            --bg-page-gradient: radial-gradient(ellipse at top, #e0f2fe 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, #ccfbf1 0%, transparent 50%);
+            --bg-card: #ffffff;
+            --bg-input: #ffffff;
+            --text: #0f172a;
+            --text-light: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Instant theme switch: disable transitions so toggle feels immediate */
+        html.theme-switching,
+        html.theme-switching *,
+        html.theme-switching *::before,
+        html.theme-switching *::after {
+            transition: none !important;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-page);
+            background-image: var(--bg-page-gradient);
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .login-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 28px;
+        }
+
+        .logo-container {
+            text-align: left;
+        }
+
+        .logo {
+            height: 56px;
+            width: auto;
+            object-fit: contain;
+            margin-bottom: 12px;
+            filter: brightness(1.25) contrast(1.08);
+        }
+
+        .theme-toggle {
+            position: relative;
+            width: 56px;
+            height: 28px;
+        }
+
+        .theme-toggle input { opacity: 0; width: 0; height: 0; }
+
+        .theme-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--border);
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+
+        .theme-slider:before {
+            position: absolute;
+            content: "🌙";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--bg-card);
+            border-radius: 50%;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .theme-toggle input:checked + .theme-slider {
+            background: var(--primary);
+        }
+
+        .theme-toggle input:checked + .theme-slider:before {
+            transform: translateX(28px);
+            content: "☀️";
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 15px;
+            background: var(--bg-input);
+            color: var(--text);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(6, 182, 212, 0.45);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            padding: 12px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        [data-theme="light"] .error-message {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .forgot-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .forgot-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Forgot Password Modal */
+        #forgotPasswordModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        #forgotPasswordModal.show {
+            display: flex !important;
+        }
+
+        .modal-inner {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--text);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text);
+        }
+
+        .modal-block {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+        }
+
+        .modal-block h3 {
+            color: var(--text);
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .modal-block p, .modal-block ol {
+            color: var(--text-light);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .modal-block ol {
+            padding-left: 20px;
+        }
+
+        .modal-block code {
+            background: var(--border);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .modal-warning {
+            background: rgba(239, 68, 68, 0.1);
+            border-left-color: #ef4444;
+        }
+
+        .modal-note {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <div class="logo-container">
+                <img src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png"
+                    alt="Logo" class="logo">
+                <h1>Admin Login</h1>
+                <p class="subtitle">AI Test Studio</p>
+            </div>
+            <label class="theme-toggle" title="Toggle theme">
+                <input type="checkbox" id="themeToggle" aria-label="Light mode">
+                <span class="theme-slider"></span>
+            </label>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn" id="loginBtn">Login</button>
+        </form>
+
+        <div class="forgot-link">
+            <a href="#" onclick="showForgotPassword(); return false;">Forgot Password?</a>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal">
+        <div class="modal-inner" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>Password Recovery Options</h2>
+                <button type="button" class="modal-close" onclick="hideForgotPassword()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-block">
+                <h3>Option 1: Contact Another Admin</h3>
+                <p>If there are other admin users in the system, contact them to reset your password. They can access the User Management section in the admin panel to reset your password.</p>
+            </div>
+            <div class="modal-block modal-warning">
+                <h3>Option 2: Manual Reset</h3>
+                <p><strong>WARNING:</strong> This will <strong>DELETE ALL EXISTING USERS</strong> including all admin and customer accounts. Only use this if you are the only admin and have no other way to recover access.</p>
+                <p style="margin-top: 12px;">Manually reset by deleting the user database file:</p>
+                <ol style="margin-top: 8px;">
+                    <li>Stop the server</li>
+                    <li>Delete the file: <code>storage/users.json</code></li>
+                    <li>Restart the server</li>
+                    <li>A new default admin user will be created automatically</li>
+                </ol>
+                <div class="modal-block modal-note" style="margin-top: 12px; margin-bottom: 0;">
+                    <strong>Default credentials after reset:</strong><br>
+                    <code>Username: admin</code><br>
+                    <code>Password: admin123</code><br>
+                    <small>Change this password immediately after login!</small>
+                </div>
+            </div>
+            <button type="button" class="btn" onclick="hideForgotPassword()" style="width: 100%;">Close</button>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var saved = localStorage.getItem('admin-portal-theme');
+            if (saved === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                var cb = document.getElementById('themeToggle');
+                if (cb) cb.checked = true;
+            }
+            document.getElementById('themeToggle').addEventListener('change', function () {
+                var isLight = this.checked;
+                var html = document.documentElement;
+                html.classList.add('theme-switching');
+                html.setAttribute('data-theme', isLight ? 'light' : 'dark');
+                localStorage.setItem('admin-portal-theme', isLight ? 'light' : 'dark');
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () { html.classList.remove('theme-switching'); });
+                });
+            });
+        })();
+
+        const API_BASE = '/api/auth';
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const loginBtn = document.getElementById('loginBtn');
+
+        checkAuth();
+
+        async function checkAuth() {
+            try {
+                const response = await fetch(API_BASE + '/me', { credentials: 'include' });
+                if (response.ok) {
+                    window.location.href = '/admin';
+                }
+            } catch (e) {}
+        }
+
+        loginForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var username = document.getElementById('username').value;
+            var password = document.getElementById('password').value;
+            errorMessage.classList.remove('show');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+
+            try {
+                const response = await fetch(API_BASE + '/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ username: username, password: password })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = '/admin';
+                } else {
+                    errorMessage.textContent = data.error || 'Login failed';
+                    errorMessage.classList.add('show');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Login';
+                }
+            } catch (err) {
+                errorMessage.textContent = 'Network error. Please try again.';
+                errorMessage.classList.add('show');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        });
+
+        function showForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.add('show');
+        }
+
+        function hideForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.remove('show');
+        }
+
+        document.getElementById('forgotPasswordModal').addEventListener('click', function (e) {
+            if (e.target === this) hideForgotPassword();
+        });
+    </script>
+</body>
+
+</html>

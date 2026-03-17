@@ -1,0 +1,4 @@
+question,ground_truth
+"What is the error code when an unsupported partner like mastercardd is used?","The error code is 400 and the message is {""error"":""unsupported partner: mastercardd"",""is_success"":false}"
+"How can I create a card for CIMB-Mastercard?","To create a card for CIMB-Mastercard, you can use a POST request to https://card-connectors.staging.aspireapp.com/cards/create with the provider set to 'mastercard' and include details like card_holder_name, transaction_limit, and spend_limits."
+"What are the steps to validate card information in the CIMB portal?","The steps are: 1. Sent the request, 2. Access to CIMB portal, 3. Search card by card id, 4. Validate all information correctly."

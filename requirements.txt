@@ -1,0 +1,55 @@
+# Core Dependencies
+flask==3.0.0
+flask-cors==4.0.0
+python-dotenv==1.0.0
+werkzeug==3.0.1
+
+# RAG Dependencies
+langchain>=0.1.0
+langchain-core>=0.1.7
+langchain-openai>=0.0.2
+langchain-community>=0.0.10
+langchain-text-splitters>=0.0.1
+langchain-chroma>=0.1.1
+langchain-huggingface>=0.0.1
+
+# Vector Database
+chromadb>=0.4.0
+
+# Document Processing
+pypdf>=3.17.0
+pandas>=2.1.0
+openpyxl>=3.1.0
+python-docx>=1.1.0
+python-pptx>=0.6.23
+unstructured>=0.10.0  # For .doc and .docs file support
+
+# LLM Support
+openai>=1.6.0
+langchain-ollama>=0.1.0
+langchain-google-genai>=2.0.0
+
+# Utilities
+numpy>=1.26.0,<2.0.0
+sentence-transformers>=2.7.0
+huggingface-hub>=0.20.0
+urllib3<2.0.0  # Pin to <2.0 to avoid OpenSSL warning on macOS (LibreSSL)
+
+# Optional: For advanced features
+rank-bm25==0.2.2
+sentencepiece==0.1.99
+html2text>=2020.1.0
+
+# Production WSGI Server
+gunicorn>=21.2.0  # Production WSGI server (required for production deployment)
+
+# Development / testing (optional)
+# pytest==7.4.3
+# black==23.12.1
+# flake8==6.1.0
+# ragas==0.1.0
+# E2E UI tests (running log in admin):
+#   pip install playwright && playwright install chromium
+#   pytest tests/test_sync_ui_e2e.py -v
+# playwright>=1.40.0
+

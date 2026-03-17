@@ -1,0 +1,7 @@
+ragas>=0.1.0
+datasets
+pandas
+tqdm
+aiohttp
+# Optional: for LLM_PROVIDER=gemini in evaluation scripts
+langchain-google-genai>=2.0.0

@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Test Studio - Admin</title>
+    <style>
+        /* Theme system – match Customer portal (dark default) */
+        :root, [data-theme="dark"] {
+            --primary: #06b6d4;
+            --primary-hover: #0891b2;
+            --primary-light: rgba(6, 182, 212, 0.15);
+            --success: #22c55e;
+            --success-light: rgba(34, 197, 94, 0.15);
+            --danger: #ef4444;
+            --danger-light: rgba(239, 68, 68, 0.15);
+            --bg-page: #0f172a;
+            --bg-page-gradient: radial-gradient(ellipse at top, #1e3a5f 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, #164e63 0%, transparent 50%);
+            --bg-header: rgba(30, 41, 59, 0.9);
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --bg-input: #0f172a;
+            --text: #f1f5f9;
+            --text-light: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --radius: 12px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] {
+            --primary: #0891b2;
+            --primary-hover: #0e7490;
+            --primary-light: rgba(6, 182, 212, 0.1);
+            --success: #16a34a;
+            --success-light: rgba(34, 197, 94, 0.1);
+            --danger: #dc2626;
+            --danger-light: rgba(239, 68, 68, 0.1);
+            --bg-page: #f1f5f9;
+            --bg-page-gradient: radial-gradient(ellipse at top, #e0f2fe 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, #ccfbf1 0%, transparent 50%);
+            --bg-header: rgba(255, 255, 255, 0.95);
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --text: #0f172a;
+            --text-light: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Instant theme switch: disable transitions so toggle feels immediate */
+        html.theme-switching,
+        html.theme-switching *,
+        html.theme-switching *::before,
+        html.theme-switching *::after {
+            transition: none !important;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-page);
+            background-image: var(--bg-page-gradient);
+            background-attachment: fixed;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .site-header {
+            background: var(--bg-header);
+            backdrop-filter: blur(12px);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.3s;
+        }
+
+        .site-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .site-logo img {
+            height: 52px;
+            width: auto;
+            object-fit: contain;
+            filter: brightness(1.25) contrast(1.08);
+        }
+
+        .site-logo-app {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--text);
+        }
+        .site-logo-context {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .site-nav {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-right: 8px;
+        }
+
+        .site-nav a, .site-nav .btn-header {
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-light);
+            text-decoration: none;
+            border-radius: var(--radius);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .site-nav a:hover, .site-nav .btn-header:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .theme-toggle {
+            position: relative;
+            width: 56px;
+            height: 28px;
+        }
+
+        .theme-toggle input { opacity: 0; width: 0; height: 0; }
+
+        .theme-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--border);
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+
+        .theme-slider:before {
+            position: absolute;
+            content: "🌙";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--bg-card);
+            border-radius: 50%;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .theme-toggle input:checked + .theme-slider {
+            background: var(--primary);
+        }
+
+        .theme-toggle input:checked + .theme-slider:before {
+            transform: translateX(28px);
+            content: "☀️";
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px 24px;
+            width: 100%;
+        }
+
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .section {
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .section h2 {
+            color: var(--text);
+            margin-bottom: 10px;
+            font-size: 17px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .attribution-footer {
+            margin-top: 20px;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            border-top: 1px solid var(--border);
+        }
+
+        .attribution-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .attribution-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .sync-step {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: var(--border);
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .sync-step.active {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .sync-step.done {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            text-align: center;
+            background: var(--primary-light);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(6, 182, 212, 0.2);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary);
+            border-width: 3px;
+            background: rgba(6, 182, 212, 0.25);
+        }
+
+        /* Sync Documents: upload area + button on one line – match heights */
+        .upload-row {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+
+        .upload-row .upload-area {
+            flex: 1;
+            min-width: 200px;
+            min-height: 48px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .upload-row .upload-area p:first-of-type { margin-bottom: 0; }
+        .upload-row .upload-area p:last-of-type { margin-top: 2px; }
+
+        .upload-row .btn-upload {
+            min-height: 48px;
+            padding: 12px 22px;
+            font-size: 14px;
+            align-self: stretch;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 10px rgba(6, 182, 212, 0.35);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(6, 182, 212, 0.45);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 2px 10px rgba(239, 68, 68, 0.35);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .documents-list {
+            margin-top: 10px;
+        }
+
+        .document-item {
+            background: var(--bg-card-hover);
+            padding: 10px 12px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .document-item:hover {
+            border-color: var(--primary);
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-name {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+
+        .document-meta {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-top: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chunks-list {
+            margin-top: 10px;
+            max-height: 560px;
+            overflow-y: auto;
+        }
+
+        .chunk-item {
+            background: var(--bg-card-hover);
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            transition: all 0.2s;
+        }
+
+        .chunk-item:hover {
+            border-color: var(--primary);
+        }
+
+        .chunk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chunk-index {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 12px;
+        }
+
+        .chunk-meta {
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .chunk-content {
+            color: var(--text-light);
+            line-height: 1.4;
+            margin: 4px 0;
+            padding: 6px 8px;
+            background: var(--bg-input);
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 80px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            font-size: 11px;
+        }
+
+        .chunk-file-path {
+            color: var(--primary);
+            font-size: 10px;
+            margin-top: 3px;
+            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+            padding: 3px 6px;
+            background: var(--primary-light);
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .chunk-file-path a {
+            color: var(--primary);
+        }
+
+        .expand-btn {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 3px;
+            transition: all 0.2s;
+        }
+
+        .expand-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status.processed {
+            background: var(--success-light);
+            color: var(--success);
+        }
+
+        /* User Management: theme-aware so readable in dark mode */
+        #usersList .document-item .document-name {
+            color: var(--text);
+        }
+        #usersList .user-meta-text {
+            color: var(--text-muted);
+        }
+        #usersList .user-you {
+            color: var(--primary);
+        }
+        #usersList .user-role-select {
+            background: var(--bg-input) !important;
+            color: var(--text) !important;
+            border: 2px solid var(--border) !important;
+        }
+        #usersList .user-role-select option {
+            background: var(--bg-input);
+            color: var(--text);
+        }
+        #usersList .user-badge-admin {
+            background: var(--primary);
+            color: white;
+        }
+        #usersList .user-badge-customer {
+            background: var(--success);
+            color: white;
+        }
+        #usersList .btn-reset {
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #1a1a1a;
+        }
+        #usersList .btn-reset:hover:not(:disabled) {
+            color: #1a1a1a;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .stat-card {
+            background: var(--bg-card-hover);
+            padding: 10px 14px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+        }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            margin-top: 0;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-150px);
+            padding: 18px 28px;
+            border-radius: 14px;
+            display: none;
+            font-weight: 600;
+            font-size: 15px;
+            z-index: 99999;
+            max-width: 650px;
+            width: 90%;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
+        .message.show {
+            display: block;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @keyframes flyIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-150px) scale(0.9); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+        }
+
+        @keyframes flyOut {
+            from { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            to { opacity: 0; transform: translateX(-50%) translateY(-150px) scale(0.9); }
+        }
+
+        .message.success {
+            background: var(--success-light);
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .message.error {
+            background: var(--danger-light);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .message.info {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            background: var(--bg-input);
+            color: var(--text);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        tr:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .create-user-form {
+            background: var(--bg-card-hover);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+        }
+        .create-user-form h3 {
+            color: var(--text);
+        }
+        .create-user-form label {
+            color: var(--text);
+        }
+
+        .sync-box, .confluence-sync-box {
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 0;
+            border: 1px solid var(--border);
+            background: var(--bg-card-hover);
+            color: var(--text);
+        }
+
+        .sync-box p, .sync-box span, .confluence-sync-box p, .confluence-sync-box span {
+            color: var(--text-light);
+        }
+
+        .sync-box .sync-stat-num, .confluence-sync-box .sync-stat-num {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        #syncLog, #confluenceSyncLog {
+            background: var(--bg-input) !important;
+            color: var(--text) !important;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .sync-progress-inner, .sync-stat-box {
+            background: var(--bg-input) !important;
+            border-radius: 6px;
+            color: var(--text);
+        }
+        .sync-stat-box { padding: 8px 10px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .sync-progress-inner { padding: 8px; }
+        .sync-live-badge {
+            background: var(--success) !important;
+            color: white !important;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+        .btn-sync-now {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%) !important;
+            color: white !important;
+        }
+        .alert-success {
+            background: var(--success-light) !important;
+            color: var(--success) !important;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--success);
+        }
+        .alert-danger {
+            background: var(--danger-light) !important;
+            color: var(--danger) !important;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--danger);
+        }
+
+        #chromadbInfo {
+            background: var(--bg-card-hover) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius);
+            color: var(--text);
+        }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 12px 16px; }
+            .section { padding: 14px 16px; margin-bottom: 12px; }
+            .section h2 { margin-bottom: 10px; font-size: 17px; }
+            .stats { grid-template-columns: 1fr; gap: 8px; }
+            .message { width: 95%; padding: 12px 16px; font-size: 14px; }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="site-header">
+        <a href="/customer" class="site-logo" target="_blank" rel="noopener noreferrer">
+            <img src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-full.png"
+                alt="Logo">
+            <span class="site-logo-app">AI Test Studio</span>
+            <span class="site-logo-context">Admin</span>
+        </a>
+        <nav class="site-nav">
+            <span id="userInfo" class="user-info"></span>
+            <label class="theme-toggle" title="Toggle theme">
+                <input type="checkbox" id="themeToggle" aria-label="Light mode">
+                <span class="theme-slider"></span>
+            </label>
+            <a href="/customer" target="_blank" rel="noopener noreferrer">Customer Portal</a>
+            <button type="button" class="btn-header" onclick="logout()">🚪 Logout</button>
+        </nav>
+    </header>
+
+    <div class="main-container">
+        <div class="content-wrapper">
+            <div id="message" class="message" title="Click to dismiss"></div>
+
+            <!-- User Management Section -->
+            <div class="section">
+                <h2>👥 User Management</h2>
+
+                <!-- Create User Form -->
+                <div class="create-user-form">
+                    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 15px; font-weight: 700;">✨ Create New User Account</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: end;">
+                        <div>
+                            <label for="newUsername">👤 Username</label>
+                            <input type="text" id="newUsername" placeholder="Enter unique username">
+                        </div>
+                        <div>
+                            <label for="newPassword">🔒 Password</label>
+                            <input type="password" id="newPassword" placeholder="Enter secure password">
+                        </div>
+                        <div>
+                            <label for="newUserRole">👥 User Role</label>
+                            <select id="newUserRole">
+                                <option value="customer">Customer</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn" onclick="createUser()" style="padding: 8px 16px; font-size: 13px; white-space: nowrap;">✨ Create User</button>
+                    </div>
+                </div>
+
+                <!-- Users List -->
+                <div id="usersList" style="margin-top: 10px;">
+                    <p style="text-align: center; color: var(--text-muted); padding: 8px; font-size: 13px;">🔄 Loading user accounts...</p>
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="section">
+                <h2>📊 System Statistics</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalDocs">0</div>
+                        <div class="stat-label">Total Documents</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalChunks">0</div>
+                        <div class="stat-label">Total Chunks</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync Documents: Upload + Uploaded list -->
+            <div class="section">
+                <h2>📤 Sync Documents</h2>
+                <div class="upload-row">
+                    <div class="upload-area" id="uploadArea">
+                        <p style="font-size: 14px; font-weight: 600; margin-bottom: 0;">📄 Drag and drop files here or click to browse</p>
+                        <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">CSV, Excel, PDF, Word, PowerPoint, text</p>
+                        <input type="file" id="fileInput" multiple accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.pptx,.ppt,.txt,.md">
+                    </div>
+                    <button class="btn btn-upload" id="uploadBtn" disabled>📤 Upload & Process Files</button>
+                </div>
+                <div class="documents-list" id="documentsList" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+                    <p style="text-align: center; color: var(--text-muted); padding: 16px; font-size: 13px;">📭 No documents uploaded yet. Upload your first document to get started!</p>
+                </div>
+            </div>
+
+            <!-- Sync TestRail Section -->
+            <div id="testrailSyncSection" class="section">
+                <h2>🔄 Sync TestRail</h2>
+                <div class="sync-box">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div style="flex: 1;">
+                            <p style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px;">📊 Status</p>
+                            <p id="syncStatusText" style="font-size: 14px; color: var(--text-muted); margin: 0;">Not yet synced</p>
+                            <p id="syncLastTime" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;"></p>
+                        </div>
+                        <button id="syncNowBtn" class="btn btn-sync-now">
+                            🚀 Sync Now
+                        </button>
+                    </div>
+
+                    <div id="syncProgress" style="display: none; margin-top: 8px;">
+                        <div class="sync-progress-inner">
+                            <div id="syncStepIndicator" style="display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+                                <span id="syncStep1" class="sync-step">1. Fetch from TestRail</span>
+                                <span id="syncStep2" class="sync-step">2. Validate</span>
+                                <span id="syncStep3" class="sync-step">3. Update knowledge base</span>
+                            </div>
+                            <p id="syncProgressText" style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳ Syncing test cases from TestRail...</p>
+                            <p id="syncProgressDetail" style="font-size: 12px; margin: 2px 0 6px 0;"></p>
+                            <div style="background: var(--border); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div id="syncProgressBarFill" style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-hover)); width: 0%; transition: width 0.4s ease;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="syncLogContainer" style="margin-top: 10px;">
+                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📋 Running log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span></p>
+                        <div id="syncLog" style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
+                    </div>
+
+                    <div id="syncResult" style="display: none; margin-top: 10px;"></div>
+
+                    <div id="syncStats"
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 10px;">
+                        <div class="sync-stat-box">
+                            <span class="sync-stat-num" style="font-size: 18px;" id="syncTestCases">0</span>
+                            <span>Test Cases Synced</span>
+                        </div>
+                        <div class="sync-stat-box">
+                            <span class="sync-stat-num" style="font-size: 18px;" id="syncProjects">0</span>
+                            <span>Projects</span>
+                        </div>
+                        <div class="sync-stat-box">
+                            <span class="sync-stat-num" style="font-size: 18px;" id="syncDuration">0s</span>
+                            <span>Last Duration</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync Confluence Section -->
+            <div id="confluenceSyncSection" class="section">
+                <h2>📄 Sync Confluence</h2>
+                <div class="confluence-sync-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <p style="font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📊 Status</p>
+                            <p id="confluenceSyncStatusText" style="font-size: 13px; margin: 0; color: var(--text-muted);">Not yet synced</p>
+                            <p id="confluenceSyncLastTime" style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
+                        </div>
+                        <button id="confluenceSyncNowBtn" class="btn btn-sync-now">🚀 Sync Now</button>
+                    </div>
+
+                    <div id="confluenceSyncProgress" style="display: none; margin-top: 8px;">
+                        <div class="sync-progress-inner">
+                            <p id="confluenceSyncProgressText" style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳ Syncing pages from Confluence (CQL)...</p>
+                            <p id="confluenceSyncProgressDetail" style="font-size: 12px; margin: 2px 0 6px 0;"></p>
+                        </div>
+                    </div>
+
+                    <div id="confluenceSyncLogContainer" style="margin-top: 10px;">
+                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📋 Running log <span id="confluenceSyncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span></p>
+                        <div id="confluenceSyncLog" style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
+                    </div>
+
+                    <div id="confluenceSyncStats"
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 10px;">
+                        <div class="sync-stat-box">
+                            <span class="sync-stat-num" style="font-size: 18px;" id="confluenceSyncPages">—</span>
+                            <span>Pages Synced</span>
+                        </div>
+                        <div class="sync-stat-box">
+                            <span class="sync-stat-num" style="font-size: 18px;" id="confluenceSyncDuration">—</span>
+                            <span>Last Duration</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ChromaDB Contents Section -->
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h2 style="margin: 0;">🗄️ ChromaDB Contents</h2>
+                    <button class="btn btn-danger btn-small" onclick="resetChromaDB()">
+                        ⚠️ Reset Knowledge Base
+                    </button>
+                </div>
+                <div id="chromadbInfo" style="margin-bottom: 8px; padding: 10px;">
+                    <p style="text-align: center; color: var(--text-muted); font-weight: 500;">🔄 Loading ChromaDB contents...</p>
+                </div>
+                <div class="chunks-list" id="chunksList"></div>
+            </div>
+        </div>
+
+        <div class="attribution-footer">
+            This <a target="_blank" href="https://github.com/msr5464/Knowledge-AI">open source</a> dashboard is created
+            by <a target="_blank" href="https://www.linkedin.com/in/mukesh-rajput">Mukesh Rajput</a> to transform
+            documents into an intelligent knowledge base using AI and LLM technology.
+        </div>
+    </div><!-- .main-container -->
+
+    <script>
+        (function () {
+            var saved = localStorage.getItem('admin-portal-theme');
+            if (saved === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                var cb = document.getElementById('themeToggle');
+                if (cb) cb.checked = true;
+            }
+            var themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('change', function () {
+                    var isLight = this.checked;
+                    var html = document.documentElement;
+                    html.classList.add('theme-switching');
+                    html.setAttribute('data-theme', isLight ? 'light' : 'dark');
+                    localStorage.setItem('admin-portal-theme', isLight ? 'light' : 'dark');
+                    requestAnimationFrame(function () {
+                        requestAnimationFrame(function () { html.classList.remove('theme-switching'); });
+                    });
+                });
+            }
+        })();
+
+        const API_BASE = '/api/admin';
+        const AUTH_API = '/api/auth';
+
+        let currentUser = null;
+        let selectedFiles = [];
+
+        // Check authentication on page load
+        checkAuth();
+
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${AUTH_API}/me`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.user) {
+                        currentUser = data.user;
+                        if (data.user.role !== 'admin') {
+                            alert('Admin access required');
+                            window.location.href = '/admin/login';
+                            return;
+                        }
+                        updateUserDisplay();
+                        if (typeof loadSyncStatus === 'function') loadSyncStatus();
+                    } else {
+                        redirectToLogin();
+                    }
+                } else {
+                    redirectToLogin();
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                redirectToLogin();
+            }
+        }
+
+        function redirectToLogin() {
+            window.location.href = '/admin/login';
+        }
+
+        function updateUserDisplay() {
+            // Update UI to show logged-in user
+            const userInfo = document.getElementById('userInfo');
+            if (userInfo && currentUser) {
+                userInfo.textContent = `Logged in as: ${currentUser.username}`;
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch(`${AUTH_API}/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                window.location.href = '/admin/login';
+            } catch (error) {
+                console.error('Logout failed:', error);
+                window.location.href = '/admin/login';
+            }
+        }
+
+        // Upload area handlers
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            // Supported file extensions (must match backend)
+            const supportedExtensions = ['.pdf', '.csv', '.xlsx', '.xls', '.docx', '.doc', '.docs', '.pptx', '.ppt', '.txt', '.text', '.md'];
+
+            selectedFiles = Array.from(files).filter(file => {
+                const fileName = file.name.toLowerCase();
+                const extension = fileName.substring(fileName.lastIndexOf('.'));
+                const isSupported = supportedExtensions.includes(extension);
+
+                if (!isSupported) {
+                    showMessage(`⚠️ Skipping unsupported file: ${file.name} (${extension || 'no extension'})`, 'error');
+                }
+
+                return isSupported;
+            });
+
+            uploadBtn.disabled = selectedFiles.length === 0;
+            if (selectedFiles.length > 0) {
+                uploadArea.innerHTML = `<p style="font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">✅ ${selectedFiles.length} file(s) ready to upload</p><p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">Click "Upload & Process Files" to proceed</p>`;
+            } else if (files.length > 0) {
+                uploadArea.innerHTML = '<p style="font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">📄 Drag and drop files here or click to browse</p><p style="color: var(--danger); font-size: 14px; margin-top: 8px;">⚠️ No supported files selected. Supported formats: CSV, Excel (.xlsx, .xls)</p>';
+            }
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '📤 Uploading... <span class="loading"></span>';
+
+            for (const file of selectedFiles) {
+                await uploadFile(file);
+            }
+
+            selectedFiles = [];
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '📤 Upload & Process Files';
+            fileInput.value = '';
+            uploadArea.innerHTML = '<p style="font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">📄 Drag and drop files here or click to browse</p><p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">Supported formats: CSV, Excel (.xlsx, .xls)</p>';
+
+            loadDocuments();
+            loadStats();
+            loadChromaDBContents();
+        });
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ Successfully uploaded and processed: ${file.name}`, 'success');
+                } else {
+                    showMessage(`❌ Failed to upload ${file.name}: ${result.error || 'Unknown error occurred'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error uploading ${file.name}: ${error.message || 'Network error occurred'}`, 'error');
+            }
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_BASE}/documents`, {
+                    credentials: 'include'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    displayDocuments(result.documents);
+                }
+            } catch (error) {
+                console.error('Error loading documents:', error);
+            }
+        }
+
+        function displayDocuments(documents) {
+            const list = document.getElementById('documentsList');
+
+            if (documents.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px; font-size: 15px;">📭 No documents uploaded yet. Upload your first document to get started!</p>';
+                return;
+            }
+
+            list.innerHTML = documents.map(doc => `
+                <div class="document-item">
+                    <div class="document-info">
+                        <div class="document-name">${doc.name}</div>
+                        <div class="document-meta">
+                            Uploaded: ${new Date(doc.uploaded_at).toLocaleString()}
+                            <span class="status processed">${doc.status}</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteDocument('${doc.id}')" style="font-size: 12px; padding: 8px 14px;">🗑️ Delete</button>
+                </div>
+            `).join('');
+        }
+
+        async function deleteDocument(docId) {
+            if (!confirm('⚠️ Are you sure you want to delete this document?\n\nThis will remove the document and all its associated data from the knowledge base.\n\nThis action cannot be undone.')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/documents/${docId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Document deleted successfully from the knowledge base', 'success');
+                    loadDocuments();
+                    loadStats();
+                    loadChromaDBContents();
+                } else {
+                    showMessage(`❌ Failed to delete document: ${result.error || 'Unknown error occurred'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error deleting document: ${error.message || 'Network error occurred'}`, 'error');
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`, {
+                    credentials: 'include'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('totalDocs').textContent = result.total_documents || 0;
+                    document.getElementById('totalChunks').textContent = result.total_chunks || 0;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+
+            // Remove any existing timeout
+            if (message.timeoutId) {
+                clearTimeout(message.timeoutId);
+                message.timeoutId = null;
+            }
+
+            // Reset all styles and classes to ensure clean state
+            message.style.display = 'none';
+            message.style.animation = '';
+            message.classList.remove('show', 'success', 'error', 'info');
+
+            // Small delay to ensure previous animation completes
+            setTimeout(() => {
+                // Update message content and type
+                message.textContent = text;
+                message.className = `message ${type}`;
+                message.style.display = 'block';
+
+                // Force reflow to ensure animation starts
+                void message.offsetWidth;
+
+                // Add show class to trigger animation
+                message.classList.add('show');
+
+                // Ensure message is visible by scrolling to top smoothly (only if scrolled down)
+                if (window.scrollY > 100) {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                }
+
+                // Auto-dismiss after 5 seconds (longer for errors)
+                const dismissTime = type === 'error' ? 7000 : 5000;
+                message.timeoutId = setTimeout(() => {
+                    message.classList.remove('show');
+                    message.style.animation = 'flyOut 0.4s ease-out forwards';
+                    setTimeout(() => {
+                        message.style.display = 'none';
+                        message.style.animation = '';
+                        message.classList.remove('success', 'error', 'info');
+                    }, 400);
+                }, dismissTime);
+
+                // Add click to dismiss
+                message.onclick = () => {
+                    if (message.timeoutId) {
+                        clearTimeout(message.timeoutId);
+                        message.timeoutId = null;
+                    }
+                    message.classList.remove('show');
+                    message.style.animation = 'flyOut 0.4s ease-out forwards';
+                    setTimeout(() => {
+                        message.style.display = 'none';
+                        message.style.animation = '';
+                        message.classList.remove('success', 'error', 'info');
+                    }, 400);
+                };
+            }, 50);
+        }
+
+        const CHROMADB_INITIAL_LIMIT = 50;
+
+        async function loadChromaDBContents(loadAll) {
+            const chunksList = document.getElementById('chunksList');
+            const chromadbInfo = document.getElementById('chromadbInfo');
+            const url = loadAll ? `${API_BASE}/chromadb` : `${API_BASE}/chromadb?limit=${CHROMADB_INITIAL_LIMIT}`;
+
+            try {
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Display collection info
+                    if (data.total_chunks === 0) {
+                        chromadbInfo.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 15px;">📭 No data found in ChromaDB. Upload documents to populate the knowledge base.</p>';
+                        chunksList.innerHTML = '';
+                        return;
+                    }
+
+                    const displayedCount = data.chunks && data.chunks.length ? data.chunks.length : 0;
+                    const showingPartial = !loadAll && data.total_chunks > displayedCount;
+                    const info = `
+                        <div style="margin-bottom: 8px;">
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                                <strong>Collection:</strong> ${data.collection_name || 'N/A'} |
+                                <strong>Total Chunks:</strong> ${data.total_chunks} |
+                                <strong>Embeddings:</strong> ${data.has_embeddings ? 'Yes' : 'No'}
+                                ${data.embedding_dimension ? ` | <strong>Dimension:</strong> ${data.embedding_dimension}` : ''}
+                            </div>
+                            ${showingPartial ? `
+                            <div style="margin-top: 10px;">
+                                <button type="button" class="btn btn-small" onclick="loadChromaDBContents(true)" title="Load all ${data.total_chunks} chunks">
+                                    📂 Load all chunks (showing ${displayedCount} of ${data.total_chunks})
+                                </button>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    chromadbInfo.innerHTML = info;
+
+                    // Display chunks
+                    if (data.chunks && data.chunks.length > 0) {
+                        chunksList.innerHTML = data.chunks.map((chunk) => {
+                            const displayContent = chunk.content;
+                            const filePath = chunk.file_path !== 'N/A' ? chunk.file_path : (chunk.metadata?.source || 'N/A');
+                            const fileName = filePath.split('/').pop() || filePath;
+                            const fileId = fileName.split('_').shift() || fileName; // Extract document ID from filename
+
+                            return `
+                                <div class="chunk-item">
+                                    <div class="chunk-header">
+                                        <div>
+                                            <span class="chunk-index">Chunk #${chunk.index}</span>
+                                            <span class="chunk-meta" style="margin-left: 15px;">
+                                                Length: ${chunk.content_length} chars | 
+                                                ID: ${chunk.id.substring(0, 8)}...
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="chunk-content" id="chunkContent${chunk.index}" data-expanded="false" data-full-content="${escapeHtml(chunk.content_full).replace(/"/g, '&quot;').replace(/'/g, '&#39;')}">${escapeHtml(displayContent)}</div>
+                                    ${chunk.content_length > 500 ? `
+                                        <button class="expand-btn" onclick="toggleChunk(${chunk.index})">
+                                            📄 Show Full Content
+                                        </button>
+                                    ` : ''}
+                                    <div class="chunk-file-path">
+                                        📄 ${chunk.document_id ? `<a href="/api/admin/documents/${chunk.document_id}/download" target="_blank" style="color: var(--primary); text-decoration: underline; cursor: pointer;">${escapeHtml(fileName)}</a>` : escapeHtml(fileName)}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        chunksList.innerHTML = '';
+                    }
+                } else {
+                    chromadbInfo.innerHTML = `<p style="color: var(--danger); padding: 20px; text-align: center;">❌ Error: ${data.error || 'Failed to load ChromaDB contents'}</p>`;
+                    chunksList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">❌ Failed to load document chunks</p>';
+                }
+            } catch (error) {
+                chromadbInfo.innerHTML = `<p style="color: var(--danger); padding: 20px; text-align: center;">❌ Error: ${error.message || 'Network error occurred'}</p>`;
+                chunksList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">❌ Failed to load ChromaDB contents</p>';
+            }
+        }
+
+        function toggleChunk(index) {
+            const contentDiv = document.getElementById(`chunkContent${index}`);
+            if (!contentDiv) {
+                console.error(`Content div not found for chunk ${index}`);
+                return;
+            }
+
+            // Find the button - search through siblings
+            let btn = contentDiv.nextElementSibling;
+            while (btn && !btn.classList.contains('expand-btn')) {
+                btn = btn.nextElementSibling;
+            }
+
+            if (!btn) {
+                console.error(`Button not found for chunk ${index}`);
+                return;
+            }
+
+            // Get full content from data attribute
+            const fullContent = contentDiv.getAttribute('data-full-content');
+            if (!fullContent) {
+                console.error(`Full content not found for chunk ${index}`);
+                return;
+            }
+
+            // Unescape HTML entities
+            const unescapedContent = fullContent.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+            // Check expansion state using data attribute
+            const isExpanded = contentDiv.getAttribute('data-expanded') === 'true';
+
+            if (!isExpanded) {
+                // Expand - show full content
+                contentDiv.innerHTML = unescapedContent;
+                contentDiv.setAttribute('data-expanded', 'true');
+                btn.textContent = '📄 Show Less';
+            } else {
+                // Collapse - show preview
+                const preview = unescapedContent.substring(0, 500) + '...';
+                contentDiv.innerHTML = escapeHtml(preview);
+                contentDiv.setAttribute('data-expanded', 'false');
+                btn.textContent = '📄 Show Full Content';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function resetChromaDB() {
+            // Double confirmation (no API key prompt - user already authenticated)
+            if (!confirm('⚠️ CRITICAL ACTION: Reset Knowledge Base\n\nThis will permanently delete:\n• ALL vector embeddings in ChromaDB\n• ALL uploaded document files\n• ALL files in storage/chroma_db (except chroma.sqlite3)\n• ALL cached embeddings in storage/embedding_cache\n• ALL query cache (cached answers)\n• ALL document metadata\n• ALL past sync logs (TestRail and Confluence)\n\nNote: The chroma.sqlite3 database file will be preserved.\n\n⚠️ This action CANNOT be undone!\n\nAre you absolutely sure you want to proceed?')) {
+                return;
+            }
+
+            try {
+                showMessage('🔄 Resetting knowledge base and removing all data...', 'info');
+
+                const response = await fetch(`${API_BASE}/chromadb/reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        delete_all: true
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const fileCount = result.deleted_files || 0;
+                    const details = result.details || {};
+                    let detailMsg = '';
+                    if (details.documents || details.chroma_db_files || details.embedding_cache_files) {
+                        const parts = [];
+                        if (details.documents) parts.push(`${details.documents} document(s)`);
+                        if (details.chroma_db_files) parts.push(`${details.chroma_db_files} ChromaDB file(s)`);
+                        if (details.embedding_cache_files) parts.push(`${details.embedding_cache_files} cache file(s)`);
+                        detailMsg = ` (${parts.join(', ')})`;
+                    }
+                    if (details.sync_logs_cleared && details.sync_logs_cleared.length) {
+                        detailMsg += (detailMsg ? '; ' : ' ') + `cleared sync logs: ${details.sync_logs_cleared.join(', ')}`;
+                    }
+                    showMessage(`✅ Knowledge base reset successfully! Removed ${fileCount} file(s)${detailMsg} and all vector embeddings.`, 'success');
+                    // Refresh all data and sync status so UI shows empty logs
+                    loadDocuments();
+                    loadStats();
+                    loadChromaDBContents();
+                    if (typeof loadSyncStatus === 'function') loadSyncStatus();
+                } else {
+                    showMessage(`❌ Failed to reset knowledge base: ${result.error || 'Unknown error occurred'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error resetting knowledge base: ${error.message || 'Network error occurred'}`, 'error');
+            }
+        }
+
+        // Load initial data
+        loadDocuments();
+        loadStats();
+        loadUsers();
+        loadChromaDBContents();
+
+        // User Management Functions
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${AUTH_API}/users`, {
+                    credentials: 'include'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    displayUsers(result.users);
+                } else {
+                    document.getElementById('usersList').innerHTML = `<p style="color: var(--danger); padding: 20px; text-align: center;">❌ Error: ${result.error || 'Failed to load users'}</p>`;
+                }
+            } catch (error) {
+                document.getElementById('usersList').innerHTML = `<p style="color: var(--danger); padding: 20px; text-align: center;">❌ Error loading users: ${error.message || 'Network error occurred'}</p>`;
+            }
+        }
+
+        function displayUsers(users) {
+            const list = document.getElementById('usersList');
+
+            if (users.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No users found</p>';
+                return;
+            }
+
+            list.innerHTML = users.map(user => {
+                const isCurrentUser = currentUser && currentUser.user_id === user.user_id;
+                const createdDate = user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A';
+                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString() : 'Never';
+
+                return `
+                    <div class="document-item" style="margin-bottom: 15px;">
+                        <div class="document-info" style="flex: 1;">
+                            <div class="document-name" style="font-size: 18px; font-weight: 600;">
+                                ${escapeHtml(user.username)}
+                                ${isCurrentUser ? '<span class="user-you" style="margin-left: 10px;">(You)</span>' : ''}
+                            </div>
+                            <div class="document-meta" style="margin-top: 8px;">
+                                <span class="status ${user.role === 'admin' ? 'user-badge-admin' : 'user-badge-customer'}" style="padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;">
+                                    ${user.role === 'admin' ? '👑 Admin' : '👤 Customer'}
+                                </span>
+                                <span class="user-meta-text" style="margin-left: 15px;">Created: ${createdDate}</span>
+                                <span class="user-meta-text" style="margin-left: 15px;">Last Login: ${lastLogin}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;">
+                            <select class="user-role-select" onchange="updateUserRole('${user.user_id}', this.value, '${user.role}')" 
+                                    style="padding: 8px 10px; border: 2px solid var(--border); border-radius: 10px; font-size: 12px; width: 100px; flex-shrink: 0;"
+                                    ${isCurrentUser ? 'disabled title="Cannot change your own role"' : ''}>
+                                <option value="customer" ${user.role === 'customer' ? 'selected' : ''}>Customer</option>
+                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                            <button class="btn btn-reset" onclick="resetUserPassword('${user.user_id}', '${escapeHtml(user.username)}')" 
+                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0;">
+                                🔑 Reset
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteUser('${user.user_id}', '${escapeHtml(user.username)}')"
+                                    ${isCurrentUser ? 'disabled title="Cannot delete your own account"' : ''}
+                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0;">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function createUser() {
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value;
+            const role = document.getElementById('newUserRole').value;
+
+            if (!username || !password) {
+                showMessage('❌ Username and password are required to create a new account', 'error');
+                return;
+            }
+
+            if (password.length < 4) {
+                showMessage('❌ Password must be at least 4 characters long for security', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${AUTH_API}/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password, role })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ User account "${username}" created successfully with ${role} role`, 'success');
+                    document.getElementById('newUsername').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('newUserRole').value = 'customer';
+                    loadUsers();
+                } else {
+                    showMessage(`❌ Failed to create user account: ${result.error || 'Unknown error occurred'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error creating user account: ${error.message || 'Network error occurred'}`, 'error');
+            }
+        }
+
+        async function updateUserRole(userId, newRole, currentRole) {
+            if (newRole === currentRole) {
+                return; // No change
+            }
+
+            if (!confirm(`👥 Change user role to ${newRole}?\n\nThis will update the user's permissions immediately.\n\nClick OK to proceed.`)) {
+                // Reset dropdown
+                loadUsers();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${AUTH_API}/users/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ role: newRole })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ User role successfully updated to ${newRole}`, 'success');
+                    loadUsers();
+                } else {
+                    showMessage(`❌ Failed to update user role: ${result.error || 'Unknown error occurred'}`, 'error');
+                    loadUsers(); // Reload to reset dropdown
+                }
+            } catch (error) {
+                showMessage(`❌ Error updating user role: ${error.message || 'Network error occurred'}`, 'error');
+                loadUsers(); // Reload to reset dropdown
+            }
+        }
+
+        async function resetUserPassword(userId, username) {
+            const newPassword = prompt(`🔑 Enter new password for "${username}":\n\nPassword must be at least 4 characters long.`);
+
+            if (!newPassword) {
+                return; // User cancelled
+            }
+
+            if (newPassword.length < 4) {
+                showMessage('❌ Password must be at least 4 characters long for security', 'error');
+                return;
+            }
+
+            if (!confirm(`🔑 Reset password for user "${username}"?\n\nThis will change the user's password immediately.\n\nClick OK to proceed.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${AUTH_API}/users/${userId}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ new_password: newPassword })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ Password successfully reset for user "${username}"`, 'success');
+                } else {
+                    showMessage(`❌ Failed to reset password: ${result.error || 'Unknown error occurred'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error resetting password: ${error.message || 'Network error occurred'}`, 'error');
+            }
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`⚠️ Are you absolutely sure you want to delete user "${username}"?\n\nThis will permanently remove:\n- User account\n- All associated data\n- Access permissions\n\nThis action CANNOT be undone!\n\nClick OK to proceed.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${AUTH_API}/users/${userId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✅ User account "${username}" deleted successfully`, 'success');
+                    loadUsers();
+                } else {
+                    showMessage(`❌ Failed to delete user account: ${result.error || 'Unknown error occurred'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error deleting user account: ${error.message || 'Network error occurred'}`, 'error');
+            }
+        }
+
+
+        // TestRail Sync Functions
+        function updateSyncLog(logLines) {
+            var container = document.getElementById('syncLogContainer');
+            var el = document.getElementById('syncLog');
+            if (!container || !el) return;
+            var arr = logLines && Array.isArray(logLines) ? logLines : [];
+            if (arr.length > 0) {
+                el.textContent = arr.join('\n');
+                el.scrollTop = el.scrollHeight;
+            } else {
+                el.textContent = 'No log yet. Click "Sync Now" to see live logs.';
+            }
+        }
+
+        function updateSyncLogWhenSyncing(logLines) {
+            var el = document.getElementById('syncLog');
+            if (!el) return;
+            var arr = logLines && Array.isArray(logLines) ? logLines : [];
+            if (arr.length > 0) {
+                el.textContent = arr.join('\n');
+                el.scrollTop = el.scrollHeight;
+            } else {
+                el.textContent = 'Waiting for log from server... (sync in progress)';
+            }
+        }
+
+        function updateSyncProgressUI(cur) {
+            if (!cur) return;
+            var phase = cur.phase || '';
+            var n = cur.test_cases_so_far != null ? cur.test_cases_so_far : 0;
+            var projDone = cur.projects_done != null ? cur.projects_done : 0;
+            var projTotal = cur.projects_total != null ? cur.projects_total : 0;
+            var proj = projDone + '/' + projTotal;
+            var elText = document.getElementById('syncProgressText');
+            var elDetail = document.getElementById('syncProgressDetail');
+            var bar = document.getElementById('syncProgressBarFill');
+            var s1 = document.getElementById('syncStep1');
+            var s2 = document.getElementById('syncStep2');
+            var s3 = document.getElementById('syncStep3');
+
+            // Step indicator
+            s1.classList.remove('active', 'done');
+            s2.classList.remove('active', 'done');
+            s3.classList.remove('active', 'done');
+            if (phase === 'chromadb') {
+                s1.classList.add('done');
+                s2.classList.add('done');
+                s3.classList.add('active');
+            } else if (phase === 'validating') {
+                s1.classList.add('done');
+                s2.classList.add('active');
+            } else {
+                s1.classList.add('active');
+            }
+
+            // Progress bar (0–33 fetch, 33–66 validate, 66–100 chromadb)
+            var pct = 0;
+            if (phase === 'chromadb') pct = 100;
+            else if (phase === 'validating') pct = 60;
+            else if (phase === 'fetching' || phase === 'starting') pct = projTotal > 0 ? Math.round((projDone / projTotal) * 33) : 5;
+            if (bar) bar.style.width = pct + '%';
+
+            if (phase === 'chromadb') {
+                elText.textContent = 'Updating knowledge base...';
+                elDetail.textContent = n + ' test cases synced to database (writing to ChromaDB).';
+            } else if (phase === 'validating') {
+                elText.textContent = 'Validating test case structure...';
+                elDetail.textContent = n + ' test cases fetched. Checking required columns.';
+            } else if (phase === 'fetching' || phase === 'starting') {
+                elText.textContent = n + ' test case' + (n !== 1 ? 's' : '') + ' fetched from TestRail so far';
+                elDetail.textContent = 'Projects: ' + proj + ' · Total rows so far: ' + n;
+            } else {
+                elText.textContent = cur.message || 'Syncing...';
+                elDetail.textContent = 'Projects: ' + proj + ' · Test cases so far: ' + n;
+            }
+        }
+
+        var syncPollIntervalId = null;
+
+        function runOneSyncStatusPoll(fromReload, btn, progress, result) {
+            return fetch(API_BASE + '/sync/status', {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') }
+            }).then(function (r) { return r.json(); }).then(function (statusData) {
+                if (!statusData.status) return;
+                    if (!statusData.status.is_syncing) {
+                        if (syncPollIntervalId) { clearInterval(syncPollIntervalId); syncPollIntervalId = null; }
+                        var liveBadge = document.getElementById('syncLogLiveBadge');
+                        if (liveBadge) liveBadge.style.display = 'none';
+                        var logArr = statusData.status.sync_log && Array.isArray(statusData.status.sync_log) ? statusData.status.sync_log : [];
+                        updateSyncLog(logArr);
+                    var latest = statusData.status.latest_sync_record;
+                    if (latest && latest.status === 'success') {
+                        result.innerHTML = '<div class="alert-success">' +
+                            '<strong>✅ Sync successful!</strong><br>Successfully synced ' + (latest.test_cases_fetched != null ? latest.test_cases_fetched : 0) +
+                            ' test cases from ' + (latest.projects_count != null ? latest.projects_count : '?') + ' project(s).</div>';
+                        result.style.display = 'block';
+                        document.getElementById('syncStatusText').textContent = '✅ Sync successful';
+                        document.getElementById('syncTestCases').textContent = latest.test_cases_fetched != null ? latest.test_cases_fetched : 0;
+                        document.getElementById('syncProjects').textContent = latest.projects_count != null ? latest.projects_count : 0;
+                        document.getElementById('syncDuration').textContent = (latest.duration_seconds || 0).toFixed(1) + 's';
+                        document.getElementById('syncLastTime').textContent = 'Last synced: ' + new Date(latest.timestamp).toLocaleString();
+                        loadDocuments();
+                        loadStats();
+                        loadChromaDBContents();
+                    } else {
+                        var errorMsg = latest ? latest.error : 'Unknown error';
+                        result.innerHTML = '<div class="alert-danger">' +
+                            '<strong>❌ Sync failed</strong><br>' + errorMsg + '</div>';
+                        result.style.display = 'block';
+                        document.getElementById('syncStatusText').textContent = '❌ Sync failed';
+                    }
+                    progress.style.display = 'none';
+                    btn.disabled = false;
+                    btn.innerHTML = '🚀 Sync Now';
+                    if (!fromReload) syncInProgress = false;
+                } else {
+                    var cur = statusData.status.current_sync;
+                    if (cur) {
+                        updateSyncProgressUI(cur);
+                        document.getElementById('syncTestCases').textContent = cur.test_cases_so_far;
+                        document.getElementById('syncProjects').textContent = cur.projects_total;
+                    }
+                    updateSyncLogWhenSyncing(statusData.status.sync_log && Array.isArray(statusData.status.sync_log) ? statusData.status.sync_log : []);
+                    btn.innerHTML = '⏳ Syncing...';
+                    var liveBadge = document.getElementById('syncLogLiveBadge');
+                    if (liveBadge) liveBadge.style.display = 'inline';
+                }
+            }).catch(function (e) { console.error('Polling error', e); });
+        }
+
+        function startSyncPolling(fromReload) {
+            var btn = document.getElementById('syncNowBtn');
+            var progress = document.getElementById('syncProgress');
+            var result = document.getElementById('syncResult');
+            if (syncPollIntervalId) clearInterval(syncPollIntervalId);
+            // First poll immediately so running log and progress appear right away
+            runOneSyncStatusPoll(fromReload, btn, progress, result);
+            syncPollIntervalId = setInterval(function () {
+                runOneSyncStatusPoll(fromReload, btn, progress, result);
+            }, 2000);
+        }
+
+        async function loadSyncStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/sync/status`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const status = data.status;
+
+                    if (status.is_syncing && status.current_sync) {
+                        var cur = status.current_sync;
+                        document.getElementById('syncStatusText').textContent = '⏳ Syncing...';
+                        document.getElementById('syncProgress').style.display = 'block';
+                        var liveBadge = document.getElementById('syncLogLiveBadge');
+                        if (liveBadge) liveBadge.style.display = 'inline';
+                        updateSyncProgressUI(cur);
+                        document.getElementById('syncTestCases').textContent = cur.test_cases_so_far;
+                        document.getElementById('syncProjects').textContent = cur.projects_total;
+                        updateSyncLogWhenSyncing(status.sync_log);
+                        document.getElementById('syncNowBtn').disabled = true;
+                        document.getElementById('syncNowBtn').innerHTML = '⏳ Syncing...';
+                        startSyncPolling(true);
+                    } else {
+                        document.getElementById('syncProgress').style.display = 'none';
+                        document.getElementById('syncNowBtn').disabled = false;
+                        document.getElementById('syncNowBtn').innerHTML = '🚀 Sync Now';
+                    }
+
+                    // Update stats whenever we have latest_sync_record (not only when last_sync is set)
+                    var rec = status.latest_sync_record;
+                    if (rec && !status.is_syncing) {
+                        document.getElementById('syncTestCases').textContent =
+                            rec.test_cases_fetched != null ? rec.test_cases_fetched : (rec.test_cases_updated != null ? rec.test_cases_updated : 0);
+                        document.getElementById('syncProjects').textContent =
+                            rec.projects_count != null ? rec.projects_count : ((status.configured_projects && status.configured_projects.length) || 0);
+                        document.getElementById('syncDuration').textContent =
+                            (rec.duration_seconds != null ? rec.duration_seconds : 0).toFixed(1) + 's';
+                        document.getElementById('syncStatusText').textContent =
+                            rec.status === 'success' ? '✅ Sync successful' : '❌ Sync failed';
+                        var lastSyncTime = rec.timestamp || status.last_sync;
+                        document.getElementById('syncLastTime').textContent = lastSyncTime
+                            ? 'Last synced: ' + new Date(lastSyncTime).toLocaleString()
+                            : 'Last synced: —';
+                    } else if (status.last_sync) {
+                        document.getElementById('syncLastTime').textContent =
+                            'Last synced: ' + new Date(status.last_sync).toLocaleString();
+                        if (!status.is_syncing) {
+                            document.getElementById('syncTestCases').textContent = '0';
+                            document.getElementById('syncProjects').textContent = '0';
+                            document.getElementById('syncDuration').textContent = '0s';
+                            document.getElementById('syncStatusText').textContent = 'Not yet synced';
+                        }
+                    } else if (!status.is_syncing) {
+                        document.getElementById('syncLastTime').textContent = 'Not yet synced';
+                        document.getElementById('syncTestCases').textContent = '0';
+                        document.getElementById('syncProjects').textContent = '0';
+                        document.getElementById('syncDuration').textContent = '0s';
+                        document.getElementById('syncStatusText').textContent = 'Not yet synced';
+                    }
+                    // Always update running log (including empty after reset)
+                    updateSyncLog(status.sync_log && Array.isArray(status.sync_log) ? status.sync_log : []);
+
+                    // Confluence sync section (status.confluence)
+                    var conf = status.confluence;
+                    if (conf) {
+                        updateConfluenceSyncUI(conf);
+                        if (conf.is_syncing) {
+                            document.getElementById('confluenceSyncProgress').style.display = 'block';
+                            document.getElementById('confluenceSyncNowBtn').disabled = true;
+                            document.getElementById('confluenceSyncNowBtn').innerHTML = '⏳ Syncing...';
+                            document.getElementById('confluenceSyncLogLiveBadge').style.display = 'inline';
+                            if (!confluenceSyncPollIntervalId && !confluenceSyncPollTimeoutId) startConfluenceSyncPolling();
+                        } else {
+                            document.getElementById('confluenceSyncProgress').style.display = 'none';
+                            document.getElementById('confluenceSyncNowBtn').disabled = false;
+                            document.getElementById('confluenceSyncNowBtn').innerHTML = '🚀 Sync Now';
+                            document.getElementById('confluenceSyncLogLiveBadge').style.display = 'none';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading sync status:', error);
+            }
+        }
+
+        function updateConfluenceSyncUI(conf) {
+            if (!conf) return;
+            var logEl = document.getElementById('confluenceSyncLog');
+            if (logEl) {
+                var arr = conf.sync_log && Array.isArray(conf.sync_log) ? conf.sync_log : [];
+                logEl.textContent = arr.length > 0 ? arr.join('\n') : 'No log yet. Click "Sync Now" to see live logs.';
+            }
+            var latest = conf.latest_sync_record;
+            if (latest && !conf.is_syncing) {
+                document.getElementById('confluenceSyncStatusText').textContent = latest.status === 'success' ? '✅ Sync successful' : '❌ Sync failed';
+                document.getElementById('confluenceSyncPages').textContent = latest.pages_fetched != null ? latest.pages_fetched : 0;
+                document.getElementById('confluenceSyncDuration').textContent = (latest.duration_seconds || 0).toFixed(1) + 's';
+                if (latest.timestamp) document.getElementById('confluenceSyncLastTime').textContent = 'Last synced: ' + new Date(latest.timestamp).toLocaleString();
+            } else if (!conf.is_syncing) {
+                // No Confluence sync has been run yet
+                document.getElementById('confluenceSyncStatusText').textContent = 'Not yet synced';
+                document.getElementById('confluenceSyncPages').textContent = '0';
+                document.getElementById('confluenceSyncDuration').textContent = '0s';
+                document.getElementById('confluenceSyncLastTime').textContent = '';
+            }
+            if (conf.is_syncing && conf.current_sync) {
+                var cur = conf.current_sync;
+                document.getElementById('confluenceSyncStatusText').textContent = '⏳ Syncing...';
+                document.getElementById('confluenceSyncProgressText').textContent = cur.message || 'Syncing pages from Confluence (CQL)...';
+                var detail = '';
+                if (cur.current != null && cur.total != null) detail = cur.current + ' / ' + cur.total + ' pages';
+                else if (cur.message) detail = cur.message;
+                document.getElementById('confluenceSyncProgressDetail').textContent = detail;
+            }
+        }
+
+        var confluenceSyncPollTimeoutId = null;
+        var confluenceSyncPollIntervalId = null;
+        let confluenceSyncInProgress = false;
+
+        function stopConfluenceSyncPolling() {
+            if (confluenceSyncPollTimeoutId) { clearTimeout(confluenceSyncPollTimeoutId); confluenceSyncPollTimeoutId = null; }
+            if (confluenceSyncPollIntervalId) { clearInterval(confluenceSyncPollIntervalId); confluenceSyncPollIntervalId = null; }
+        }
+
+        function runOneConfluenceSyncStatusPoll() {
+            return fetch(API_BASE + '/sync/status', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    var conf = data.status && data.status.confluence ? data.status.confluence : null;
+                    if (conf) updateConfluenceSyncUI(conf);
+                    if (!conf || !conf.is_syncing) {
+                        stopConfluenceSyncPolling();
+                        document.getElementById('confluenceSyncProgress').style.display = 'none';
+                        document.getElementById('confluenceSyncNowBtn').disabled = false;
+                        document.getElementById('confluenceSyncNowBtn').innerHTML = '🚀 Sync Now';
+                        document.getElementById('confluenceSyncLogLiveBadge').style.display = 'none';
+                        confluenceSyncInProgress = false;
+                        if (conf && conf.latest_sync_record && conf.latest_sync_record.status === 'success') {
+                            loadDocuments();
+                            loadStats();
+                            loadChromaDBContents();
+                        }
+                    }
+                }).catch(function (e) { console.error('Confluence poll error', e); });
+        }
+
+        function startConfluenceSyncPolling() {
+            stopConfluenceSyncPolling();
+            // Delay first poll so backend thread has time to set is_syncing (otherwise first poll sees is_syncing=false and UI resets)
+            var delayMs = 1200;
+            confluenceSyncPollTimeoutId = setTimeout(function firstThenInterval() {
+                confluenceSyncPollTimeoutId = null;
+                runOneConfluenceSyncStatusPoll();
+                confluenceSyncPollIntervalId = setInterval(runOneConfluenceSyncStatusPoll, 2000);
+            }, delayMs);
+        }
+
+        let syncInProgress = false; // prevent double-click / multiple submissions
+
+        async function triggerTestRailSync() {
+            if (syncInProgress) return;
+            const btn = document.getElementById('syncNowBtn');
+            const progress = document.getElementById('syncProgress');
+            const result = document.getElementById('syncResult');
+
+            syncInProgress = true;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Syncing...';
+            progress.style.display = 'block';
+            result.style.display = 'none';
+            var syncSectionEl = document.getElementById('testrailSyncSection');
+            if (syncSectionEl) syncSectionEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            try {
+                // Check if a sync is already running — if so, just show progress and poll (avoids 409)
+                var statusRes = await fetch(API_BASE + '/sync/status', {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') }
+                });
+                if (statusRes.ok) {
+                    var statusJson = await statusRes.json();
+                    if (statusJson.status && statusJson.status.is_syncing && statusJson.status.current_sync) {
+                        updateSyncProgressUI(statusJson.status.current_sync);
+                        document.getElementById('syncTestCases').textContent = statusJson.status.current_sync.test_cases_so_far;
+                        document.getElementById('syncProjects').textContent = statusJson.status.current_sync.projects_total;
+                        startSyncPolling(false);
+                        return;
+                    }
+                }
+
+                var response = await fetch(API_BASE + '/sync/testrail', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('auth_token'),
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                var data = await response.json();
+
+                // 202 = started; 409 = already in progress (fallback if status check missed it)
+                if (response.status === 202 || response.status === 409 || (response.status === 200 && data.success)) {
+                    if (response.status === 409) {
+                        document.getElementById('syncProgressText').textContent = 'A sync is already running. Waiting for live progress...';
+                        document.getElementById('syncProgressDetail').textContent = 'Fetching status every 2 seconds. You can wait here or reload to see the same progress.';
+                        updateSyncLogWhenSyncing([]);
+                    }
+                    startSyncPolling(false);
+                } else {
+                    throw new Error(data.message || 'Failed to start sync');
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="alert-danger">
+                        <strong>❌ Sync failed</strong><br>
+                        ${error.message || 'Network error occurred'}
+                    </div>
+                `;
+                result.style.display = 'block';
+                document.getElementById('syncStatusText').textContent = '❌ Sync failed';
+
+                progress.style.display = 'none';
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Sync Now';
+                syncInProgress = false;
+            }
+        }
+
+        // Sync button: attach click handler so it works regardless of global scope
+        document.getElementById('syncNowBtn').addEventListener('click', function () {
+            triggerTestRailSync();
+        });
+
+        document.getElementById('confluenceSyncNowBtn').addEventListener('click', async function () {
+            if (confluenceSyncInProgress) return;
+            var btn = document.getElementById('confluenceSyncNowBtn');
+            var progress = document.getElementById('confluenceSyncProgress');
+            confluenceSyncInProgress = true;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Syncing...';
+            progress.style.display = 'block';
+            document.getElementById('confluenceSyncProgressText').textContent = 'Starting Confluence sync (CQL)...';
+            document.getElementById('confluenceSyncProgressDetail').textContent = '';
+            document.getElementById('confluenceSyncLogLiveBadge').style.display = 'inline';
+            document.getElementById('confluenceSyncSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            try {
+                var statusRes = await fetch(API_BASE + '/sync/status', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') } });
+                if (statusRes.ok) {
+                    var statusJson = await statusRes.json();
+                    if (statusJson.status && statusJson.status.confluence && statusJson.status.confluence.is_syncing) {
+                        updateConfluenceSyncUI(statusJson.status.confluence);
+                        startConfluenceSyncPolling();
+                        return;
+                    }
+                }
+                var response = await fetch(API_BASE + '/sync/confluence', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token'), 'Content-Type': 'application/json' }
+                });
+                var data = await response.json();
+                if (response.status === 202 || (response.ok && data.success)) {
+                    // Show immediate feedback in log (backend sets is_syncing in a background thread, so first poll can miss it)
+                    var now = new Date();
+                    var timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+                    document.getElementById('confluenceSyncLog').textContent = '[' + timeStr + '] Sync started. Fetching pages from Confluence (CQL)...';
+                    document.getElementById('confluenceSyncStatusText').textContent = '⏳ Syncing...';
+                    startConfluenceSyncPolling();
+                } else {
+                    confluenceSyncInProgress = false;
+                    btn.disabled = false;
+                    btn.innerHTML = '🚀 Sync Now';
+                    progress.style.display = 'none';
+                    document.getElementById('confluenceSyncLogLiveBadge').style.display = 'none';
+                    alert(data.message || data.error || 'Failed to start Confluence sync');
+                }
+            } catch (e) {
+                confluenceSyncInProgress = false;
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Sync Now';
+                progress.style.display = 'none';
+                document.getElementById('confluenceSyncLogLiveBadge').style.display = 'none';
+                alert('Request failed: ' + (e.message || e));
+            }
+        });
+
+        // Load sync status again after a short delay (in case auth completed after first load)
+        setTimeout(() => {
+            if (currentUser && typeof loadSyncStatus === 'function') loadSyncStatus();
+        }, 1500);
+    </script>
+</body>
+
+</html>
