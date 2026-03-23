@@ -28,15 +28,16 @@ class AuthService:
         admin_users = self.user_storage.list_users(role='admin')
         if not admin_users:
             # Create default admin user
+            import secrets as _secrets
             default_username = 'admin'
-            default_password = 'admin123'  # Should be changed on first login
+            default_password = _secrets.token_urlsafe(12)
             self.user_storage.create_user(
                 username=default_username,
                 password=default_password,
                 role='admin'
             )
             print(f"✅ Created default admin user: {default_username} / {default_password}")
-            print(f"⚠️  IMPORTANT: Change the default admin password after first login!")
+            print(f"⚠️  IMPORTANT: Save this password now — it will not be shown again!")
     
     def login(self, username: str, password: str) -> Dict:
         """

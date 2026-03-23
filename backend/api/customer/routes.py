@@ -8,6 +8,7 @@ import json
 import os
 import queue
 import threading
+import time
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import tempfile
@@ -164,15 +165,19 @@ def requirement_analysis():
     Options (JSON body or form):
     - generate_new_tests: bool (default: true)
     """
+    file_paths = []
     try:
         text = None
-        file_path = None
-        confluence_url = None
+        confluence_urls = []
 
         if request.is_json:
             data = request.get_json() or {}
             text = data.get("requirement_spec", "").strip() or None
-            confluence_url = data.get("confluence_url", "").strip() or None
+            _raw_urls = data.get("confluence_urls") or data.get("confluence_url") or ""
+            if isinstance(_raw_urls, list):
+                confluence_urls = [u.strip() for u in _raw_urls if u.strip()]
+            else:
+                confluence_urls = [u.strip() for u in str(_raw_urls).splitlines() if u.strip()]
             generate_new = data.get("generate_new_tests", True)
             generate_p2_p3 = data.get("generate_p2_p3_tests", False)
             push_to_testrail = data.get("push_to_testrail", False)
@@ -181,7 +186,11 @@ def requirement_analysis():
         else:
             data = request.form
             text = (data.get("requirement_spec") or "").strip() or None
-            confluence_url = (data.get("confluence_url") or "").strip() or None
+            _raw_urls = data.get("confluence_urls") or data.get("confluence_url") or ""
+            if isinstance(_raw_urls, list):
+                confluence_urls = [u.strip() for u in _raw_urls if u.strip()]
+            else:
+                confluence_urls = [u.strip() for u in str(_raw_urls).splitlines() if u.strip()]
             generate_new = data.get("generate_new_tests", "true").lower() in ("true", "1", "yes")
             generate_p2_p3 = (data.get("generate_p2_p3_tests") or "false").lower() in ("true", "1", "yes")
             push_to_testrail = (data.get("push_to_testrail") or "false").lower() in ("true", "1", "yes")
@@ -193,37 +202,34 @@ def requirement_analysis():
             except (TypeError, ValueError):
                 target_section_id = None
 
-        if "file" in request.files and request.files["file"].filename:
-            f = request.files["file"]
+        for f in request.files.getlist("file"):
+            if not f.filename:
+                continue
             ext = Path(secure_filename(f.filename)).suffix.lower()
             if ext not in (".txt", ".pdf", ".docx", ".doc"):
-                return jsonify({
-                    "success": False,
-                    "error": "Unsupported file type. Use .txt, .pdf, or .docx",
-                }), 400
+                return jsonify({"success": False, "error": f"Unsupported file type: {f.filename}. Use .txt, .pdf, or .docx"}), 400
             with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
                 f.save(tmp.name)
-                file_path = Path(tmp.name)
+                file_paths.append(Path(tmp.name))
 
-        input_count = sum(1 for x in (text, file_path, confluence_url) if x)
-        if input_count == 0:
-            return jsonify({
-                "success": False,
-                "error": "Provide exactly one of: requirement_spec (text), file, or confluence_url",
-            }), 400
-        if input_count > 1:
-            return jsonify({
-                "success": False,
-                "error": "Provide only one input: requirement_spec, file, or confluence_url",
-            }), 400
+        _has_text = bool(text)
+        _has_files = len(file_paths) > 0
+        _has_urls = len(confluence_urls) > 0
+        _input_types = sum([_has_text, _has_files, _has_urls])
+        if _input_types == 0:
+            return jsonify({"success": False, "error": "Provide requirement_spec (text), file(s), or confluence URL(s)"}), 400
+        if _input_types > 1:
+            return jsonify({"success": False, "error": "Provide only one type of input: text, file(s), or URL(s) — not a mix"}), 400
 
         rag_service = current_app.config["RAG_SERVICE"]
         svc = RequirementAnalysisService(rag_service=rag_service)
 
         result = svc.analyze(
             text=text,
-            file_path=file_path,
-            confluence_url=confluence_url,
+            file_path=file_paths[0] if len(file_paths) == 1 else None,
+            file_paths=file_paths if len(file_paths) > 1 else None,
+            confluence_url=confluence_urls[0] if len(confluence_urls) == 1 else None,
+            confluence_urls=confluence_urls if len(confluence_urls) > 1 else None,
             generate_new_tests=generate_new,
             generate_p2_p3_tests=generate_p2_p3,
             push_to_testrail=push_to_testrail,
@@ -231,28 +237,31 @@ def requirement_analysis():
             use_section_of_related=use_section_of_related,
         )
 
-        if file_path and file_path.exists():
-            try:
-                file_path.unlink()
-            except Exception:
-                pass
-
         return jsonify(result), 200
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        for fp in file_paths:
+            if fp and fp.exists():
+                try: fp.unlink()
+                except Exception: pass
 
 
 def _requirement_analysis_params():
-    """Parse requirement-analysis input and options from request. Returns (text, file_path, confluence_url, opts) or raises."""
+    """Parse requirement-analysis input and options from request. Returns (text, file_paths, confluence_urls, opts) or raises."""
     text = None
-    file_path = None
-    confluence_url = None
+    file_paths = []
+    confluence_urls = []
     if request.is_json:
         data = request.get_json() or {}
         text = data.get("requirement_spec", "").strip() or None
-        confluence_url = data.get("confluence_url", "").strip() or None
+        _raw_urls = data.get("confluence_urls") or data.get("confluence_url") or ""
+        if isinstance(_raw_urls, list):
+            confluence_urls = [u.strip() for u in _raw_urls if u.strip()]
+        else:
+            confluence_urls = [u.strip() for u in str(_raw_urls).splitlines() if u.strip()]
         generate_new = data.get("generate_new_tests", True)
         generate_p2_p3 = data.get("generate_p2_p3_tests", False)
         push_to_testrail = data.get("push_to_testrail", False)
@@ -261,7 +270,11 @@ def _requirement_analysis_params():
     else:
         data = request.form
         text = (data.get("requirement_spec") or "").strip() or None
-        confluence_url = (data.get("confluence_url") or "").strip() or None
+        _raw_urls = data.get("confluence_urls") or data.get("confluence_url") or ""
+        if isinstance(_raw_urls, list):
+            confluence_urls = [u.strip() for u in _raw_urls if u.strip()]
+        else:
+            confluence_urls = [u.strip() for u in str(_raw_urls).splitlines() if u.strip()]
         generate_new = (data.get("generate_new_tests") or "true").lower() in ("true", "1", "yes")
         generate_p2_p3 = (data.get("generate_p2_p3_tests") or "false").lower() in ("true", "1", "yes")
         push_to_testrail = (data.get("push_to_testrail") or "false").lower() in ("true", "1", "yes")
@@ -272,19 +285,23 @@ def _requirement_analysis_params():
             target_section_id = int(target_section_id)
         except (TypeError, ValueError):
             target_section_id = None
-    if "file" in request.files and request.files["file"].filename:
-        f = request.files["file"]
+    for f in request.files.getlist("file"):
+        if not f.filename:
+            continue
         ext = Path(secure_filename(f.filename)).suffix.lower()
         if ext not in (".txt", ".pdf", ".docx", ".doc"):
-            raise ValueError("Unsupported file type. Use .txt, .pdf, or .docx")
+            raise ValueError(f"Unsupported file type: {f.filename}. Use .txt, .pdf, or .docx")
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
             f.save(tmp.name)
-            file_path = Path(tmp.name)
-    input_count = sum(1 for x in (text, file_path, confluence_url) if x)
-    if input_count == 0:
-        raise ValueError("Provide exactly one of: requirement_spec (text), file, or confluence_url")
-    if input_count > 1:
-        raise ValueError("Provide only one input: requirement_spec, file, or confluence_url")
+            file_paths.append(Path(tmp.name))
+    _has_text = bool(text)
+    _has_files = len(file_paths) > 0
+    _has_urls = len(confluence_urls) > 0
+    _input_types = sum([_has_text, _has_files, _has_urls])
+    if _input_types == 0:
+        raise ValueError("Provide requirement_spec (text), file(s), or confluence URL(s)")
+    if _input_types > 1:
+        raise ValueError("Provide only one type of input: text, file(s), or URL(s) — not a mix")
     opts = {
         "generate_new_tests": generate_new,
         "generate_p2_p3_tests": generate_p2_p3,
@@ -292,7 +309,7 @@ def _requirement_analysis_params():
         "target_section_id": target_section_id,
         "use_section_of_related": use_section_of_related,
     }
-    return text, file_path, confluence_url, opts
+    return text, file_paths, confluence_urls, opts
 
 
 @customer_bp.route('/requirement-analysis/stream', methods=['POST'])
@@ -302,13 +319,14 @@ def requirement_analysis_stream():
     Request body: same as POST /requirement-analysis (JSON or form).
     """
     try:
-        text, file_path, confluence_url, opts = _requirement_analysis_params()
+        text, file_paths, confluence_urls, opts = _requirement_analysis_params()
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-    q = queue.Queue()
+    q = queue.Queue(maxsize=500)
+    cancel_event = threading.Event()
     rag_service = current_app.config["RAG_SERVICE"]
     svc = RequirementAnalysisService(rag_service=rag_service)
 
@@ -323,24 +341,30 @@ def requirement_analysis_stream():
             def doc_summary_cb(meta):
                 q.put(("doc_summary", meta))
 
+            def requirement_step_cb(req_id, step):
+                q.put(("requirement_step", req_id, step))
+
             result = svc.analyze(
                 text=text,
-                file_path=file_path,
-                confluence_url=confluence_url,
+                file_path=file_paths[0] if len(file_paths) == 1 else None,
+                file_paths=file_paths if len(file_paths) > 1 else None,
+                confluence_url=confluence_urls[0] if len(confluence_urls) == 1 else None,
+                confluence_urls=confluence_urls if len(confluence_urls) > 1 else None,
                 progress_callback=progress_cb,
                 requirement_result_callback=requirement_result_cb,
                 doc_summary_callback=doc_summary_cb,
+                requirement_step_callback=requirement_step_cb,
+                cancel_event=cancel_event,
                 **opts,
             )
             q.put(("result", result))
         except Exception as e:
             q.put(("error", str(e)))
         finally:
-            if file_path and file_path.exists():
-                try:
-                    file_path.unlink()
-                except Exception:
-                    pass
+            for fp in file_paths:
+                if fp and fp.exists():
+                    try: fp.unlink()
+                    except Exception: pass
 
     def sse(data_str):
         return f"data: {data_str}\n\n"
@@ -349,14 +373,14 @@ def requirement_analysis_stream():
         # Send config immediately so frontend can apply correct thresholds before per-requirement blocks arrive
         try:
             _cov_min_sim = 60.0
-            _v = os.getenv("REQUIREMENT_COVERAGE_SUFFICIENT_MIN_SIMILARITY", "").strip()
+            _v = os.getenv("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", "").strip()
             if _v:
                 _cov_min_sim = max(0.0, min(100.0, float(_v)))
         except (ValueError, TypeError):
             _cov_min_sim = 60.0
         try:
             _retrieval_threshold = 45.0
-            _v = os.getenv("REQUIREMENT_RETRIEVAL_SIMILARITY_THRESHOLD", "").strip()
+            _v = os.getenv("REQUIREMENT_TESTS_SIMILARITY_THRESHOLD", "").strip()
             if _v:
                 _retrieval_threshold = max(0.0, min(100.0, float(_v)))
         except (ValueError, TypeError):
@@ -365,14 +389,26 @@ def requirement_analysis_stream():
 
         thread = threading.Thread(target=run_analyze)
         thread.start()
+        deadline = time.time() + 1200  # hard stop after 20 min regardless
         while True:
-            try:
-                item = q.get(timeout=300)
-            except queue.Empty:
+            if time.time() > deadline:
+                cancel_event.set()  # signal analysis threads to stop
                 break
+            try:
+                item = q.get(timeout=25)
+            except queue.Empty:
+                # Send SSE comment as keepalive to prevent TCP/proxy idle disconnects
+                yield ": keepalive\n\n"
+                continue
             if item[0] == "doc_summary":
                 try:
                     yield sse(json.dumps({"type": "doc_summary", "data": item[1]}, default=str))
+                except Exception:
+                    pass
+                continue
+            if item[0] == "requirement_step":
+                try:
+                    yield sse(json.dumps({"type": "requirement_step", "req_id": item[1], "step": item[2]}))
                 except Exception:
                     pass
                 continue

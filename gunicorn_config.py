@@ -2,7 +2,7 @@
 Gunicorn Configuration for Production Deployment
 ================================================
 
-Production WSGI server configuration for Thanos Knowledge Dashboard.
+Production WSGI server configuration for AI Test Studio.
 """
 
 import multiprocessing
@@ -19,10 +19,15 @@ bind = f"0.0.0.0:{os.getenv('PORT', '5001')}"
 backlog = 2048
 
 # Worker processes
-workers = int(os.getenv('GUNICORN_WORKERS', 1))
-worker_class = 'sync'
+# Single process so all threads share the same vectorstore + pre-warm cache.
+# gthread worker handles each request in its own thread — LLM/API calls are
+# I/O-bound so threads run truly in parallel despite the GIL.
+workers = 1
+worker_class = 'gthread'
+threads = int(os.getenv('GUNICORN_THREADS', max(8, multiprocessing.cpu_count() * 2)))
 worker_connections = 1000
-timeout = 120
+# Analyses can take up to 15 min; keepalives every 25s keep the worker alive.
+timeout = int(os.getenv('GUNICORN_TIMEOUT', 900))
 keepalive = 5
 
 # Logging
@@ -47,8 +52,8 @@ tmp_upload_dir = None
 # certfile = '/path/to/certfile'
 
 # Performance tuning
-max_requests = 1000
-max_requests_jitter = 50
+max_requests = 2000  # Restart worker after 2000 requests to reclaim leaked memory
+max_requests_jitter = 200  # Randomize restart to avoid thundering herd
 preload_app = False  # Set to False to avoid issues with ChromaDB and path resolution
 
 # Graceful timeout for worker restart

@@ -50,7 +50,7 @@ class ConfluenceSyncService:
         api_token = getattr(self.config, "confluence_api_token", None) or os.getenv("CONFLUENCE_API_TOKEN", "")
 
         self.connector = None
-        if getattr(self.config, "confluence_sync_enabled", False) and url and email and api_token:
+        if url and email and api_token:
             self.connector = ConfluenceConnector(url=url, email=email, api_token=api_token)
 
     def _load_sync_metadata(self) -> Dict[str, Any]:
@@ -128,18 +128,10 @@ class ConfluenceSyncService:
         """
         Main sync entry point - fetch specs from Confluence and sync to ChromaDB.
         Uses CONFLUENCE_CQL (default type=page). Body is converted to Markdown (HTML→MD) for structure.
-        Stores one .md file per page (confluence_{page_id}.md), or batched (confluence_batch_N.md)
-        when CONFLUENCE_PAGES_PER_FILE > 1 to reduce file count (e.g. 1000 pages → 20 files if set to 50).
+        Stores one .md file per page (confluence_{page_id}.md).
         To sync only one folder use CQL: type=page AND space=Product AND ancestor=<page_id>.
         """
         start_time = datetime.now()
-
-        if not getattr(self.config, "confluence_sync_enabled", False):
-            return {
-                'success': False,
-                'error': 'Confluence sync is disabled',
-                'message': 'Enable CONFLUENCE_SYNC_ENABLED in .env to use sync',
-            }
 
         if not self.connector:
             return {
@@ -155,7 +147,12 @@ class ConfluenceSyncService:
 
         cql = getattr(self.config, "confluence_cql", None) or os.getenv("CONFLUENCE_CQL", "type=page")
         cql = (cql or "").strip() or "type=page"
-        max_pages = int(getattr(self.config, "confluence_max_pages", 500) or os.getenv("CONFLUENCE_MAX_PAGES", "500"))
+        delta_days = int(getattr(self.config, "confluence_delta_days", 0) or os.getenv("CONFLUENCE_DELTA_DAYS", "0"))
+
+        # Apply date filter when delta_days > 0 (fetch only recently updated pages)
+        if delta_days > 0:
+            cutoff = (datetime.now() - timedelta(days=delta_days)).strftime('%Y-%m-%d')
+            cql = f"({cql}) AND lastModified >= '{cutoff}'"
 
         metadata['is_syncing'] = True
         metadata['sync_started_at'] = datetime.now().isoformat()
@@ -163,7 +160,8 @@ class ConfluenceSyncService:
             'phase': 'starting',
             'message': f'Fetching Confluence pages (CQL)...',
         }
-        metadata['sync_log'] = [f"[{datetime.now().strftime('%H:%M:%S')}] Confluence sync started. CQL: {cql[:50]}..."]
+        delta_info = f", delta_days: {delta_days}" if delta_days > 0 else ""
+        metadata['sync_log'] = [f"[{datetime.now().strftime('%H:%M:%S')}] Confluence sync started. CQL: {cql[:50]}...{delta_info}"]
         self._save_sync_metadata(metadata)
 
         def progress_callback(current: int, total: int, message: str):
@@ -182,12 +180,12 @@ class ConfluenceSyncService:
             print("🚀 Starting Confluence Sync (CQL)")
             print("=" * 60)
             print(f"CQL: {cql[:80]}{'...' if len(cql) > 80 else ''}")
-            print(f"Max pages: {max_pages}")
+            if delta_days > 0:
+                print(f"Delta days: {delta_days} (pages updated since {(datetime.now() - timedelta(days=delta_days)).strftime('%Y-%m-%d')})")
             print("")
 
             df = self.connector.fetch_and_transform(
                 cql=cql,
-                max_pages=max_pages,
                 progress_callback=progress_callback,
                 log_callback=log_callback,
             )
@@ -208,29 +206,27 @@ class ConfluenceSyncService:
                     'message': f'Data validation failed: {error_msg}',
                 }
 
-            pages_per_file = int(
-                getattr(self.config, "confluence_pages_per_file", None)
-                or os.getenv("CONFLUENCE_PAGES_PER_FILE", "1")
-            )
-            pages_per_file = max(1, pages_per_file)
-            if pages_per_file == 1:
-                self._append_sync_log(f"Updating ChromaDB with {len(df)} specs (one Markdown file per page)...")
-            else:
-                self._append_sync_log(f"Updating ChromaDB with {len(df)} specs (batched: {pages_per_file} pages per .md file)...")
+            self._append_sync_log(f"Updating ChromaDB with {len(df)} specs (one Markdown file per page)...")
 
             if rag_service is None:
                 from backend.services.rag_service import RAGService
                 rag_service = RAGService()
 
-            # Remove all existing Confluence docs (confluence_*.md or confluence_*.csv)
+            # Full sync (delta_days=0): wipe all Confluence docs and re-ingest everything.
+            # Delta sync (delta_days>0): only re-ingest changed pages — keep existing docs.
+            _is_full_sync = delta_days == 0
             metadata = self._load_sync_metadata()
-            if metadata.get('is_syncing'):
-                metadata['current_sync'] = {'phase': 'chromadb', 'message': 'Removing previous Confluence docs...'}
-                self._save_sync_metadata(metadata)
-            del_result = rag_service.delete_documents_by_name_prefix("confluence_")
-            if del_result.get('deleted_count', 0) > 0:
-                print(f"🗑️  Removed {del_result['deleted_count']} previous Confluence doc(s)")
-                self._append_sync_log(f"Removed {del_result['deleted_count']} previous Confluence doc(s)")
+            if _is_full_sync:
+                if metadata.get('is_syncing'):
+                    metadata['current_sync'] = {'phase': 'chromadb', 'message': 'Removing previous Confluence docs (full sync)...'}
+                    self._save_sync_metadata(metadata)
+                del_result = rag_service.delete_documents_by_name_prefix("confluence_")
+                if del_result.get('deleted_count', 0) > 0:
+                    print(f"🗑️  Removed {del_result['deleted_count']} previous Confluence doc(s)")
+                    self._append_sync_log(f"Removed {del_result['deleted_count']} previous Confluence doc(s)")
+            else:
+                print(f"📦 Delta sync (delta_days={delta_days}) — keeping existing docs, updating changed pages only")
+                self._append_sync_log(f"Delta sync — updating changed pages only (keeping existing docs)")
             if del_result.get('errors'):
                 for e in del_result['errors'][:5]:
                     print(f"⚠️  {e}")
@@ -250,9 +246,7 @@ class ConfluenceSyncService:
 
             added = 0
             failed = []
-            if pages_per_file <= 1:
-                # One Markdown file per page
-                for idx, row in df.iterrows():
+            for idx, row in df.iterrows():
                     page_id = str(row.get('page_id', '')).strip() or f"row_{idx}"
                     if metadata.get('is_syncing') and added > 0 and added % 50 == 0:
                         metadata = self._load_sync_metadata()
@@ -267,6 +261,7 @@ class ConfluenceSyncService:
                             file_path=temp_md,
                             file_name=f"confluence_{page_id}.md",
                             subdir="confluence",
+                            extra_metadata={"source_type": "specs"},
                         )
                         if result.get('success'):
                             added += 1
@@ -274,38 +269,6 @@ class ConfluenceSyncService:
                             failed.append(f"{page_id}: {result.get('error', 'Unknown error')}")
                     except Exception as e:
                         failed.append(f"{page_id}: {e}")
-                    finally:
-                        try:
-                            temp_md.unlink()
-                        except FileNotFoundError:
-                            pass
-            else:
-                # Batched: N pages per .md file (fewer files for 1000+ pages)
-                rows = [df.iloc[i] for i in range(len(df))]
-                for batch_start in range(0, len(rows), pages_per_file):
-                    batch = rows[batch_start : batch_start + pages_per_file]
-                    batch_idx = batch_start // pages_per_file
-                    if metadata.get('is_syncing') and batch_idx > 0 and batch_idx % 10 == 0:
-                        metadata = self._load_sync_metadata()
-                        if metadata.get('is_syncing'):
-                            metadata['current_sync'] = {'phase': 'chromadb', 'message': f'Adding batch {batch_idx + 1}...'}
-                            self._save_sync_metadata(metadata)
-                    sections = [md_section(row) for row in batch]
-                    content = "\n\n---\n\n".join(sections)
-                    temp_md = Path(tempfile.gettempdir()) / f"confluence_batch_{batch_idx}_{datetime.now().strftime('%H%M%S')}.md"
-                    try:
-                        temp_md.write_text(content, encoding='utf-8')
-                        result = rag_service.add_document_file(
-                            file_path=temp_md,
-                            file_name=f"confluence_batch_{batch_idx}.md",
-                            subdir="confluence",
-                        )
-                        if result.get('success'):
-                            added += 1
-                        else:
-                            failed.append(f"batch_{batch_idx}: {result.get('error', 'Unknown error')}")
-                    except Exception as e:
-                        failed.append(f"batch_{batch_idx}: {e}")
                     finally:
                         try:
                             temp_md.unlink()
@@ -323,6 +286,48 @@ class ConfluenceSyncService:
             result = {'success': True}
 
             self._append_sync_log("ChromaDB update completed successfully")
+
+            # Cleanup: remove Confluence pages from ChromaDB that no longer match the CQL query.
+            # Handles pages deleted/moved in Confluence since the last sync.
+            try:
+                # Get all confluence page IDs currently in our documents
+                _existing_doc_ids = {
+                    doc_id: info.get('name', '')
+                    for doc_id, info in rag_service.documents.items()
+                    if info.get('name', '').startswith('confluence_') and info.get('name', '').endswith('.md')
+                }
+                # Extract page IDs from doc names: "confluence_12345.md" → "12345"
+                import re as _re
+                _chroma_page_ids = {}
+                for _doc_id, _name in _existing_doc_ids.items():
+                    _m = _re.search(r'confluence_(\d+)\.md', _name)
+                    if _m:
+                        _chroma_page_ids[_m.group(1)] = _doc_id
+                # Get all valid page IDs from the current Confluence CQL (full query, no date filter)
+                _valid_page_ids = set(str(row.get('page_id', '')) for _, row in df.iterrows() if row.get('page_id'))
+                if not _is_full_sync and _chroma_page_ids:
+                    # For delta sync, also fetch full page list to detect deletions
+                    try:
+                        _base_cql = (cql or "type=page").split(" AND lastmodified")[0].split(" AND last-modified")[0]
+                        _full_df = self.connector.fetch_and_transform(cql=_base_cql)
+                        _valid_page_ids = set(str(row.get('page_id', '')) for _, row in _full_df.iterrows() if row.get('page_id'))
+                    except Exception:
+                        _valid_page_ids = None  # can't verify, skip cleanup
+                if _valid_page_ids is not None:
+                    _orphan_pages = set(_chroma_page_ids.keys()) - _valid_page_ids
+                    if _orphan_pages:
+                        for _pid in _orphan_pages:
+                            _doc_id = _chroma_page_ids[_pid]
+                            try:
+                                rag_service.delete_document(_doc_id)
+                            except Exception:
+                                pass
+                        print(f"🗑️  Removed {len(_orphan_pages)} deleted Confluence page(s) from ChromaDB")
+                        self._append_sync_log(f"Removed {len(_orphan_pages)} deleted Confluence page(s)")
+                    else:
+                        print("✅ No orphaned Confluence pages found")
+            except Exception as _cleanup_err:
+                print(f"⚠️  Confluence orphan cleanup failed (non-fatal): {_cleanup_err}")
 
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
@@ -400,7 +405,5 @@ class ConfluenceSyncService:
             'latest_sync_record': latest_sync,
             'sync_log': sync_log,
             'total_syncs': len(metadata.get('syncs', [])),
-            'sync_enabled': getattr(self.config, "confluence_sync_enabled", False),
             'cql': (getattr(self.config, "confluence_cql", None) or os.getenv("CONFLUENCE_CQL", "type=page") or "type=page").strip() or "type=page",
-            'max_pages': int(getattr(self.config, "confluence_max_pages", 500) or os.getenv("CONFLUENCE_MAX_PAGES", "500")),
         }

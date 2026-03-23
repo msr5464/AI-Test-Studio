@@ -1,6 +1,6 @@
-# Contributing to InHouse Knowledge AI
+# Contributing to AI Test Studio
 
-Thank you for your interest in contributing to InHouse Knowledge AI! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to AI Test Studio! This document provides guidelines and instructions for contributing.
 
 ## Table of Contents
 
@@ -396,5 +396,5 @@ Contributors will be recognized in:
 - Release notes
 - Project documentation
 
-Thank you for contributing to InHouse Knowledge AI! 🎉
+Thank you for contributing to AI Test Studio! 🎉
 

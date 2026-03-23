@@ -33,6 +33,9 @@
             --text-muted: #64748b;
             --border: #334155;
             --bg-white: #1e293b;
+            --danger: #ef4444;
+            --danger-light: rgba(239, 68, 68, 0.15);
+            --danger-text: #fca5a5;
             --radius: 12px;
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
         }
@@ -59,6 +62,9 @@
             --text-muted: #94a3b8;
             --border: #e2e8f0;
             --bg-white: #ffffff;
+            --danger: #dc2626;
+            --danger-light: rgba(220, 38, 38, 0.1);
+            --danger-text: #991b1b;
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
 
@@ -124,92 +130,6 @@
             justify-content: space-between;
             border-bottom: 1px solid var(--border);
             transition: background-color 0.3s;
-        }
-
-        /* Settings Modal */
-        .settings-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-        }
-
-        .settings-modal-overlay.show {
-            display: flex;
-        }
-
-        .settings-modal {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: var(--shadow);
-        }
-
-        .settings-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .settings-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .settings-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 4px;
-            line-height: 1;
-        }
-
-        .settings-close:hover {
-            color: var(--text);
-        }
-
-        .settings-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            padding: 20px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .settings-item:last-child {
-            border-bottom: none;
-        }
-
-        .settings-item > div:first-child {
-            min-width: 0;
-            flex: 1;
-        }
-
-        .settings-label {
-            font-size: 15px;
-            color: var(--text);
-        }
-
-        .settings-label-desc {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 6px;
-            line-height: 1.4;
         }
 
         /* Theme Toggle Switch */
@@ -514,11 +434,6 @@
             display: none !important;
         }
 
-        /* Answer Source hidden – use Settings for default; keeps layout simple */
-        .chat-input-box .ask-options {
-            display: none !important;
-        }
-
         .chat-input-box .ask-row {
             margin: 0;
             align-items: center;
@@ -532,77 +447,6 @@
             margin-bottom: 24px;
             box-shadow: var(--shadow);
             transition: background-color 0.3s, border-color 0.3s;
-        }
-
-        .ask-options {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px 16px;
-            margin-bottom: 8px;
-            font-size: 12px;
-        }
-
-        .ask-options-label {
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-right: 4px;
-        }
-
-        .ask-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-light);
-            cursor: pointer;
-            padding: 2px 0;
-            border: none;
-            border-radius: 0;
-            transition: color 0.15s;
-        }
-
-        .ask-option:hover {
-            color: var(--primary);
-        }
-
-        .ask-option:hover .ask-option-desc {
-            color: var(--text-muted);
-        }
-
-        .ask-option input {
-            accent-color: var(--primary);
-            width: 14px;
-            height: 14px;
-            margin: 0;
-            flex-shrink: 0;
-            cursor: pointer;
-            pointer-events: auto;
-            vertical-align: middle;
-        }
-
-        .ask-option-content {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-            align-items: baseline;
-            gap: 0 4px;
-        }
-
-        .ask-option-title {
-            font-weight: 500;
-            line-height: 1.3;
-            font-size: 12px;
-        }
-
-        .ask-option-desc {
-            font-size: 10px;
-            color: var(--text-muted);
-            line-height: 1.3;
-        }
-
-        /* Only the radio shows selected state; no full-block highlight */
-        .ask-option:has(input:checked) .ask-option-title {
-            color: var(--primary);
         }
 
         .ask-row {
@@ -1169,7 +1013,7 @@
             text-align: center;
             padding: 12px 24px;
             font-size: 11px;
-            color: var(--text-muted);
+            color: var(--text-light);
             margin-top: 0;
         }
 
@@ -3177,25 +3021,24 @@
         }
         .req-summary-block {
             padding: 14px 18px;
-            background: transparent;
-            border-left: 4px solid var(--primary);
-            border-radius: 0 8px 8px 0;
-            background: rgba(6, 182, 212, 0.06);
+            border-radius: 8px;
+            background: linear-gradient(90deg, #16a34a, #22c55e);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
         }
         .req-summary-headline {
             font-size: 16px;
             font-weight: 600;
-            color: var(--text);
+            color: #fff;
             margin: 0 0 4px 0;
             line-height: 1.4;
         }
         .req-summary-headline .req-summary-total {
             font-weight: 700;
-            color: var(--primary);
+            color: #fff;
         }
         .req-summary-subline {
             font-size: 14px;
-            color: var(--text-light);
+            color: rgba(255,255,255,0.85);
             margin: 6px 0 0 0;
             line-height: 1.4;
         }
@@ -3313,9 +3156,21 @@
         .req-req-header .req-id { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
         .req-req-header .req-title { font-size: 13px; color: var(--text); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .req-req-header .req-count-badge { background: var(--bg-input); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: var(--text-light); flex-shrink: 0; }
+        .req-time-badge { font-size: 11px; color: var(--text-light); background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 2px 8px; margin-left: 4px; font-weight: 500; flex-shrink: 0; }
+        .req-activity-feed { margin: 10px 4px 2px 4px; }
+        .req-activity-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 6px; background: var(--bg-input); border: 1px solid var(--border); margin-bottom: 5px; font-size: 13px; }
+        .req-activity-id { font-weight: 700; color: var(--primary); min-width: 64px; font-size: 12px; flex-shrink: 0; }
+        .req-activity-step { color: var(--text-main); flex: 1; }
+        .req-activity-spinner { width: 13px; height: 13px; border: 2px solid var(--border); border-top-color: #16a34a; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
         .req-req-body { padding: 16px; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: 0 0 12px 12px; overflow: hidden; }
         .req-requirement-section.collapsed .req-req-body { display: none; }
-        .req-req-body .req-description { font-size: 13px; color: var(--text-light); white-space: pre-wrap; margin-bottom: 12px; padding: 10px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border); }
+        .req-req-body .req-description { font-size: 13px; margin-bottom: 12px; padding: 10px 12px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border); }
+        .req-req-body .req-description .req-desc-text { color: var(--text-light); white-space: pre-wrap; }
+        .req-ac-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+        .req-ac-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+        .req-ac-confluence-badge { font-size: 10px; font-weight: 600; color: var(--primary); background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); border-radius: 8px; padding: 1px 6px; letter-spacing: 0; text-transform: none; }
+        .req-ac-list { margin: 0; padding-left: 18px; }
+        .req-ac-list li { font-size: 12px; color: var(--text-light); line-height: 1.5; padding: 1px 0; }
         .req-req-body .req-section-label { font-size: 12px; font-weight: 600; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px; margin: 12px 0 8px 0; }
         .req-req-block { margin-bottom: 20px; padding: 14px; background: var(--bg-input); border-radius: 10px; border-left: 4px solid var(--success); }
         .req-req-block .req-id { font-weight: 700; color: var(--success); margin-bottom: 6px; }
@@ -3362,6 +3217,8 @@
         .req-modify-push-btn:disabled, .req-e2e-modify-push-btn:disabled, .req-tr-btn:disabled { opacity: 0.7; cursor: not-allowed; }
         .req-update-with-ai-btn:disabled, .req-generate-with-ai-btn:disabled { opacity: 0.7; cursor: not-allowed; }
         .req-gen-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .req-pushed-link { margin-top: 10px; padding: 8px 14px; background: var(--success-light); border: 1px solid var(--success); border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--success); display: flex; align-items: center; gap: 6px; }
+        .req-pushed-link a { color: var(--primary); font-weight: 700; }
         .req-e2e-flow-test { padding: 16px; background: var(--primary-light); border: 1px solid var(--primary); border-radius: 10px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; color: var(--text); }
         .req-e2e-flow-test .gt-title { font-weight: 700; font-size: 15px; color: var(--text); margin: 0 0 10px 0; padding: 0.4em 0.5em 0.5em; border-left: 4px solid var(--primary); background: var(--primary-light); border-radius: 0 6px 6px 0; }
         .req-e2e-flow-test .gt-workflow-info { margin: 0.5em 0; padding: 8px 12px; background: var(--bg-input); border-radius: 6px; font-size: 12px; color: var(--text-light); }
@@ -3396,10 +3253,10 @@
         .req-section-override { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
         .req-progress { margin: 20px 0; padding: 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); }
         .req-progress-bar-wrap { height: 10px; background: var(--bg-input); border-radius: 5px; overflow: hidden; margin-bottom: 16px; }
-        .req-progress-bar { height: 100%; background: linear-gradient(90deg, #06b6d4, #0891b2); border-radius: 5px; width: 0%; transition: width 0.3s ease; }
+        .req-progress-bar { height: 100%; background: linear-gradient(90deg, #16a34a, #22c55e); border-radius: 5px; width: 0%; transition: width 0.3s ease; }
         .req-progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
         .req-progress-message { font-size: 14px; color: var(--text); margin: 0; font-weight: 500; }
-        .req-progress-counter { font-size: 14px; color: var(--primary); margin: 0; font-weight: 600; background: var(--primary-light); padding: 4px 12px; border-radius: 16px; }
+        .req-progress-counter { font-size: 14px; color: #fff; margin: 0; font-weight: 600; background: linear-gradient(90deg, #16a34a, #22c55e); padding: 4px 14px; border-radius: 16px; box-shadow: 0 1px 6px rgba(34,197,94,0.35); letter-spacing: 0.01em; }
         .req-progress-stages { list-style: none; padding: 0; margin: 0; }
         .req-progress-stages .req-stage { padding: 8px 12px; margin: 4px 0; border-radius: 8px; font-size: 14px; color: var(--text-muted); }
         .req-progress-stages .req-stage.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
@@ -3434,10 +3291,18 @@
         .req-specs-chevron { display: inline-block; font-size: 10px; color: var(--text-muted); transition: transform 0.15s; }
         .req-specs-label { font-weight: 600; color: var(--text-muted); letter-spacing: 0.02em; }
         .req-specs-count { margin-left: auto; font-size: 11px; color: var(--text-muted); background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; }
-        .req-specs-body { padding: 8px 14px 10px; background: var(--bg-input); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
-        .req-spec-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-light); padding: 4px 0; border-bottom: 1px solid var(--border); }
+        .req-specs-body { padding: 6px 14px 10px; background: var(--bg-input); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0; }
+        .req-spec-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
         .req-spec-row:last-child { border-bottom: none; }
-        .req-spec-link { color: var(--primary); text-decoration: none; font-size: 13px; flex-shrink: 0; opacity: 0.8; }
+        .req-spec-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .req-spec-title-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .req-spec-title { font-size: 12px; font-weight: 600; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 340px; }
+        .req-spec-excerpt { font-size: 11px; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .req-spec-sim { font-size: 10px; font-weight: 700; border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
+        .req-spec-sim-high { background: rgba(16,185,129,0.15); color: #10b981; }
+        .req-spec-sim-mid  { background: rgba(234,179,8,0.15);  color: #b45309; }
+        .req-spec-sim-low  { background: rgba(156,163,175,0.15); color: var(--text-muted); }
+        .req-spec-link { color: var(--primary); text-decoration: none; font-size: 13px; flex-shrink: 0; opacity: 0.8; margin-top: 1px; }
         .req-spec-link:hover { opacity: 1; }
         #reqDocSummary { margin-bottom: 16px; }
         .req-doc-summary-banner { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 10px; padding: 14px 18px; }
@@ -3497,46 +3362,16 @@
     <!-- Header -->
     <header class="site-header">
         <a href="/" class="site-logo">
-            <img id="appLogo" src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-full.png" alt="Logo">
+            <img id="appLogo" src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png" alt="Logo">
             <span id="appName">AI Test Studio</span>
         </a>
         <nav class="site-nav">
-            <a href="https://github.com/msr5464/Knowledge-AI" target="_blank">Docs</a>
-            <a href="#" onclick="openSettings(); return false;">⚙️ Settings</a>
+            <label class="theme-toggle" title="Toggle theme">
+                <input type="checkbox" id="themeToggle" onchange="toggleTheme()" aria-label="Light mode">
+                <span class="theme-slider"></span>
+            </label>
         </nav>
     </header>
-
-    <!-- Settings Modal -->
-    <div class="settings-modal-overlay" id="settingsModal" onclick="closeSettings()">
-        <div class="settings-modal" onclick="event.stopPropagation()">
-            <div class="settings-header">
-                <span class="settings-title">⚙️ Settings</span>
-                <button class="settings-close" onclick="closeSettings()">&times;</button>
-            </div>
-            
-            <div class="settings-item">
-                <div>
-                    <div class="settings-label">Select Theme</div>
-                    <div class="settings-label-desc">Switch between dark and light mode</div>
-                </div>
-                <label class="theme-toggle">
-                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
-                    <span class="theme-slider"></span>
-                </label>
-            </div>
-            
-            <div class="settings-item">
-                <div>
-                    <div class="settings-label">Select Answer Source</div>
-                    <div class="settings-label-desc">Use internal docs for better context</div>
-                </div>
-                <select id="defaultSourceSetting" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text);" onchange="saveDefaultSource()">
-                    <option value="rag" selected>📚 Internal Docs</option>
-                    <option value="llm">🤖 Only LLM</option>
-                </select>
-            </div>
-        </div>
-    </div>
 
     <!-- Main Content -->
     <div class="main-container">
@@ -3546,7 +3381,7 @@
             <span class="hero-icon" aria-hidden="true">✨</span>
             <div class="hero-content">
                 <h1 class="hero-title">AI Test Studio</h1>
-                <p class="hero-subtitle">Generate tests from Requirements · Chat with your Documents</p>
+                <p class="hero-subtitle">Generate Tests from Requirements · Chat with your Tests &amp; Documents</p>
             </div>
             <span class="hero-icon hero-icon-right" aria-hidden="true">✨</span>
         </div>
@@ -3578,12 +3413,12 @@
                         <textarea id="reqSpecText" class="analyze-textarea" placeholder="Paste requirements, like:&#10;REQ-001: User should be able to create a business account in HK&#10;REQ-002: User should be able to make payments using this business account" rows="5"></textarea>
                     </div>
                     <div class="analyze-pane" id="analyzePaneFile" role="tabpanel">
-                        <input type="file" id="reqSpecFile" class="analyze-file" accept=".txt,.pdf,.docx,.doc" aria-describedby="file-hint">
-                        <p id="file-hint" class="analyze-hint">PDF, DOCX, or TXT — max 50MB. Text is extracted locally and sent for analysis.</p>
+                        <input type="file" id="reqSpecFile" class="analyze-file" accept=".txt,.pdf,.docx,.doc" multiple aria-describedby="file-hint" onchange="updateFileLabel()">
+                        <p id="file-hint" class="analyze-hint">Upload one or more files (.txt, .pdf, .docx). Hold Ctrl/Cmd to select multiple. <span id="reqFileLabel" style="font-weight:600;color:var(--primary);"></span></p>
                     </div>
                     <div class="analyze-pane" id="analyzePaneUrl" role="tabpanel">
-                        <input type="url" id="reqSpecUrl" class="analyze-url" placeholder="https://company.atlassian.net/wiki/..." aria-describedby="url-hint" aria-label="Confluence page URL">
-                        <p id="url-hint" class="analyze-hint">Paste a Confluence page URL. Content is fetched and sent for analysis.</p>
+                        <textarea id="reqSpecUrl" class="analyze-url" rows="3" placeholder="https://company.atlassian.net/wiki/spaces/.../Page1&#10;https://company.atlassian.net/wiki/spaces/.../Page2" aria-describedby="url-hint" aria-label="Confluence page URLs" style="resize:vertical;font-family:inherit;font-size:13px;"></textarea>
+                        <p id="url-hint" class="analyze-hint">Enter one Confluence URL per line. All pages will be fetched and analysed together.</p>
                     </div>
                 </div>
 
@@ -3671,28 +3506,12 @@
 
     <!-- Footer -->
     <footer class="site-footer">
-        <a href="https://github.com/msr5464/Knowledge-AI" target="_blank">Open Source</a> · 
-        Created by <a href="https://www.linkedin.com/in/mukesh-rajput" target="_blank">Mukesh Rajput</a>
+        Made with ❤️ for Engineering Teams &nbsp;·&nbsp; Built by <a href="https://www.linkedin.com/in/mukesh-rajput" target="_blank">Mukesh Rajput</a> &nbsp;·&nbsp; <a href="https://github.com/msr5464/Knowledge-AI" target="_blank">Open Source on GitHub</a>
     </footer>
 
-    <!-- Answer Source + Input: direct child of body, own radio name so clicks always target these -->
+    <!-- Chat Input: direct child of body -->
     <div class="chat-input-box" id="chatInputBox">
-        <div class="ask-options">
-            <span class="ask-options-label">Answer Source:</span>
-            <label class="ask-option" for="askSourceRag">
-                <input type="radio" name="answerSource" value="rag" onchange="setRAGMode(true)" id="askSourceRag">
-                <span class="ask-option-content">
-                    <span class="ask-option-title">📚 Internal Docs</span>
-                    <span class="ask-option-desc">(better context, but slower)</span>
-                </span>
-            </label>
-            <label class="ask-option" for="askSourceLlm">
-                <input type="radio" name="answerSource" value="llm" onchange="setRAGMode(false)" id="askSourceLlm">
-                <span class="ask-option-content">
-                    <span class="ask-option-title">🤖 Only LLM</span>
-                    <span class="ask-option-desc">(faster, but generic answers)</span>
-                </span>
-            </label>
+        <div>
         </div>
         <form class="ask-row" id="askForm" onsubmit="submitQuery(); return false;" autocomplete="off">
             <input type="text" id="questionInput" class="ask-input" placeholder="Ask me anything about your tests, coverage, or documentation..." autocomplete="off" style="font-size: 15px;">
@@ -3737,7 +3556,13 @@
                         <button type="button" class="req-tr-btn" id="reqPushModalNewSectionConfirm">Create</button>
                         <button type="button" class="req-tr-btn" id="reqPushModalNewSectionCancel">Cancel</button>
                     </div>
-                    <label class="req-section-override" style="margin-top:8px;display:block;">Or Section ID: <input type="number" id="reqPushModalTargetSectionId" placeholder="optional override" style="width:80px;padding:6px;border-radius:6px;border:1px solid #ddd;" /></label>
+                    <div class="req-tr-row" style="margin-top:10px;"><label style="min-width:70px;">Type:</label>
+                        <select id="reqPushModalType" style="flex:1;max-width:280px;padding:8px;border-radius:6px;border:1px solid #ddd;">
+                            <option value="All / Functional">All / Functional</option>
+                            <option value="FCT / Regression">FCT / Regression</option>
+                            <option value="Prod Sanity">Prod Sanity</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="reqPushModalProgress" class="req-push-progress" style="display:none;margin-top:16px;padding:12px;background:var(--bg-input);color:var(--text);border-radius:8px;font-size:14px;">
                     <span id="reqPushModalProgressText">Pushing... 0 of 0 done</span>
@@ -3764,6 +3589,12 @@
                         <option value="P1">P1 – High</option>
                         <option value="P2" selected>P2 – Medium</option>
                         <option value="P3">P3 – Low</option>
+                    </select>
+                    <label for="reqCaseEditType">Type</label>
+                    <select id="reqCaseEditType">
+                        <option value="All / Functional">All / Functional</option>
+                        <option value="FCT / Regression">FCT / Regression</option>
+                        <option value="Prod Sanity">Prod Sanity</option>
                     </select>
                     <label for="reqCaseEditPreconditions">Preconditions</label>
                     <textarea id="reqCaseEditPreconditions" placeholder="Preconditions"></textarea>
@@ -3862,6 +3693,12 @@
                     <option value="P2" selected>P2 – Medium</option>
                     <option value="P3">P3 – Low</option>
                 </select>
+                <label for="reqGenEditType">Type</label>
+                <select id="reqGenEditType">
+                    <option value="All / Functional">All / Functional</option>
+                    <option value="FCT / Regression">FCT / Regression</option>
+                    <option value="Prod Sanity">Prod Sanity</option>
+                </select>
                 <label for="reqGenEditPreconditions">Preconditions</label>
                 <textarea id="reqGenEditPreconditions" placeholder="Preconditions"></textarea>
                 <label for="reqGenEditSteps">Steps</label>
@@ -3907,16 +3744,6 @@
                 
                 <!-- Ask Mode Input -->
                 <div class="input-box" id="askInputBox">
-                    <div class="input-options">
-                        <label class="input-option">
-                            <input type="radio" name="askSource" value="rag" onchange="setRAGMode(true)">
-                            📚 Use Docs
-                        </label>
-                        <label class="input-option">
-                            <input type="radio" name="askSource" value="llm" onchange="setRAGMode(false)">
-                            🤖 LLM Only
-                        </label>
-                    </div>
                     <div class="input-row">
                         <textarea id="questionInputLegacy" class="input-field" placeholder="Ask me anything about your tests, coverage, or documentation..." rows="1"></textarea>
                         <button class="submit-btn" id="submitBtn" onclick="submitQuery()">Ask →</button>
@@ -3958,8 +3785,9 @@
         
         <!-- Footer (in attribution area) -->
         <footer class="app-footer">
-            <a href="https://github.com/msr5464/Knowledge-AI" target="_blank">Open Source</a> · 
-            Created by <a href="https://www.linkedin.com/in/mukesh-rajput" target="_blank">Mukesh Rajput</a>
+            Built with ❤️ by <a href="https://www.linkedin.com/in/mukesh-rajput" target="_blank">Mukesh Rajput</a>
+            &nbsp;·&nbsp;
+            <a href="https://github.com/msr5464/Knowledge-AI" target="_blank">Open Source on GitHub</a>
         </footer>
     </div><!-- /.app -->
 
@@ -3968,6 +3796,16 @@
 
     <script>
         const API_BASE = '/api/customer';
+        // Wrap fetch to detect session expiry (401/403)
+        const _origFetch = window.fetch;
+        window.fetch = function() {
+            return _origFetch.apply(this, arguments).then(function(resp) {
+                if (resp.status === 401 || resp.status === 403) {
+                    showToast('Session expired — please refresh the page.', 'warning');
+                }
+                return resp;
+            });
+        };
         let sessionId = null;
         let chatHistory = [];
         let useRAG = true; // Default to RAG mode
@@ -4103,37 +3941,10 @@
         applyMarkedOptions();
         window.addEventListener('load', applyMarkedOptions);
 
-        // Handle RAG mode selection (syncs useRAG and visible Answer Source radios by ID)
-        function setRAGMode(enableRAG) {
-            useRAG = enableRAG;
-            var source = enableRAG ? 'rag' : 'llm';
-            localStorage.setItem('defaultSource', source);
-            var selectEl = document.getElementById('defaultSourceSetting');
-            if (selectEl) selectEl.value = source;
-            var r = document.getElementById('askSourceRag');
-            var l = document.getElementById('askSourceLlm');
-            if (r) r.checked = enableRAG;
-            if (l) l.checked = !enableRAG;
-            document.querySelectorAll('input[name="askSource"]').forEach(function(radio) {
-                radio.checked = (radio.value === source);
-            });
-        }
+        // ==========================================
+        // Theme Functions
+        // ==========================================
 
-        // ==========================================
-        // Settings & Theme Functions
-        // ==========================================
-        
-        function openSettings() {
-            loadDefaultSource(); // So Settings dropdown shows current saved default
-            document.getElementById('settingsModal').classList.add('show');
-        }
-        
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.remove('show');
-            // Sync Answer Source radios after modal is closed so the fixed bar updates
-            setTimeout(function() { loadDefaultSource(); }, 50);
-        }
-        
         function toggleTheme() {
             const toggle = document.getElementById('themeToggle');
             const theme = toggle.checked ? 'light' : 'dark';
@@ -4155,34 +3966,6 @@
             }
         }
         
-        function saveDefaultSource() {
-            const select = document.getElementById('defaultSourceSetting');
-            const source = select.value;
-            localStorage.setItem('defaultSource', source);
-            setRAGMode(source === 'rag');
-        }
-        
-        function loadDefaultSource() {
-            var savedSource = localStorage.getItem('defaultSource') || 'rag';
-            var select = document.getElementById('defaultSourceSetting');
-            if (select) select.value = savedSource;
-            useRAG = (savedSource === 'rag');
-            // Answer Source section: update both property and attribute so UI always reflects Settings
-            var ragRadio = document.getElementById('askSourceRag');
-            var llmRadio = document.getElementById('askSourceLlm');
-            if (ragRadio) {
-                ragRadio.checked = (savedSource === 'rag');
-                if (savedSource === 'rag') ragRadio.setAttribute('checked', 'checked'); else ragRadio.removeAttribute('checked');
-            }
-            if (llmRadio) {
-                llmRadio.checked = (savedSource === 'llm');
-                if (savedSource === 'llm') llmRadio.setAttribute('checked', 'checked'); else llmRadio.removeAttribute('checked');
-            }
-            document.querySelectorAll('input[name="askSource"]').forEach(function(radio) {
-                if (radio.id && (radio.id === 'askSourceRag' || radio.id === 'askSourceLlm')) return; // already set
-                radio.checked = (radio.value === savedSource);
-            });
-        }
         
         function updateGenerateButtonText() {
             const checkbox = document.getElementById('reqGenerateNewTests');
@@ -4199,31 +3982,16 @@
         // Load settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadTheme();
-            loadDefaultSource();
             document.body.setAttribute('data-active-tab', 'analyze');
             // Force 15px on Test Assistant question input
             var qInput = document.getElementById('questionInput');
             if (qInput) {
                 qInput.style.setProperty('font-size', '15px', 'important');
             }
-            // Answer Source: label click fallback so selection always works
-            var chatBox = document.getElementById('chatInputBox');
-            if (chatBox) {
-                chatBox.addEventListener('click', function(e) {
-                    var opt = e.target && e.target.closest ? e.target.closest('.ask-option') : null;
-                    if (!opt) return;
-                    var radio = opt.querySelector('input[name="answerSource"]');
-                    if (radio && !radio.checked) {
-                        radio.checked = true;
-                        setRAGMode(radio.value === 'rag');
-                    }
-                });
-            }
         });
-        
+
         // Also load immediately in case DOMContentLoaded already fired
         loadTheme();
-        loadDefaultSource();
         if (document.body) document.body.setAttribute('data-active-tab', 'analyze');
 
         // Simple tab switching
@@ -4240,10 +4008,7 @@
             document.getElementById('tabPanelAnalyze').classList.toggle('active', tab === 'analyze');
             
             if (tab === 'ask') {
-                loadDefaultSource();
-                // Run again after panel is painted so Answer Source radios definitely show Settings value
                 requestAnimationFrame(function() {
-                    loadDefaultSource();
                     var qInput = document.getElementById('questionInput');
                     if (qInput) {
                         qInput.style.setProperty('font-size', '15px', 'important');
@@ -4364,36 +4129,54 @@
                 .catch(function(e) { showToast('Request failed: ' + (e.message || ''), 'warning'); });
         });
 
+        function updateFileLabel() {
+            var files = document.getElementById('reqSpecFile').files;
+            var lbl = document.getElementById('reqFileLabel');
+            if (!lbl) return;
+            if (!files || files.length === 0) { lbl.textContent = ''; return; }
+            lbl.textContent = files.length === 1 ? '1 file selected' : files.length + ' files selected';
+        }
+
         function runRequirementAnalysis() {
             var activeTab = document.querySelector('.analyze-tab.active');
             var pane = activeTab ? activeTab.getAttribute('data-pane') : 'paste';
-            var text = null, file = null, confluenceUrl = null;
+            var text = null, fileList = null, confluenceUrls = null;
             if (pane === 'paste') {
                 text = document.getElementById('reqSpecText').value.trim();
                 if (!text) { showToast('Paste requirement spec text or choose another input method.', 'info'); return; }
             } else if (pane === 'file') {
-                file = document.getElementById('reqSpecFile').files[0];
-                if (!file) { showToast('Select a file to upload.', 'info'); return; }
+                fileList = document.getElementById('reqSpecFile').files;
+                if (!fileList || !fileList.length) { showToast('Select at least one file to upload.', 'info'); return; }
             } else if (pane === 'url') {
-                confluenceUrl = document.getElementById('reqSpecUrl').value.trim();
-                if (!confluenceUrl) { showToast('Enter a Confluence page URL.', 'info'); return; }
+                var rawUrls = document.getElementById('reqSpecUrl').value.trim();
+                if (!rawUrls) { showToast('Enter at least one Confluence page URL.', 'info'); return; }
+                confluenceUrls = rawUrls.split('\n').map(function(u) { return u.trim(); }).filter(Boolean);
+                if (!confluenceUrls.length) { showToast('Enter at least one Confluence page URL.', 'info'); return; }
             }
             var generateNew = document.getElementById('reqGenerateNewTests').checked;
             var generateP2P3 = document.getElementById('reqGenerateP2P3Tests').checked;
             var btn = document.getElementById('reqAnalyzeBtn');
             btn.disabled = true;
             btn.textContent = 'Analyzing...';
+            var hasFiles = fileList && fileList.length > 0;
             var formData = new FormData();
-            if (file) formData.append('file', file);
-            if (text) formData.append('requirement_spec', text);
-            if (confluenceUrl) formData.append('confluence_url', confluenceUrl);
-            formData.append('generate_new_tests', generateNew);
-            formData.append('generate_p2_p3_tests', generateP2P3);
-            formData.append('push_to_testrail', false);
-            var jsonPayload = { requirement_spec: text || undefined, confluence_url: confluenceUrl || undefined, generate_new_tests: generateNew, generate_p2_p3_tests: generateP2P3, push_to_testrail: false };
-            var body = file ? formData : JSON.stringify(jsonPayload);
+            if (hasFiles) {
+                for (var fi = 0; fi < fileList.length; fi++) { formData.append('file', fileList[fi]); }
+                formData.append('generate_new_tests', generateNew);
+                formData.append('generate_p2_p3_tests', generateP2P3);
+                formData.append('push_to_testrail', false);
+            }
+            var jsonPayload = {
+                requirement_spec: text || undefined,
+                confluence_urls: (confluenceUrls && confluenceUrls.length > 1) ? confluenceUrls : undefined,
+                confluence_url: (confluenceUrls && confluenceUrls.length === 1) ? confluenceUrls[0] : undefined,
+                generate_new_tests: generateNew,
+                generate_p2_p3_tests: generateP2P3,
+                push_to_testrail: false
+            };
+            var body = hasFiles ? formData : JSON.stringify(jsonPayload);
             var headers = {};
-            if (!file) headers['Content-Type'] = 'application/json';
+            if (!hasFiles) headers['Content-Type'] = 'application/json';
             var progressEl = document.getElementById('reqProgress');
             var progressBar = document.getElementById('reqProgressBar');
             var progressMsg = document.getElementById('reqProgressMessage');
@@ -4404,7 +4187,7 @@
             var _loadingSpinner = '<span class="req-tab-loading-spinner"></span>';
             document.getElementById('reqResultPaneRelated').innerHTML = '<div id="reqTabRelatedDesc" class="req-tab-desc">All test cases with similarity \u2265 <span id="reqTabRelatedDescThreshold">' + Math.round(window._reqRetrievalMinSim || 45) + '</span>% to the analyzed requirements.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'Loading related tests\u2026</p></div>';
             document.getElementById('reqResultPaneGenerated').innerHTML = '<div id="reqTabGeneratedDesc" class="req-tab-desc">Strong-match existing tests (\u2265 <span id="reqTabGeneratedDescThreshold">' + Math.round(window._reqCoverageMinSim || 60) + '</span>% similarity) + newly generated tests per requirement.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'Loading user story tests\u2026</p></div>';
-            document.getElementById('reqResultPaneE2eflows').innerHTML = '<div class="req-tab-desc">Full user journey tests (Type = FCT / Regression) with similarity \u2265 <span>' + Math.round(window._reqCoverageMinSim || 60) + '</span>% shown as Existing; newly generated E2E workflows shown as New.</div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'E2E tests are identified at the end of analysis. Please wait\u2026</p></div>';
+            document.getElementById('reqResultPaneE2eflows').innerHTML = '<div class="req-tab-desc">Existing regression tests (\u2265 <span class="req-e2e-threshold-val">' + Math.round(window._reqCoverageMinSim || 60) + '</span>% similarity) + newly generated E2E workflow tests spanning multiple requirements.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'E2E tests are identified at the end of analysis. Please wait\u2026</p></div>';
             document.getElementById('reqResultsSummary').innerHTML = '';
             document.getElementById('reqDocSummary').innerHTML = '';
             progressBar.style.width = '0%';
@@ -4423,9 +4206,9 @@
             document.getElementById('reqTabRelatedCount').textContent = '0';
             document.getElementById('reqTabGeneratedCount').textContent = '0';
             document.getElementById('reqTabE2eflowsCount').textContent = '0';
-            // User Story Tests always shown; E2E only shown when generating
+            // All 3 tabs always visible
             document.getElementById('reqTabGenerated').style.display = '';
-            document.getElementById('reqTabE2eflows').style.display = isGeneratingTests ? '' : 'none';
+            document.getElementById('reqTabE2eflows').style.display = '';
             // Ensure Related Tests tab is active
             document.querySelectorAll('.req-result-tab').forEach(function(b) { b.classList.remove('active'); });
             document.querySelectorAll('.req-result-pane').forEach(function(p) { p.classList.remove('visible'); });
@@ -4441,9 +4224,15 @@
             });
             btn.disabled = true;
             btn.textContent = 'Analyzing...';
-            var reqTimeoutMs = 360000;
+            var reqIdleTimeoutMs = 300000; // 5-min idle: reset on every chunk; only fires if server goes silent
             var abortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
-            var timeoutId = abortController ? setTimeout(function() { abortController.abort(); }, reqTimeoutMs) : null;
+            var timeoutId = null;
+            function resetIdleTimeout() {
+                if (!abortController) return;
+                if (timeoutId) clearTimeout(timeoutId);
+                timeoutId = setTimeout(function() { abortController.abort(); }, reqIdleTimeoutMs);
+            }
+            resetIdleTimeout();
             function done() {
                 btn.disabled = false;
                 btn.textContent = 'Generate Tests';
@@ -4497,13 +4286,32 @@
                             + tooltipHtml
                             + '</span>';
                     }
+                    function buildDescWithACHtml(desc, title, acs, specsCount) {
+                        var hasDesc = desc && desc.trim() && desc.trim() !== (title || '').trim();
+                        var hasACs = acs && acs.length > 0;
+                        if (!hasDesc && !hasACs) return '';
+                        var html = '<div class="req-description">';
+                        if (hasDesc) html += '<div class="req-desc-text">' + escapeHtml(desc) + '</div>';
+                        if (hasACs) {
+                            var items = acs.map(function(ac) { return '<li>' + escapeHtml(ac) + '</li>'; }).join('');
+                            var confluenceBadge = (specsCount > 0) ? '<span class="req-ac-confluence-badge">via Confluence</span>' : '';
+                            html += (hasDesc ? '<div class="req-ac-divider"></div>' : '') + '<div class="req-ac-label">Acceptance Criteria' + confluenceBadge + '</div><ol class="req-ac-list">' + items + '</ol>';
+                        }
+                        html += '</div>';
+                        return html;
+                    }
                     function appendRequirementResult(reqId, data) {
+                        // Remove live activity row for this req now that result has arrived
+                        var _actRow = document.getElementById('req-activity-' + reqId.replace(/[^a-zA-Z0-9]/g, '_'));
+                        if (_actRow) _actRow.remove();
                         var req = data.requirement || {};
                         var relatedTests = data.related_tests || [];
                         var needingTests = data.tests_needing_update || [];
                         var genList = data.generated_tests || [];
                         var relatedSpecs = data.related_specs || [];
                         var coverage = data.coverage || null;
+                        var acceptanceCriteria = data.acceptance_criteria || [];
+                        var elapsedS = data.elapsed_s != null ? data.elapsed_s : null;
                         var reqTextFull = (req.title ? (req.title) + '\n' : '') + (req.description || '');
                         // Merge related_tests and tests_needing_update (needing tests have suggestions)
                         var needingIds = {};
@@ -4546,36 +4354,67 @@
                         var block = '<div class="req-requirement-section collapsed">';
                         block += '<div class="req-req-header"><span class="req-req-chevron"></span><div class="req-req-header-content"><div class="req-id">' + escapeHtml(reqId) + '</div>';
                         if (req.title) block += '<div class="req-title">' + escapeHtml(req.title) + '</div>';
-                        block += '</div><span class="req-count-badge">' + countBadge + '</span></div>';
+                        var timeBadgeHtml = elapsedS != null ? '<span class="req-time-badge">' + elapsedS + 's</span>' : '';
+                        block += '</div><span class="req-count-badge">' + countBadge + '</span>' + timeBadgeHtml + '</div>';
                         block += '<div class="req-req-body">';
-                        if (req.description && (req.description || '').trim() !== (req.title || '').trim()) block += '<div class="req-description">' + escapeHtml(req.description) + '</div>';
-                        block += '<div class="req-section-label">Related test cases</div>';
-                        if (tests.length === 0) block += '<p style="color:#666;font-size:13px;">No related tests found.</p>';
-                        else block += '<div class="req-tc-cards">' + tests.map(function(t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
+                        block += buildDescWithACHtml(req.description, req.title, acceptanceCriteria, relatedSpecs.length);
                         if (relatedSpecs.length > 0) {
                             var specsId = 'req-specs-' + reqId.replace(/[^a-zA-Z0-9]/g, '_');
                             block += '<div class="req-specs-section">';
                             block += '<div class="req-specs-toggle" onclick="(function(el){var b=document.getElementById(\'' + specsId + '\');if(b){b.style.display=b.style.display===\'none\'?\'block\':\'none\';el.classList.toggle(\'expanded\')}})(this)">';
                             block += '<span class="req-specs-chevron">&#9656;</span>';
-                            block += '<span class="req-specs-label">Confluence context used</span>';
-                            block += '<span class="req-specs-count">' + relatedSpecs.length + ' doc' + (relatedSpecs.length === 1 ? '' : 's') + '</span>';
+                            block += '<span class="req-specs-label">Spec pages referenced</span>';
+                            block += '<span class="req-specs-count">' + relatedSpecs.length + ' page' + (relatedSpecs.length === 1 ? '' : 's') + '</span>';
                             block += '</div>';
                             block += '<div class="req-specs-body" id="' + specsId + '" style="display:none;">';
                             relatedSpecs.forEach(function(s) {
-                                var score = s.similarity_score != null ? ' <span class="req-tc-similarity">(' + (s.similarity_score * 100).toFixed(0) + '%)</span>' : '';
-                                var link = s.url ? ' <a href="' + escapeHtml(s.url) + '" target="_blank" class="req-spec-link" title="Open in Confluence">&#8599;</a>' : '';
-                                var title = escapeHtml((s.title || s.url || 'Confluence doc').substring(0, 120));
-                                block += '<div class="req-spec-row">' + title + score + link + '</div>';
+                                var simPct = s.similarity_score != null ? Math.round(s.similarity_score * 100) : null;
+                                var simClass = simPct == null ? '' : simPct >= 75 ? 'req-spec-sim-high' : simPct >= 60 ? 'req-spec-sim-mid' : 'req-spec-sim-low';
+                                var simBadge = simPct != null ? '<span class="req-spec-sim ' + simClass + '">' + simPct + '% match</span>' : '';
+                                var link = s.url ? '<a href="' + escapeHtml(s.url) + '" target="_blank" class="req-spec-link" title="Open in Confluence">&#8599;</a>' : '';
+                                var rawTitle = (s.title || '').replace(/^[*#\s]+/, '').trim();
+                                var title = escapeHtml((rawTitle || 'Confluence page').substring(0, 100));
+                                // Clean up excerpt: strip markdown symbols, collapse whitespace
+                                var rawExcerpt = (s.content || '').replace(/[*#_`\[\]]/g, '').replace(/\s+/g, ' ').trim();
+                                var excerpt = rawExcerpt ? escapeHtml(rawExcerpt.substring(0, 180)) : '';
+                                block += '<div class="req-spec-row">';
+                                block += '<div class="req-spec-main">';
+                                block += '<div class="req-spec-title-line"><span class="req-spec-title" title="' + title + '">' + title + '</span>' + simBadge + '</div>';
+                                if (excerpt) block += '<div class="req-spec-excerpt">' + excerpt + '</div>';
+                                block += '</div>';
+                                block += link;
+                                block += '</div>';
                             });
                             block += '</div></div>';
                         }
+                        block += '<div class="req-section-label">Related test cases</div>';
+                        if (tests.length === 0) block += '<p style="color:var(--text-muted);font-size:13px;">No related tests found.</p>';
+                        else block += '<div class="req-tc-cards">' + tests.map(function(t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
                         block += '</div></div>';
                         var _relLoading = containerRelated.querySelector('.req-tab-loading-msg');
-                        if (_relLoading) _relLoading.remove();
-                        containerRelated.insertAdjacentHTML('beforeend', block);
+                        // Insert in correct order (REQ-1 before REQ-2, etc.) even when results arrive out of order
+                        var _reqNum = parseInt((reqId.match(/\d+/) || [0])[0], 10) || 0;
+                        var _insertBefore = null;
+                        var _existingSections = containerRelated.querySelectorAll('.req-requirement-section');
+                        for (var _si = 0; _si < _existingSections.length; _si++) {
+                            var _existingId = _existingSections[_si].querySelector('.req-id');
+                            if (_existingId) {
+                                var _existingNum = parseInt((_existingId.textContent.match(/\d+/) || [0])[0], 10) || 0;
+                                if (_existingNum > _reqNum) { _insertBefore = _existingSections[_si]; break; }
+                            }
+                        }
+                        var _tempDiv = document.createElement('div');
+                        _tempDiv.innerHTML = block;
+                        var _newSection = _tempDiv.firstElementChild;
+                        if (_insertBefore) {
+                            containerRelated.insertBefore(_newSection, _insertBefore);
+                        } else {
+                            if (_relLoading) containerRelated.insertBefore(_newSection, _relLoading);
+                            else containerRelated.appendChild(_newSection);
+                        }
+                        if (_relLoading) containerRelated.appendChild(_relLoading);
                         var containerGen = document.getElementById('reqResultPaneGenerated').querySelector('.req-stream-container');
                         var _genLoading = containerGen.querySelector('.req-tab-loading-msg');
-                        if (_genLoading) _genLoading.remove();
                         if (genList.length > 0 && !streamedGenBarAdded) {
                             containerGen.insertAdjacentHTML('afterbegin', '<div class="req-gen-select-actions" style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><a href="#" id="reqSelectToggleGen" class="req-gen-select-link">Select all</a><button type="button" class="req-tr-btn" id="reqPushSelectedBtn" style="margin-left:8px;">Push selected to TestRail</button></div>');
                             streamedGenBarAdded = true;
@@ -4587,7 +4426,7 @@
                         if (req.title) genBlock += '<div class="req-title">' + escapeHtml(req.title) + '</div>';
                         genBlock += '</div><span class="req-count-badge">' + genCountBadge + '</span>' + buildCoverageBadgeHtml(usTotal > 0 ? coverage : {final_coverage_pct: 0, status: 'uncovered'}, genList) + '</div>';
                         genBlock += '<div class="req-req-body">';
-                        if (req.description && (req.description || '').trim() !== (req.title || '').trim()) genBlock += '<div class="req-description">' + escapeHtml(req.description) + '</div>';
+                        genBlock += buildDescWithACHtml(req.description, req.title, acceptanceCriteria, relatedSpecs.length);
                         // Existing strong-match tests sub-section
                         if (strongTests.length > 0) {
                             genBlock += '<div class="req-section-label">Existing tests (' + strongTests.length + ')</div>';
@@ -4615,10 +4454,29 @@
                                 genBlock += '</div></div>';
                             });
                         } else if (strongTests.length === 0) {
-                            genBlock += '<p style="color:#666;font-size:13px;">No tests above coverage threshold.</p>';
+                            genBlock += '<p style="color:var(--text-muted);font-size:13px;">No tests above coverage threshold.</p>';
                         }
                         genBlock += '</div></div>';
-                        containerGen.insertAdjacentHTML('beforeend', genBlock);
+                        // Insert in correct order for Generated tab too
+                        var _genInsertBefore = null;
+                        var _genSections = containerGen.querySelectorAll('.req-requirement-section');
+                        for (var _gi = 0; _gi < _genSections.length; _gi++) {
+                            var _gId = _genSections[_gi].querySelector('.req-id');
+                            if (_gId) {
+                                var _gNum = parseInt((_gId.textContent.match(/\d+/) || [0])[0], 10) || 0;
+                                if (_gNum > _reqNum) { _genInsertBefore = _genSections[_gi]; break; }
+                            }
+                        }
+                        var _genTemp = document.createElement('div');
+                        _genTemp.innerHTML = genBlock;
+                        var _genNewSection = _genTemp.firstElementChild;
+                        if (_genInsertBefore) {
+                            containerGen.insertBefore(_genNewSection, _genInsertBefore);
+                        } else {
+                            if (_genLoading) containerGen.insertBefore(_genNewSection, _genLoading);
+                            else containerGen.appendChild(_genNewSection);
+                        }
+                        if (_genLoading) containerGen.appendChild(_genLoading); // keep loader at bottom until all done
                     }
                     function tryProcessData(lineStr) {
                         if (!lineStr || lineStr.indexOf('data: ') !== 0) return false;
@@ -4662,6 +4520,9 @@
                                     window._reqCoverageMinSim = data.coverage_min_similarity;
                                     var _gtEarly = document.getElementById('reqTabGeneratedDescThreshold');
                                     if (_gtEarly) _gtEarly.textContent = Math.round(window._reqCoverageMinSim);
+                                    var _e2eEarly = document.getElementById('reqTabE2eDescThreshold');
+                                    if (_e2eEarly) _e2eEarly.textContent = Math.round(window._reqCoverageMinSim);
+                                    document.querySelectorAll('.req-e2e-threshold-val').forEach(function(el) { el.textContent = Math.round(window._reqCoverageMinSim); });
                                 }
                                 if (data.retrieval_similarity_threshold != null) {
                                     window._reqRetrievalMinSim = data.retrieval_similarity_threshold;
@@ -4696,25 +4557,44 @@
                                 document.getElementById('reqResults').style.display = 'block';
                                 return true;
                             }
+                            if (data.type === 'requirement_step' && data.req_id && data.step) {
+                                var _feed = document.getElementById('req-activity-feed');
+                                if (_feed) {
+                                    var _rowId = 'req-activity-' + data.req_id.replace(/[^a-zA-Z0-9]/g, '_');
+                                    var _row = document.getElementById(_rowId);
+                                    if (!_row) {
+                                        _row = document.createElement('div');
+                                        _row.className = 'req-activity-row';
+                                        _row.id = _rowId;
+                                        _row.innerHTML = '<span class="req-activity-id">' + escapeHtml(data.req_id) + '</span>'
+                                                       + '<span class="req-activity-step"></span>'
+                                                       + '<span class="req-activity-spinner"></span>';
+                                        _feed.appendChild(_row);
+                                    }
+                                    var _stepEl = _row.querySelector('.req-activity-step');
+                                    if (_stepEl) _stepEl.textContent = data.step + '\u2026';
+                                }
+                                return true;
+                            }
                             if (data.type === 'requirement_result' && data.req_id && data.data) {
                                 reqProgressCurrent++;
-                                if (reqProgressTotal > 1) {
-                                    if (reqProgressCurrent >= reqProgressTotal) {
-                                        // All requirements done
-                                        if (isGeneratingTests) {
-                                            progressCounter.textContent = 'Preparing E2E tests...';
-                                            document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">Preparing E2E tests...</p></div>';
-                                        } else {
-                                            progressCounter.textContent = 'Finalizing...';
-                                            document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">Finalizing...</p></div>';
-                                        }
+                                if (reqProgressTotal > 0 && reqProgressCurrent >= reqProgressTotal) {
+                                    // All per-requirement results in — remove loaders for Related & User Story tabs
+                                    ['reqResultPaneRelated', 'reqResultPaneGenerated'].forEach(function(id) {
+                                        var _p = document.getElementById(id);
+                                        if (_p) { var _m = _p.querySelector('.req-tab-loading-msg'); if (_m) _m.remove(); }
+                                    });
+                                    if (isGeneratingTests) {
+                                        progressCounter.textContent = 'Preparing E2E tests...';
+                                        document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">Preparing E2E tests...</p></div>';
                                     } else {
-                                        progressCounter.textContent = 'Completed ' + reqProgressCurrent + ' of ' + reqProgressTotal + ' requirements';
+                                        progressCounter.textContent = 'Finalizing...';
+                                        document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">Finalizing...</p></div>';
                                     }
-                                    progressCounter.style.display = 'block';
-                                } else if (reqProgressCurrent > 1) {
-                                    // If we didn't get total from message, just show count
-                                    progressCounter.textContent = 'Completed ' + reqProgressCurrent + ' requirements';
+                                } else if (reqProgressTotal > 0) {
+                                    progressCounter.textContent = 'Completed ' + reqProgressCurrent + ' of ' + reqProgressTotal + ' requirements';
+                                }
+                                if (reqProgressCurrent > 0) {
                                     progressCounter.style.display = 'block';
                                 }
                                 appendRequirementResult(data.req_id, data.data);
@@ -4729,17 +4609,25 @@
                             if (data.success !== undefined || data.error) {
                                 gotResult = true;
                                 done();
+                                // Remove persistent loaders now that all requirements are processed
+                                ['reqResultPaneRelated', 'reqResultPaneGenerated'].forEach(function(id) {
+                                    var pane = document.getElementById(id);
+                                    if (pane) { var msg = pane.querySelector('.req-tab-loading-msg'); if (msg) msg.remove(); }
+                                });
                                 if (data.success) {
                                     lastReqResult = data;
+                                    window._lastAnalyzedRequirements = data.requirements || [];
                                     window._reqCoverageMinSim = (data.summary && data.summary.coverage_min_similarity) || 60;
                                     window._reqRetrievalMinSim = (data.summary && data.summary.retrieval_similarity_threshold) || 45;
                                     (function() {
                                         var rt = document.getElementById('reqTabRelatedDescThreshold');
                                         var gt = document.getElementById('reqTabGeneratedDescThreshold');
+                                        var e2e = document.getElementById('reqTabE2eDescThreshold');
                                         if (rt) rt.textContent = Math.round(window._reqRetrievalMinSim);
                                         if (gt) gt.textContent = Math.round(window._reqCoverageMinSim);
+                                        if (e2e) e2e.textContent = Math.round(window._reqCoverageMinSim);
                                     })();
-                                    console.log('[ReqAnalysis] Result received: requirements=' + (data.requirements && data.requirements.length) + ', generated_tests keys=' + (data.generated_tests ? Object.keys(data.generated_tests).length : 0));
+                                    // Result received
                                     var container = document.getElementById('reqResultPaneRelated').firstElementChild;
                                     if (!container || container.children.length === 0) {
                                         renderReqResults(data);
@@ -4769,18 +4657,18 @@
                                 if (!gotResult && buf.trim()) {
                                     var trimmed = buf.trim();
                                     if (trimmed.indexOf('data: ') === 0 && tryProcessData(trimmed)) {
-                                        console.log('[ReqAnalysis] Result received from remaining buffer (stream ended).');
+                                        // Processed remaining buffer
                                     } else {
-                                        console.warn('[ReqAnalysis] Stream ended with buffered data but no valid result; length=' + trimmed.length);
                                         showToast('Incomplete response', 'warning');
                                     }
                                 } else if (!gotResult) {
-                                    console.warn('[ReqAnalysis] Stream ended without receiving result.');
+                                    // Stream ended without result
                                 }
                                 done();
                                 return;
                             }
                             buf += decoder.decode(opt.value, { stream: true });
+                            resetIdleTimeout(); // got data — reset idle timer
                             var parts = buf.split('\n\n');
                             buf = parts.pop();
                             for (var pi = 0; pi < parts.length; pi++) {
@@ -4859,35 +4747,6 @@
             document.getElementById('reqResultsSummary').innerHTML = buildReqSummaryHtml(data);
         }
         function buildE2eTestRow(e2e, source, idx) {
-            var isExisting = source === 'existing';
-            if (isExisting) {
-                // Render like a related test card: collapsible, clickable TestRail ID at start
-                var tidHtml = formatTestrailIdHtml(e2e.testrail_id);
-                var simScore = e2e.similarity_score != null ? e2e.similarity_score : null;
-                var simVal = simScore != null ? Math.round(simScore * (simScore <= 1 ? 100 : 1)) : null;
-                var similarityHtml = simVal != null ? ' <small class="req-tc-similarity">(' + simVal + '%)</small>' : '';
-                var headerHtml = '<div class="req-tc-card-header">'
-                    + '<span class="req-tc-chevron" aria-hidden="true"></span>'
-                    + '<span class="req-tc-header-main">' + tidHtml + ' ' + escapeHtml(e2e.title || 'E2E Test') + '</span>'
-                    + similarityHtml
-                    + '</div>';
-                var parsed = parseTestCaseContent(e2e.content || '');
-                var bodyParts = [];
-                var pills = [];
-                var priority = e2e.priority || parsed.priority;
-                var platform = e2e.platform || parsed.platform;
-                if (priority) pills.push('<span class="req-tc-pill req-tc-pill-priority" title="Priority">' + escapeHtml(priority) + '</span>');
-                if (platform) pills.push('<span class="req-tc-pill" title="Platform">' + escapeHtml(platform) + '</span>');
-                if (pills.length) bodyParts.push('<div class="req-tc-meta-group">' + pills.join('') + '</div>');
-                var preconditions = e2e.preconditions || parsed.preconditions;
-                var steps = e2e.steps || parsed.steps;
-                var expectedResult = e2e.expected_result || parsed.expectedResult;
-                if (preconditions) bodyParts.push('<div class="req-tc-row req-tc-section"><strong>Preconditions</strong><div class="req-tc-block">' + escapeHtml(preconditions) + '</div></div>');
-                if (steps) bodyParts.push('<div class="req-tc-row req-tc-section"><strong>Steps</strong><div class="req-tc-steps-wrap">' + escapeHtml(steps) + '</div></div>');
-                if (expectedResult) bodyParts.push('<div class="req-tc-row req-tc-section"><strong>Expected result</strong><div class="req-tc-block">' + escapeHtml(expectedResult) + '</div></div>');
-                var bodyHtml = '<div class="req-tc-card-body">' + (bodyParts.length ? bodyParts.join('') : '<em style="color:var(--text-muted)">No details available.</em>') + '</div>';
-                return '<div class="req-tc-card req-related-item req-e2e-existing-card collapsed"><div class="req-tc-card-inner">' + headerHtml + bodyHtml + '</div></div>';
-            }
             // New E2E test — checkbox + content
             var dataAttrs = ' data-e2e-index="' + (idx || 0) + '"'
                 + ' data-title="' + escapeHtml((e2e.title || '').substring(0, 500)).replace(/"/g, '&quot;') + '"'
@@ -4900,24 +4759,9 @@
             html += '<input type="checkbox" class="req-e2e-select" data-e2e-index="' + (idx || 0) + '" style="margin-top:4px;flex-shrink:0;" />';
             html += '<div class="req-e2e-content" style="flex:1;min-width:0;">';
             html += '<div class="gt-title">' + escapeHtml(e2e.title || 'E2E Test') + newBadge + '</div>';
-            if (e2e.workflow_name || e2e.workflow_description || e2e.existing_entry_point) {
-                html += '<div class="gt-workflow-info">';
-                if (e2e.workflow_name) html += '<strong>Workflow:</strong> ' + escapeHtml(e2e.workflow_name);
-                if (e2e.workflow_description) html += '<br>' + escapeHtml(e2e.workflow_description);
-                if (e2e.existing_entry_point) html += '<br><strong>Entry Point:</strong> ' + escapeHtml(e2e.existing_entry_point);
-                if (e2e.existing_features_used && e2e.existing_features_used.length > 0) {
-                    html += '<br><strong>Existing Features:</strong> ' + e2e.existing_features_used.map(function(f) { return escapeHtml(f); }).join(', ');
-                }
-                html += '</div>';
-            }
-            if (e2e.requirement_ids && e2e.requirement_ids.length > 0) {
-                html += '<div class="gt-covers"><strong>Covers:</strong> ';
-                e2e.requirement_ids.forEach(function(rid) { html += '<span class="req-tag">' + escapeHtml(rid) + '</span>'; });
-                html += '</div>';
-            }
-            if (e2e.priority) html += '<div class="gt-priority"><strong>Priority:</strong> ' + escapeHtml(e2e.priority) + '</div>';
+            if (e2e.priority) html += '<div class="gt-priority"><span class="req-tc-pill req-tc-pill-priority">' + escapeHtml(e2e.priority) + '</span></div>';
             if (e2e.preconditions) html += '<div class="gt-preconditions"><strong>Preconditions</strong><div class="gt-preconditions-content">' + escapeHtml(e2e.preconditions) + '</div></div>';
-            if (e2e.steps) html += '<div class="gt-steps"><strong>Steps</strong><div class="gt-steps-content">' + escapeHtml(e2e.steps) + '</div></div>';
+            if (e2e.steps) html += '<div class="gt-steps"><strong>Steps</strong><div class="gt-steps-content">' + formatStepsHtml(e2e.steps) + '</div></div>';
             if (e2e.expected_result) html += '<div class="gt-expected"><strong>Expected result</strong><div class="gt-expected-content">' + escapeHtml(e2e.expected_result) + '</div></div>';
             html += '<div class="req-gen-actions"><button type="button" class="req-modify-push-btn req-e2e-modify-push-btn">Modify &amp; Push to TestRail</button></div>';
             html += '</div></div>';
@@ -4987,7 +4831,7 @@
             reqPushModalMode = 'e2e';
             document.getElementById('reqPushModalSuite').innerHTML = '<option value="">Select project first</option>';
             document.getElementById('reqPushModalSection').innerHTML = '<option value="">Select suite first</option>';
-            document.getElementById('reqPushModalTargetSectionId').value = '';
+            document.getElementById('reqPushModalType').value = 'FCT / Regression'; // E2E → always FCT / Regression
             reqPushModalProjectId = null;
             reqPushModalSuiteId = null;
             document.getElementById('reqPushModalOverlay').classList.add('visible');
@@ -4998,7 +4842,7 @@
                 if (pushBtn) { pushBtn.disabled = false; pushBtn.textContent = origBtnText; }
             });
         }
-        function doPushE2eToTestrail(targetSectionId) {
+        function doPushE2eToTestrail(targetSectionId, caseType) {
             if (!reqE2ePushSubset || reqE2ePushSubset.length === 0) return;
             var flat = reqE2ePushSubset;
             var btn = document.getElementById('reqPushModalPush');
@@ -5036,7 +4880,7 @@
                     expected_result: (t.expected_result || '').trim() || undefined,
                     priority: (t.priority || 'P0').toString().toUpperCase().replace(/^P(\d)$/, 'P$1'),
                     platform: 'web / m-web',
-                    case_type: 'FCT / Regression'
+                    case_type: caseType || 'FCT / Regression'
                 };
                 fetch(API_BASE + '/requirement-analysis/create-case', {
                     method: 'POST',
@@ -5056,11 +4900,15 @@
                                 cb.style.display = 'none';
                                 var row = cb.closest('.req-e2e-flow-row');
                                 if (row) {
+                                    // Hide "Modify & Push" button
+                                    var _modBtn = row.querySelector('.req-modify-push-btn, .req-e2e-modify-push-btn');
+                                    if (_modBtn) _modBtn.style.display = 'none';
+                                    // Show TestRail link
                                     var contentEl = row.querySelector('.req-e2e-content') || row;
                                     var linkWrap = document.createElement('div');
                                     linkWrap.className = 'req-pushed-link';
-                                    linkWrap.style.cssText = 'margin-top:6px;font-size:13px;';
-                                    linkWrap.innerHTML = 'Pushed to TestRail: ' + formatTestrailIdHtml(data.testrail_id);
+                                    linkWrap.style.cssText = '';
+                                    linkWrap.innerHTML = 'Pushed to TestRail \u2192 ' + formatTestrailIdHtml(data.testrail_id);
                                     contentEl.appendChild(linkWrap);
                                 }
                             }
@@ -5082,11 +4930,8 @@
             var total = existingE2e.length + newE2e.length;
             var html = '';
             if (total === 0) {
-                html = '<p style="color:#666;font-size:13px;padding:20px;">No E2E tests found.</p>';
+                html = '<p style="color:var(--text-muted);font-size:13px;padding:20px;">No E2E tests found.</p>';
             } else {
-                html += '<div class="req-req-block" style="border-left-color:#1976d2;">';
-                html += '<div class="req-id" style="color:#1976d2;">E2E Tests (' + total + ')</div>';
-                html += '<div class="req-description" style="font-size:12px;color:#666;margin-bottom:16px;">Full user journey tests spanning multiple requirements.</div>';
                 if (newE2e.length > 0) {
                     html += '<div class="req-gen-select-actions" style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
                     html += '<a href="#" id="reqSelectToggleE2e" class="req-gen-select-link">Select all</a>';
@@ -5094,39 +4939,21 @@
                     html += '</div>';
                 }
                 if (existingE2e.length > 0) {
-                    html += '<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Existing (' + existingE2e.length + ')</div>';
-                    existingE2e.forEach(function(e2e) { html += buildE2eTestRow(e2e, 'existing'); });
+                    html += '<div class="req-section-label">Existing tests (' + existingE2e.length + ')</div>';
+                    // Reuse the same card template as Related Tests tab for consistency
+                    var _e2eReqText = (data.requirements || []).map(function(r) {
+                        return (r.id || '') + ': ' + (r.title || '') + '\n' + (r.description || '');
+                    }).join('\n---\n');
+                    existingE2e.forEach(function(e2e) {
+                        html += buildTestCaseCardHtml(e2e, { showSimilarity: true, reqId: 'e2e', reqTextFull: _e2eReqText });
+                    });
                 }
                 if (newE2e.length > 0) {
-                    html += '<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.05em;">New (' + newE2e.length + ')</div>';
+                    html += '<div class="req-section-label" style="margin-top:16px;">New tests (' + newE2e.length + ')</div>';
                     newE2e.forEach(function(e2e, idx) { html += buildE2eTestRow(e2e, 'new', idx); });
                 }
-                html += '</div>';
             }
-            var e2eDescHtml = '<div class="req-tab-desc">Full user journey tests (Type = FCT / Regression) with similarity \u2265 <span>' + Math.round(window._reqCoverageMinSim || 60) + '</span>% shown as Existing; newly generated E2E workflows shown as New.</div>';
-            // Option B: coverage = % of requirements that have at least 1 strong-match existing OR 1 generated test
-            var _covMinSim = window._reqCoverageMinSim || 60;
-            var _allReqs = data.requirements || [];
-            var _relatedByReq = data.related_tests || {};
-            var _generatedByReq = data.generated_tests || {};
-            var _coveredCount = 0;
-            _allReqs.forEach(function(r) {
-                var reqId = r.id;
-                var hasStrong = (_relatedByReq[reqId] || []).some(function(t) {
-                    var sim = t.similarity_score || 0;
-                    return (sim <= 1 ? sim * 100 : sim) >= _covMinSim;
-                });
-                var hasGenerated = (_generatedByReq[reqId] || []).length > 0;
-                if (hasStrong || hasGenerated) _coveredCount++;
-            });
-            var _totalReqs = _allReqs.length;
-            if (_totalReqs > 0) {
-                var _covPct = Math.round(_coveredCount / _totalReqs * 100);
-                var _covColor = _covPct === 100 ? '#22c55e' : _covPct >= 50 ? '#f97316' : '#ef4444';
-                var _covLine = '<strong style="color:' + _covColor + ';">' + _covPct + '%</strong> coverage';
-                _covLine += ' &mdash; ' + _coveredCount + ' of ' + _totalReqs + ' requirements covered by shown/generated tests';
-                e2eDescHtml += '<p class="req-summary-subline" style="margin:0 0 12px;padding:0 8px;font-size:13px;">' + _covLine + '</p>';
-            }
+            var e2eDescHtml = '<div class="req-tab-desc">Existing regression tests (\u2265 <span class="req-e2e-threshold-val">' + Math.round(window._reqCoverageMinSim || 60) + '</span>% similarity) + newly generated E2E workflow tests spanning multiple requirements.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div>';
             document.getElementById('reqResultPaneE2eflows').innerHTML = e2eDescHtml + html;
             attachE2ePushHandlers();
         }
@@ -5428,18 +5255,21 @@
             e.preventDefault();
             var pane = e.target.closest('.req-result-pane');
             if (!pane) return;
-            var sections = pane.querySelectorAll('.req-requirement-section');
-            sections.forEach(function(sec) {
-                if (isExpand) sec.classList.remove('collapsed');
-                else sec.classList.add('collapsed');
+            // Handle both requirement sections and individual test case cards
+            var items = pane.querySelectorAll('.req-requirement-section, .req-tc-card');
+            items.forEach(function(el) {
+                if (isExpand) el.classList.remove('collapsed');
+                else el.classList.add('collapsed');
             });
         }
         document.getElementById('reqResultPaneRelated').addEventListener('click', handleReqSectionToggle);
         document.getElementById('reqResultPaneRelated').addEventListener('click', handleExpandCollapseAll);
         document.getElementById('reqResultPaneGenerated').addEventListener('click', handleReqSectionToggle);
+        document.getElementById('reqResultPaneE2eflows').addEventListener('click', handleReqSectionToggle);
         document.getElementById('reqResultPaneGenerated').addEventListener('click', handleExpandCollapseAll);
+        document.getElementById('reqResultPaneE2eflows').addEventListener('click', handleExpandCollapseAll);
 
-        document.getElementById('reqResultPaneRelated').addEventListener('click', function(e) {
+        function handleUpdateWithAI(e) {
             if (!e.target || !e.target.classList) return;
             var isUpdate = e.target.classList.contains('req-update-with-ai-btn');
             if (!isUpdate) return;
@@ -5470,6 +5300,9 @@
                 return;
             }
             reqCaseEditSourceCard = item;
+            // Auto-select Type based on source tab
+            var _isFromE2ePane = !!item.closest('#reqResultPaneE2eflows');
+            document.getElementById('reqCaseEditType').value = _isFromE2ePane ? 'FCT / Regression' : 'All / Functional';
             var overlay = document.getElementById('reqCaseEditModalOverlay');
             var loadingEl = document.getElementById('reqCaseEditLoading');
             var formEl = document.getElementById('reqCaseEditForm');
@@ -5522,7 +5355,10 @@
                 showToast('Request failed: ' + (err.message || 'Network error'), 'warning');
                 overlay.classList.remove('visible');
             });
-        });
+        }
+        document.getElementById('reqResultPaneRelated').addEventListener('click', handleUpdateWithAI);
+        document.getElementById('reqResultPaneGenerated').addEventListener('click', handleUpdateWithAI);
+        document.getElementById('reqResultPaneE2eflows').addEventListener('click', handleUpdateWithAI);
         document.getElementById('reqCaseEditCancel').addEventListener('click', function() {
             document.getElementById('reqCaseEditModalOverlay').classList.remove('visible');
             reqCaseEditTestrailId = null;
@@ -5633,11 +5469,9 @@
                 steps: (document.getElementById('reqGenEditSteps').value || '').trim() || undefined,
                 preconditions: (document.getElementById('reqGenEditPreconditions').value || '').trim() || undefined,
                 expected_result: (document.getElementById('reqGenEditExpected').value || '').trim() || undefined,
-                priority: document.getElementById('reqGenEditPriority').value || undefined
+                priority: document.getElementById('reqGenEditPriority').value || undefined,
+                case_type: document.getElementById('reqGenEditType').value || undefined
             };
-            if (reqGenEditReqId === 'e2e-flow') {
-                payload.case_type = 'FCT / Regression';
-            }
             var btn = document.getElementById('reqGenEditSubmit');
             var btnText = btn.textContent || '';
             btn.disabled = true;
@@ -5698,6 +5532,7 @@
             // Populate form fields from data attributes
             document.getElementById('reqGenEditTitle').value = row.getAttribute('data-title') || '';
             document.getElementById('reqGenEditPriority').value = row.getAttribute('data-priority') || 'P2';
+            document.getElementById('reqGenEditType').value = 'All / Functional'; // User Story tab → All / Functional
             document.getElementById('reqGenEditPreconditions').value = row.getAttribute('data-preconditions') || '';
             document.getElementById('reqGenEditSteps').value = row.getAttribute('data-steps') || '';
             document.getElementById('reqGenEditExpected').value = row.getAttribute('data-expected') || '';
@@ -5729,6 +5564,7 @@
             // Populate form fields from data attributes
             document.getElementById('reqGenEditTitle').value = row.getAttribute('data-title') || '';
             document.getElementById('reqGenEditPriority').value = row.getAttribute('data-priority') || 'P0';
+            document.getElementById('reqGenEditType').value = 'FCT / Regression'; // E2E tab → always FCT / Regression
             document.getElementById('reqGenEditPreconditions').value = row.getAttribute('data-preconditions') || '';
             document.getElementById('reqGenEditSteps').value = row.getAttribute('data-steps') || '';
             document.getElementById('reqGenEditExpected').value = row.getAttribute('data-expected') || '';
@@ -5763,14 +5599,13 @@
         });
         document.getElementById('reqPushModalPush').addEventListener('click', function() {
             var sectionSel = document.getElementById('reqPushModalSection');
-            var overrideEl = document.getElementById('reqPushModalTargetSectionId');
-            var targetSectionId = overrideEl && overrideEl.value.trim() ? parseInt(overrideEl.value.trim(), 10) : null;
-            if (!targetSectionId && sectionSel && sectionSel.value) targetSectionId = parseInt(sectionSel.value, 10);
-            if (!targetSectionId || isNaN(targetSectionId)) { showToast('Please select a section or enter a Section ID.', 'info'); return; }
+            var targetSectionId = sectionSel && sectionSel.value ? parseInt(sectionSel.value, 10) : null;
+            if (!targetSectionId || isNaN(targetSectionId)) { showToast('Please select a section.', 'info'); return; }
+            var _pushCaseType = document.getElementById('reqPushModalType').value || undefined;
             if (reqPushModalMode === 'e2e') {
-                doPushE2eToTestrail(targetSectionId);
+                doPushE2eToTestrail(targetSectionId, _pushCaseType);
             } else {
-                doPushToTestrail(targetSectionId, false);
+                doPushToTestrail(targetSectionId, false, _pushCaseType);
             }
         });
         document.getElementById('reqCaseEditModalOverlay').addEventListener('click', function(e) {
@@ -5790,7 +5625,8 @@
                 steps: (document.getElementById('reqCaseEditSteps').value || '').trim() || undefined,
                 preconditions: (document.getElementById('reqCaseEditPreconditions').value || '').trim() || undefined,
                 expected_result: (document.getElementById('reqCaseEditExpected').value || '').trim() || undefined,
-                priority: document.getElementById('reqCaseEditPriority').value || undefined
+                priority: document.getElementById('reqCaseEditPriority').value || undefined,
+                case_type: document.getElementById('reqCaseEditType').value || undefined
             };
             var updateBtn = document.getElementById('reqCaseEditUpdateBtn');
             var card = reqCaseEditSourceCard;
@@ -5845,7 +5681,8 @@
                 steps: (document.getElementById('reqCaseEditSteps').value || '').trim() || undefined,
                 preconditions: (document.getElementById('reqCaseEditPreconditions').value || '').trim() || undefined,
                 expected_result: (document.getElementById('reqCaseEditExpected').value || '').trim() || undefined,
-                priority: document.getElementById('reqCaseEditPriority').value || undefined
+                priority: document.getElementById('reqCaseEditPriority').value || undefined,
+                case_type: document.getElementById('reqCaseEditType').value || undefined
             };
             var insertBtn = document.getElementById('reqCaseEditInsertNewBtn');
             var btnText = insertBtn.textContent || '';
@@ -5901,8 +5738,10 @@
             (function() {
                 var rt = document.getElementById('reqTabRelatedDescThreshold');
                 var gt = document.getElementById('reqTabGeneratedDescThreshold');
+                var e2e = document.getElementById('reqTabE2eDescThreshold');
                 if (rt) rt.textContent = Math.round(window._reqRetrievalMinSim);
                 if (gt) gt.textContent = Math.round(window._reqCoverageMinSim);
+                if (e2e) e2e.textContent = Math.round(window._reqCoverageMinSim);
             })();
             document.getElementById('reqResultsSummary').innerHTML = buildReqSummaryHtml(data);
             var requirementsList = data.requirements || [];
@@ -5910,6 +5749,7 @@
             var related = data.related_tests || {};
             var needingUpdate = data.tests_needing_update || {};
             var generated = data.generated_tests || {};
+            var specsMap = data.related_specs_per_req || {};
             var hasGenerated = Object.keys(generated).some(function(reqId) { return (generated[reqId] || []).length > 0; });
             var coverageMinSim = window._reqCoverageMinSim || 60;
 
@@ -5950,8 +5790,37 @@
                 html += '</div><span class="req-count-badge">' + countBadge + '</span></div>';
                 html += '<div class="req-req-body">';
                 if (r.description && (r.description || '').trim() !== (r.title || '').trim()) html += '<div class="req-description">' + escapeHtml(r.description) + '</div>';
+                var reqSpecs = specsMap[reqId] || [];
+                if (reqSpecs.length > 0) {
+                    var _specsId = 'req-specs-' + reqId.replace(/[^a-zA-Z0-9]/g, '_');
+                    html += '<div class="req-specs-section">';
+                    html += '<div class="req-specs-toggle" onclick="(function(el){var b=document.getElementById(\'' + _specsId + '\');if(b){b.style.display=b.style.display===\'none\'?\'block\':\'none\';el.classList.toggle(\'expanded\')}})(this)">';
+                    html += '<span class="req-specs-chevron">&#9656;</span>';
+                    html += '<span class="req-specs-label">Spec pages referenced</span>';
+                    html += '<span class="req-specs-count">' + reqSpecs.length + ' page' + (reqSpecs.length === 1 ? '' : 's') + '</span>';
+                    html += '</div>';
+                    html += '<div class="req-specs-body" id="' + _specsId + '" style="display:none;">';
+                    reqSpecs.forEach(function(s) {
+                        var simPct = s.similarity_score != null ? Math.round(s.similarity_score * 100) : null;
+                        var simClass = simPct == null ? '' : simPct >= 75 ? 'req-spec-sim-high' : simPct >= 60 ? 'req-spec-sim-mid' : 'req-spec-sim-low';
+                        var simBadge = simPct != null ? '<span class="req-spec-sim ' + simClass + '">' + simPct + '% match</span>' : '';
+                        var link = s.url ? '<a href="' + escapeHtml(s.url) + '" target="_blank" class="req-spec-link" title="Open in Confluence">&#8599;</a>' : '';
+                        var rawTitle = (s.title || '').replace(/^[*#\s]+/, '').trim();
+                        var title = escapeHtml((rawTitle || 'Confluence page').substring(0, 100));
+                        var rawExcerpt = (s.content || '').replace(/[*#_`\[\]]/g, '').replace(/\s+/g, ' ').trim();
+                        var excerpt = rawExcerpt ? escapeHtml(rawExcerpt.substring(0, 180)) : '';
+                        html += '<div class="req-spec-row">';
+                        html += '<div class="req-spec-main">';
+                        html += '<div class="req-spec-title-line"><span class="req-spec-title" title="' + title + '">' + title + '</span>' + simBadge + '</div>';
+                        if (excerpt) html += '<div class="req-spec-excerpt">' + excerpt + '</div>';
+                        html += '</div>';
+                        html += link;
+                        html += '</div>';
+                    });
+                    html += '</div></div>';
+                }
                 html += '<div class="req-section-label">Related test cases</div>';
-                if (tests.length === 0) html += '<p style="color:#666;font-size:13px;">No related tests found.</p>';
+                if (tests.length === 0) html += '<p style="color:var(--text-muted);font-size:13px;">No related tests found.</p>';
                 else html += '<div class="req-tc-cards">' + tests.map(function(t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
                 html += '</div></div>';
             });
@@ -6012,7 +5881,7 @@
                         html += '</div></div>';
                     });
                 } else if (strongTests.length === 0) {
-                    html += '<p style="color:#666;font-size:13px;">No tests above coverage threshold.</p>';
+                    html += '<p style="color:var(--text-muted);font-size:13px;">No tests above coverage threshold.</p>';
                 }
                 html += '</div></div>';
             });
@@ -6039,7 +5908,7 @@
                 updateReqSelectToggleLabel();
             }
             } catch (err) {
-                console.error('renderReqResults error', err);
+                // renderReqResults error silenced for production
                 showToast('Could not display results: ' + (err.message || 'unknown error'), 'warning');
             }
         }
@@ -6172,7 +6041,7 @@
             reqPushModalRelatedTests = lastReqResult.related_tests || {};
             document.getElementById('reqPushModalSuite').innerHTML = '<option value="">Select project first</option>';
             document.getElementById('reqPushModalSection').innerHTML = '<option value="">Select suite first</option>';
-            document.getElementById('reqPushModalTargetSectionId').value = '';
+            document.getElementById('reqPushModalType').value = 'All / Functional'; // User Story tab → All / Functional
             reqPushModalProjectId = null;
             reqPushModalSuiteId = null;
             document.getElementById('reqPushModalOverlay').classList.add('visible');
@@ -6184,7 +6053,7 @@
             });
         }
 
-        function doPushToTestrail(targetSectionId, useSectionOfRelated) {
+        function doPushToTestrail(targetSectionId, useSectionOfRelated, caseType) {
             if (!reqPushModalSubset) return;
             if (!useSectionOfRelated && (!targetSectionId || isNaN(targetSectionId))) return;
             var sectionId = parseInt(targetSectionId, 10);
@@ -6221,13 +6090,18 @@
                 cb.checked = false;
                 cb.disabled = true;
                 cb.style.display = 'none';
-                var row = cb.closest('label.req-generated-test');
+                var row = cb.closest('.req-gen-test-row');
                 if (row) {
+                    // Hide "Modify & Push" button
+                    var modBtn = row.querySelector('.req-modify-push-btn');
+                    if (modBtn) modBtn.style.display = 'none';
+                    // Show TestRail link
+                    var contentEl = row.querySelector('.req-gen-test-content') || row;
                     var linkWrap = document.createElement('div');
                     linkWrap.className = 'req-pushed-link';
-                    linkWrap.style.cssText = 'margin-top:6px;font-size:13px;';
-                    linkWrap.innerHTML = 'Pushed to TestRail: ' + formatTestrailIdHtml(testrailId);
-                    row.appendChild(linkWrap);
+                    linkWrap.style.cssText = '';
+                    linkWrap.innerHTML = 'Pushed to TestRail \u2192 ' + formatTestrailIdHtml(testrailId);
+                    contentEl.appendChild(linkWrap);
                 }
             }
             function runNext(i) {
@@ -6262,7 +6136,8 @@
                     preconditions: (t.preconditions || '').trim() || undefined,
                     expected_result: (t.expected_result || '').trim() || undefined,
                     priority: (t.priority || 'P2').toString().toUpperCase().replace(/^P(\d)$/, 'P$1'),
-                    platform: 'web / m-web'
+                    platform: 'web / m-web',
+                    case_type: caseType || 'All / Functional'
                 };
                 if (requirementText) payload.requirement_text = requirementText;
                 fetch(API_BASE + '/requirement-analysis/create-case', {
@@ -6911,9 +6786,9 @@
                         errorDiv.className = 'chat-message';
                         errorDiv.innerHTML = `
                         <div class="message-answer">
-                            <div style="color: #dc3545; padding: 12px 16px; background: #f8d7da; border-radius: 10px; border-left: 4px solid #dc3545; font-size: 14px;">
+                            <div style="color: var(--danger); padding: 12px 16px; background: var(--danger-light); border-radius: 10px; border-left: 4px solid var(--danger); font-size: 14px;">
                                 <strong>⚠️ Error:</strong> ${escapeHtml(errorMsg)}<br>
-                                <small style="color: #721c24; margin-top: 6px; display: block; font-size: 12px;">Please try rephrasing your question or check if documents are available.</small>
+                                <small style="color: var(--danger-text); margin-top: 6px; display: block; font-size: 12px;">Please try rephrasing your question or check if documents are available.</small>
                             </div>
                                 </div>
                     `;
@@ -6961,9 +6836,9 @@
                     errorDiv.className = 'chat-message';
                     errorDiv.innerHTML = `
                     <div class="message-answer">
-                        <div style="color: #dc3545; padding: 12px 16px; background: #f8d7da; border-radius: 10px; border-left: 4px solid #dc3545; font-size: 14px;">
+                        <div style="color: var(--danger); padding: 12px 16px; background: var(--danger-light); border-radius: 10px; border-left: 4px solid var(--danger); font-size: 14px;">
                             <strong>⚠️ Connection Error:</strong> ${escapeHtml(errorMsg)}<br>
-                            <small style="color: #721c24; margin-top: 6px; display: block; font-size: 12px;">Please check your internet connection and try again.</small>
+                            <small style="color: var(--danger-text); margin-top: 6px; display: block; font-size: 12px;">Please check your internet connection and try again.</small>
                         </div>
                     </div>
                 `;
@@ -6988,7 +6863,6 @@
         function showToast(text, type = 'info') {
             const toast = document.getElementById('toastMessage');
             if (!toast) {
-                console.error('Toast element not found');
                 return;
             }
 

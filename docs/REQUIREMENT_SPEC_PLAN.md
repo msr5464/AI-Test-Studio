@@ -194,9 +194,9 @@ Return JSON: {"status": "ok"|"needs_update"|"partial", "suggested_changes": ["..
 
 ---
 
-## E2E Test Generation: Approach (Aspire Context)
+## E2E Test Generation: Approach
 
-Generated tests must be **end-to-end** only: complete user journeys and real user stories in the **Aspire system context**, not unit-level or single-step tests.
+Generated tests must be **end-to-end** only: complete user journeys and real user stories in the **product context**, not unit-level or single-step tests.
 
 **Principles:**
 1. **E2E only** – Each test is a full flow from user entry point to outcome (e.g. login → navigate → perform action → verify result). No isolated validations or unit-style checks.
@@ -204,7 +204,7 @@ Generated tests must be **end-to-end** only: complete user journeys and real use
 3. **Positive and negative flows** – Cover both:
    - **Positive:** Happy path (valid inputs, expected success, correct state).
    - **Negative:** Error paths (invalid input, permissions, edge cases, lockout, validation messages) where the requirement implies them.
-4. **Aspire context** – Tests are written for the Aspire product: flows, terminology, and behaviour should match the current Aspire system; no generic or hypothetical product details.
+4. **Product context** – Tests are written for your product: flows, terminology, and behaviour should match the system under test.
 
 **Implementation:** The LLM prompt in `_generate_tests_for_requirement()` instructs the model to produce multiple E2E test cases per requirement, cover every acceptance point, include both positive and negative scenarios where relevant, and to avoid unit-level or single-step tests. Prior Confluence/spec context and example TestRail tests provide feature and structural guidance.
 
@@ -221,7 +221,7 @@ Generated tests must be **end-to-end** only: complete user journeys and real use
 For each uncovered requirement:
 
 1. **Context:** Requirement text + prior Confluence/spec context (feature) + a few similar existing tests from TestRail (structure/style).
-2. **LLM prompt:** E2E-only, user-journey and Aspire-context rules (see section **E2E Test Generation: Approach** above); output JSON array with Title, Priority, Preconditions, Steps, Expected Result.
+2. **LLM prompt:** E2E-only, user-journey and product-context rules (see section **E2E Test Generation: Approach** above); output JSON array with Title, Priority, Preconditions, Steps, Expected Result.
 3. **Output:** Structured test case(s) in the same format as existing tests (3–8 E2E tests per requirement, priority-ordered).
 
 ### 4.3 Push to TestRail (Optional)

@@ -54,7 +54,7 @@ class TestRailSyncService:
         api_key = getattr(self.config, "testrail_api_key", None) or os.getenv("TESTRAIL_API_KEY", "")
         
         self.connector = None
-        if getattr(self.config, "testrail_sync_enabled", False) and url and email and api_key:
+        if url and email and api_key:
             self.connector = TestRailConnector(url=url, email=email, api_key=api_key)
     
     def _load_sync_metadata(self) -> Dict[str, Any]:
@@ -186,13 +186,6 @@ class TestRailSyncService:
         start_time = datetime.now()
         
         # Validate configuration
-        if not self.config.testrail_sync_enabled:
-            return {
-                'success': False,
-                'error': 'TestRail sync is disabled',
-                'message': 'Enable TESTRAIL_SYNC_ENABLED in .env to use sync'
-            }
-        
         if not self.config.testrail_url:
             return {
                 'success': False,
@@ -298,21 +291,28 @@ class TestRailSyncService:
                 from backend.services.rag_service import RAGService
                 rag_service = RAGService()
 
-            # Remove all existing TestRail docs (one file per suite: testrail_{suite_slug}.csv)
+            # Full sync (delta_days=0): wipe all TestRail docs and re-ingest everything.
+            # Delta sync (delta_days>0): only re-ingest changed suites — keep existing docs
+            # so tests older than the delta window are NOT lost.
+            _is_full_sync = (self.config.testrail_delta_days or 0) == 0
             metadata = self._load_sync_metadata()
-            if metadata.get('is_syncing') and 'current_sync' in metadata:
-                metadata['current_sync'] = {
-                    'phase': 'chromadb',
-                    'projects_done': projects_total,
-                    'projects_total': projects_total,
-                    'test_cases_so_far': len(df),
-                    'message': 'Removing previous TestRail docs...'
-                }
-                self._save_sync_metadata(metadata)
-            del_result = rag_service.delete_documents_by_name_prefix("testrail_")
-            if del_result.get('deleted_count', 0) > 0:
-                print(f"🗑️  Removed {del_result['deleted_count']} previous TestRail doc(s)")
-                self._append_sync_log(f"Removed {del_result['deleted_count']} previous TestRail doc(s)")
+            if _is_full_sync:
+                if metadata.get('is_syncing') and 'current_sync' in metadata:
+                    metadata['current_sync'] = {
+                        'phase': 'chromadb',
+                        'projects_done': projects_total,
+                        'projects_total': projects_total,
+                        'test_cases_so_far': len(df),
+                        'message': 'Removing previous TestRail docs (full sync)...'
+                    }
+                    self._save_sync_metadata(metadata)
+                del_result = rag_service.delete_documents_by_name_prefix("testrail_")
+                if del_result.get('deleted_count', 0) > 0:
+                    print(f"🗑️  Removed {del_result['deleted_count']} previous TestRail doc(s)")
+                    self._append_sync_log(f"Removed {del_result['deleted_count']} previous TestRail doc(s)")
+            else:
+                print(f"📦 Delta sync (delta_days={self.config.testrail_delta_days}) — keeping existing docs, updating changed suites only")
+                self._append_sync_log(f"Delta sync — updating changed suites only (keeping existing docs)")
             if del_result.get('errors'):
                 for e in del_result['errors'][:5]:
                     print(f"⚠️  {e}")
@@ -377,6 +377,49 @@ class TestRailSyncService:
                     'message': f'Added {added_suites} suite(s); {len(failed)} failed: {err}',
                 }
             self._append_sync_log("ChromaDB update completed successfully")
+
+            # Cleanup: remove orphaned tests from ChromaDB that no longer exist in TestRail.
+            # For delta sync this is essential (wipe doesn't happen); for full sync it's a safety net.
+            try:
+                self._append_sync_log("Checking for deleted tests in TestRail...")
+                # Get all case IDs currently in ChromaDB
+                _col = rag_service.rag.vectorstore._collection if rag_service.rag and rag_service.rag.vectorstore else None
+                if _col:
+                    _chroma_results = _col.get(where={"source_type": "testcase"}, include=["metadatas"])
+                    _chroma_ids = set()
+                    for _m in (_chroma_results.get("metadatas") or []):
+                        _tid = (_m.get("testrail_id") or "").replace("C", "")
+                        if _tid:
+                            _chroma_ids.add(_tid)
+                    # Get all case IDs from TestRail (all projects, no delta filter)
+                    _testrail_ids = set()
+                    for _pid in project_ids:
+                        try:
+                            _suites = self.connector.get_suites(_pid) or []
+                            for _s in _suites:
+                                _cases = self.connector.get_test_cases(_pid, suite_id=_s.get("id")) or []
+                                for _c in _cases:
+                                    _testrail_ids.add(str(_c.get("id", "")))
+                        except Exception:
+                            pass
+                    # Find orphans: in ChromaDB but not in TestRail
+                    _orphans = _chroma_ids - _testrail_ids
+                    if _orphans:
+                        _orphan_cids = [f"C{oid}" for oid in _orphans]
+                        # Delete orphaned chunks from ChromaDB by testrail_id metadata
+                        _deleted_count = 0
+                        for _oid in _orphan_cids:
+                            try:
+                                _col.delete(where={"testrail_id": _oid})
+                                _deleted_count += 1
+                            except Exception:
+                                pass
+                        print(f"🗑️  Removed {_deleted_count} deleted test(s) from ChromaDB")
+                        self._append_sync_log(f"Removed {_deleted_count} deleted test(s) from ChromaDB (no longer in TestRail)")
+                    else:
+                        print("✅ No orphaned tests found")
+            except Exception as _cleanup_err:
+                print(f"⚠️  Orphan cleanup failed (non-fatal): {_cleanup_err}")
 
             # Calculate sync statistics
             end_time = datetime.now()
@@ -473,7 +516,6 @@ class TestRailSyncService:
             'latest_sync_record': latest_sync,
             'sync_log': sync_log,
             'total_syncs': len(metadata['syncs']),
-            'sync_enabled': self.config.testrail_sync_enabled,
             'configured_projects': self.config.testrail_project_ids,
             'delta_days': self.config.testrail_delta_days
         }

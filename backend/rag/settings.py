@@ -85,12 +85,19 @@ class RAGConfig(BaseSettings):
     )
 
     # Requirement analysis retrieval (REQUIREMENT_* prefix)
-    requirement_retrieval_similarity_threshold: float = Field(
+    requirement_tests_similarity_threshold: float = Field(
         default=50.0,
         ge=0.0,
         le=100.0,
-        validation_alias="REQUIREMENT_RETRIEVAL_SIMILARITY_THRESHOLD",
-        description="Requirement: minimum similarity (0-100) for retrieving related tests/specs; lower = more inclusive so generated tests match"
+        validation_alias="REQUIREMENT_TESTS_SIMILARITY_THRESHOLD",
+        description="Requirement: minimum similarity (0-100) for retrieving related tests; lower = more inclusive so generated tests match"
+    )
+    requirement_specs_similarity_threshold: float = Field(
+        default=50.0,
+        ge=0.0,
+        le=100.0,
+        validation_alias="REQUIREMENT_SPECS_SIMILARITY_THRESHOLD",
+        description="Requirement: minimum similarity (0-100) for retrieving related Confluence specs. Lower than test threshold because spec pages use broader business language."
     )
     requirement_retrieval_k: int = Field(
         default=10,
@@ -108,17 +115,6 @@ class RAGConfig(BaseSettings):
         default=False,
         validation_alias="REQUIREMENT_USE_RERANKING",
         description="Requirement: enable re-ranking for find_related_tests/specs"
-    )
-    
-    # Memory settings
-    enable_memory: bool = Field(
-        default=False,
-        description="Enable conversation memory for multi-turn conversations"
-    )
-    memory_type: str = Field(
-        default='buffer',
-        pattern='^(buffer|window|summary)$',
-        description="Type of memory to use: buffer, window, or summary"
     )
     
     # Advanced retrieval features (shared; Chat uses chat_*, Requirement uses requirement_*)
@@ -140,12 +136,6 @@ class RAGConfig(BaseSettings):
     collection_name: str = Field(
         default="rag_collection",
         description="Name of ChromaDB collection"
-    )
-    
-    # Debug settings
-    debug_mode: bool = Field(
-        default=False,
-        description="Enable detailed debug logs"
     )
     
     # Caching settings
@@ -218,10 +208,6 @@ class RAGConfig(BaseSettings):
         alias="testrail_project_ids",
         description="Comma-separated TestRail project IDs to sync"
     )
-    testrail_sync_enabled: bool = Field(
-        default=False,
-        description="Enable TestRail sync functionality"
-    )
     testrail_delta_days: int = Field(
         default=0,
         ge=0,
@@ -241,19 +227,14 @@ class RAGConfig(BaseSettings):
         default="",
         description="API token for Confluence (Atlassian API tokens)"
     )
-    confluence_sync_enabled: bool = Field(
-        default=False,
-        description="Enable Confluence sync functionality"
-    )
     confluence_cql: str = Field(
         default="type=page",
         description="Confluence Query Language (CQL) to filter pages; e.g. type=page, or type=page AND space=DEV"
     )
-    confluence_max_pages: int = Field(
-        default=500,
-        ge=1,
-        le=2000,
-        description="Maximum number of Confluence pages to sync"
+    confluence_delta_days: int = Field(
+        default=0,
+        ge=0,
+        description="Days to look back for updated Confluence pages (0 = fetch all, no date filter)"
     )
 
     # Requirement analysis
@@ -315,9 +296,9 @@ class RAGConfig(BaseSettings):
         if exclude_testrail:
             connector_fields = [
                 'testrail_url', 'testrail_email', 'testrail_api_key',
-                'testrail_project_ids', 'testrail_project_ids_str', 'testrail_sync_enabled', 'testrail_delta_days',
+                'testrail_project_ids', 'testrail_project_ids_str', 'testrail_delta_days',
                 'confluence_url', 'confluence_email', 'confluence_api_token',
-                'confluence_sync_enabled', 'confluence_cql', 'confluence_max_pages',
+                'confluence_cql', 'confluence_delta_days',
                 'requirement_needs_update_confidence_threshold',
                 'testrail_push_enabled',
             ]
@@ -336,6 +317,22 @@ def get_config() -> RAGConfig:
     if _settings is None:
         _settings = RAGConfig()
     return _settings
+
+
+def reset_config() -> None:
+    """
+    Clear the cached RAGConfig singleton so the next get_config() call re-reads os.environ.
+
+    Called by SettingsService after saving new values to ensure changes take effect
+    immediately for services that call get_config() at instantiation time (e.g. sync services).
+
+    Note: modules that imported `settings` directly at module level (e.g.
+    `from backend.rag.settings import settings`) hold a stale reference and will not
+    see the update until restarted. Services that call get_config() freshly on each
+    request (TestRailSyncService, ConfluenceSyncService) are unaffected by this limitation.
+    """
+    global _settings
+    _settings = None
 
 
 # For convenience, also export settings directly

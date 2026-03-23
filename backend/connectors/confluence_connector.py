@@ -345,7 +345,6 @@ class ConfluenceConnector:
     def fetch_pages_by_cql(
         self,
         cql: Optional[str] = None,
-        max_pages: int = 500,
         progress_callback: Optional[Any] = None,
         log_callback: Optional[Any] = None,
     ) -> List[Dict]:
@@ -358,7 +357,6 @@ class ConfluenceConnector:
 
         Args:
             cql: CQL query (default: type=page)
-            max_pages: Maximum number of pages to fetch
             progress_callback: Optional callable(current, total, message)
             log_callback: Optional callable(message)
 
@@ -369,8 +367,9 @@ class ConfluenceConnector:
         next_link = None  # use API's _links.next URL directly to avoid cursor encoding issues
         batch_size = 50
         query = (cql or "").strip() or "type=page"
+        _max_pages = 10_000  # hard ceiling to prevent runaway pagination; CQL is the real filter
 
-        while len(pages_data) < max_pages:
+        while len(pages_data) < _max_pages:
             if next_link:
                 # Use the exact next URL from API (avoids 400 from cursor encoding)
                 resp = self._get_by_url(next_link)
@@ -384,7 +383,7 @@ class ConfluenceConnector:
             next_link = (resp.get('_links') or {}).get('next', '') or None
 
             for item in results:
-                if len(pages_data) >= max_pages:
+                if len(pages_data) >= _max_pages:
                     break
                 page_id, title, page_url = self._search_result_to_id_title_url(item)
                 if not page_id:
@@ -396,7 +395,7 @@ class ConfluenceConnector:
                 if progress_callback:
                     progress_callback(
                         len(pages_data),
-                        min(size + len(pages_data), max_pages),
+                        size + len(pages_data),
                         f"Fetching page: {title[:50]}...",
                     )
                 if log_callback:
@@ -461,7 +460,6 @@ class ConfluenceConnector:
     def fetch_and_transform(
         self,
         cql: Optional[str] = None,
-        max_pages: int = 500,
         progress_callback: Optional[Any] = None,
         log_callback: Optional[Any] = None,
     ) -> pd.DataFrame:
@@ -470,7 +468,6 @@ class ConfluenceConnector:
 
         Args:
             cql: CQL query (default: type=page)
-            max_pages: Maximum pages to fetch
             progress_callback: Optional callable
             log_callback: Optional callable
 
@@ -485,7 +482,6 @@ class ConfluenceConnector:
 
         pages = self.fetch_pages_by_cql(
             cql=query,
-            max_pages=max_pages,
             progress_callback=progress_callback,
             log_callback=log_callback,
         )

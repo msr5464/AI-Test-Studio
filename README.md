@@ -45,12 +45,14 @@ Test and requirement data live in a **ChromaDB** vector store. You can upload do
 
 ## Features
 
-- **AI Test Generator** — Paste / upload / Confluence URL → requirement extraction, related tests, tests needing update, generated tests (P0–P1 by default), push to TestRail, Update with AI for existing cases.
+- **AI Test Generator** — Paste / upload (multiple files) / Confluence URL(s) → requirement extraction, related tests, tests needing update, generated tests (P0–P1 by default; optionally P2–P3), E2E workflow tests with regression impact analysis, push to TestRail, Update with AI for existing cases.
 - **Talk to Tests** — Natural-language Q&A; toggle **Internal docs** (RAG) or **Only LLM**.
 - **Document ingestion** — Manual upload (PDF, CSV, Excel, Word, PowerPoint, text) plus TestRail and Confluence sync into one ChromaDB collection.
 - **LLM & embeddings** — Ollama (local), OpenAI, or Gemini; configurable embeddings; optional query and embedding cache.
-- **Auth** — Session-based login; Admin and Customer roles; default admin `admin` / `admin123` (change after first login).
+- **Auth** — Session-based login; Admin and Customer roles; default admin `admin` with a randomly generated password (shown once at first startup — save it!).
 - **REST API** — Query, requirement analysis, upload, sync, auth; see [docs/API.md](docs/API.md).
+- **Performance** — Parallel requirement processing (configurable), pre-warmed embedding caches, SSE streaming with per-requirement progress, thread-safe caching.
+- **Security** — CORS origin restriction, login brute-force protection, security headers, path traversal protection.
 - **Optional** — Hybrid search, reranking, query expansion; cost logging to `storage/operation_costs.jsonl`.
 
 ---
@@ -131,8 +133,9 @@ bash scripts/run.sh
 ### First-time setup
 
 1. Set **`SECRET_KEY`** in `config/.env` (e.g. `python -c "import secrets; print(secrets.token_hex(32))"`).
-2. Default admin: **username** `admin`, **password** `admin123` — change after first login (User Management in admin).
-3. For **AI Test Generator** and **TestRail/Confluence**: configure the relevant variables in `config/.env`; see [Configuration](#configuration) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#configuration).
+2. Default admin: **username** `admin` — a random password is printed to the console on first startup. **Save it!** Change it via User Management in admin.
+3. Set **`COMPANY_NAME`** in `config/.env` (or Admin → Settings → LLM) to your organization name — used in AI-generated test prompts.
+4. For **AI Test Generator** and **TestRail/Confluence**: configure the relevant variables in `config/.env`; see [Configuration](#configuration) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#configuration).
 
 ### URLs (default port 5001)
 
@@ -198,6 +201,8 @@ AI-Test-Studio/
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Contribution guidelines |
 | [docs/REQUIREMENT_SPEC_PLAN.md](docs/REQUIREMENT_SPEC_PLAN.md) | Requirement analysis spec, current state, roadmap |
 | [docs/SELF_TESTING_REQUIREMENT_ANALYSIS.md](docs/SELF_TESTING_REQUIREMENT_ANALYSIS.md) | Config and checklist for testing requirement analysis |
+| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
+| [CHANGELOG.md](CHANGELOG.md) | Version history and release notes |
 
 ---
 

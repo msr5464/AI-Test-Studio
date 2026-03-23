@@ -153,6 +153,7 @@ class BaseRAG:
         # In-memory cache for exact embedding scans (keyed by filter repr → (E_norm, docs, metas))
         # Cleared when documents are added to the collection.
         self._exact_emb_cache: dict = {}
+        self._exact_emb_cache_lock = __import__('threading').Lock()
         
         self.use_hybrid_search = use_hybrid_search and BM25_AVAILABLE
         self.use_reranking = use_reranking and RERANKER_AVAILABLE
@@ -226,10 +227,16 @@ class BaseRAG:
             debug_log("ℹ️  LLM_PROVIDER=openai detected: Using OpenAI embeddings", self.debug_mode)
 
         if use_local_embeddings or not os.getenv("OPENAI_API_KEY"):
+            # Force CPU device: the default (MPS on Apple Silicon) is not thread-safe —
+            # concurrent embed_query() calls from multiple threads crash the Metal compiler
+            # service with SIGABRT. CPU is thread-safe and the embedding cache means
+            # this only matters for cache misses, so the performance impact is minimal.
+            _embed_kwargs = {"device": "cpu"}
             try:
                 from langchain_huggingface import HuggingFaceEmbeddings
                 self.embeddings = HuggingFaceEmbeddings(
-                    model_name="sentence-transformers/all-MiniLM-L6-v2"
+                    model_name="sentence-transformers/all-MiniLM-L6-v2",
+                    model_kwargs=_embed_kwargs,
                 )
                 debug_log("✅ Using local embeddings (langchain-huggingface)", self.debug_mode)
             except ImportError:
@@ -237,7 +244,8 @@ class BaseRAG:
                 import warnings
                 warnings.filterwarnings("ignore", category=DeprecationWarning, module="langchain_community")
                 self.embeddings = HuggingFaceEmbeddings(
-                    model_name="sentence-transformers/all-MiniLM-L6-v2"
+                    model_name="sentence-transformers/all-MiniLM-L6-v2",
+                    model_kwargs=_embed_kwargs,
                 )
                 debug_log("✅ Using local embeddings (langchain_community - deprecated)", self.debug_mode)
                 debug_log("💡 Tip: Install 'langchain-huggingface' to remove deprecation warning", self.debug_mode)
@@ -277,8 +285,8 @@ class BaseRAG:
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
-                if gemini_model in ("gemini-1.5-flash", "gemini-1.5-pro"):
-                    gemini_model = "gemini-2.5-flash"  # 1.5 deprecated, use 2.5
+                if gemini_model in ("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"):
+                    gemini_model = "gemini-2.5-flash"  # older models deprecated, use 2.5
                 # Configurable retries for 429 Resource Exhausted (rate limit / quota)
                 gemini_max_retries = 6
                 try:
@@ -430,7 +438,8 @@ class BaseRAG:
         
         self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": self.retrieval_k})
         # Invalidate exact-scan embedding cache — collection contents have changed
-        self._exact_emb_cache.clear()
+        with self._exact_emb_cache_lock:
+            self._exact_emb_cache.clear()
 
         # Re-initialize keyword retriever with all documents
         if self.use_hybrid_search:
@@ -703,7 +712,7 @@ class BaseRAG:
             query: Search query (e.g. requirement text).
             k: Max number of documents to return.
             metadata_filter: Optional ChromaDB metadata filter (e.g. {"source_type": "testcase"}).
-            min_similarity_threshold_override: Override threshold (0-100); use REQUIREMENT_RETRIEVAL_SIMILARITY_THRESHOLD.
+            min_similarity_threshold_override: Override threshold (0-100); use REQUIREMENT_TESTS_SIMILARITY_THRESHOLD.
             use_hybrid_search_override: Override hybrid search; use REQUIREMENT_USE_HYBRID_SEARCH.
             use_reranking_override: Override reranking; use REQUIREMENT_USE_RERANKING.
 
@@ -737,9 +746,11 @@ class BaseRAG:
                 _q_emb = _np.array(self.embeddings.embed_query(query), dtype=float)
                 _q_norm = _q_emb / (_np.linalg.norm(_q_emb) + 1e-10)
                 # Use cached embedding matrix if available; otherwise load from ChromaDB
-                if _cache_key in self._exact_emb_cache:
-                    _E_norm, _docs_raw, _metas_raw = self._exact_emb_cache[_cache_key]
-                else:
+                with self._exact_emb_cache_lock:
+                    _cache_hit = _cache_key in self._exact_emb_cache
+                    if _cache_hit:
+                        _E_norm, _docs_raw, _metas_raw = self._exact_emb_cache[_cache_key]
+                if not _cache_hit:
                     _col = self.vectorstore._collection
                     _col_results = _col.get(
                         where=metadata_filter,
@@ -753,7 +764,8 @@ class BaseRAG:
                     _E = _np.array(_all_embs, dtype=float)          # (N, D)
                     _norms = _np.linalg.norm(_E, axis=1, keepdims=True)
                     _E_norm = _E / (_norms + 1e-10)                  # (N, D)
-                    self._exact_emb_cache[_cache_key] = (_E_norm, _docs_raw, _metas_raw)
+                    with self._exact_emb_cache_lock:
+                        self._exact_emb_cache[_cache_key] = (_E_norm, _docs_raw, _metas_raw)
                     print(f"[retrieve] Exact-scan cache built: {len(_docs_raw)} docs for filter {_cache_key}")
                 # Batch cosine similarity: single matmul → (N,) array — fully deterministic
                 _sims = _E_norm @ _q_norm                            # (N,)

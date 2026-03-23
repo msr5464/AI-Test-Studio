@@ -1,6 +1,6 @@
 # API Documentation
 
-Complete REST API reference for InHouse Knowledge AI.
+Complete REST API reference for AI Test Studio.
 
 ## Base URL
 

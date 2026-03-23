@@ -30,20 +30,22 @@ except ImportError:
 
 class QueryCache:
     """
-    In-memory cache for query results.
-    
+    In-memory thread-safe LRU cache for query results.
+
     Caches query results to avoid redundant LLM calls and retrieval operations.
     """
-    
+
     def __init__(self, max_size: int = 1000, enabled: bool = True):
         """
         Initialize query cache.
-        
+
         Args:
             max_size: Maximum number of cached queries. Default: 1000
             enabled: Whether caching is enabled. Default: True
         """
+        import threading
         self.cache: Dict[str, Dict[str, Any]] = {}
+        self._lock = threading.Lock()
         self.max_size = max_size
         self.enabled = enabled
         self.hits = 0
@@ -91,19 +93,22 @@ class QueryCache:
             return None
         
         cache_key = self._get_cache_key(query, **kwargs)
-        result = self.cache.get(cache_key)
-        
-        if result:
-            self.hits += 1
-            return result
-        else:
-            self.misses += 1
-            return None
-    
+        with self._lock:
+            result = self.cache.get(cache_key)
+            if result:
+                # Move to end (LRU: most recently used)
+                del self.cache[cache_key]
+                self.cache[cache_key] = result
+                self.hits += 1
+                return result
+            else:
+                self.misses += 1
+                return None
+
     def set(self, query: str, result: Dict[str, Any], **kwargs):
         """
         Cache result.
-        
+
         Args:
             query: User query string
             result: Query result dictionary
@@ -111,21 +116,22 @@ class QueryCache:
         """
         if not self.enabled:
             return
-        
+
         cache_key = self._get_cache_key(query, **kwargs)
-        
-        # Evict oldest if cache is full (FIFO)
-        if len(self.cache) >= self.max_size:
-            oldest_key = next(iter(self.cache))
-            del self.cache[oldest_key]
-        
-        self.cache[cache_key] = result
-    
+        with self._lock:
+            if cache_key in self.cache:
+                del self.cache[cache_key]  # re-insert at end
+            elif len(self.cache) >= self.max_size:
+                oldest_key = next(iter(self.cache))
+                del self.cache[oldest_key]
+            self.cache[cache_key] = result
+
     def clear(self):
         """Clear cache."""
-        self.cache.clear()
-        self.hits = 0
-        self.misses = 0
+        with self._lock:
+            self.cache.clear()
+            self.hits = 0
+            self.misses = 0
     
     def get_stats(self) -> Dict[str, Any]:
         """

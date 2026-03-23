@@ -104,8 +104,13 @@ def download_document(doc_id):
         }), 404
     
     doc_info = rag_service.documents[doc_id]
-    file_path = Path(doc_info['path'])
-    
+    file_path = Path(doc_info['path']).resolve()
+
+    # Path traversal protection: ensure file is under documents directory
+    _docs_dir = Path(rag_service.documents_dir).resolve() if hasattr(rag_service, 'documents_dir') else None
+    if _docs_dir and not str(file_path).startswith(str(_docs_dir)):
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+
     if not file_path.exists():
         return jsonify({
             'success': False,
@@ -343,22 +348,52 @@ def get_sync_status():
         }), 500
 
 
-@admin_bp.route('/sync/config', methods=['PUT'])
+@admin_bp.route('/settings', methods=['GET'])
 @require_auth(admin_only=True)
-def update_sync_config():
-    """Update TestRail sync configuration."""
+def get_settings():
+    """Return settings schema and current values. Sensitive values are masked as ****."""
     try:
-        data = request.get_json()
-        
-        # This would update .env file or database config
-        # For now, return not implemented
-        return jsonify({
-            'success': False,
-            'message': 'Configuration update via API not yet implemented. Please update .env file manually.'
-        }), 501
-            
+        svc = current_app.config.get('SETTINGS_SERVICE')
+        if not svc:
+            return jsonify({'success': False, 'error': 'Settings service not available'}), 500
+        return jsonify({'success': True, **svc.get_all_for_api()}), 200
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/settings', methods=['PUT'])
+@require_auth(admin_only=True)
+def update_settings():
+    """Save settings. Sensitive fields submitted as **** are not overwritten."""
+    try:
+        svc = current_app.config.get('SETTINGS_SERVICE')
+        if not svc:
+            return jsonify({'success': False, 'error': 'Settings service not available'}), 500
+        data = request.get_json()
+        if not data or not isinstance(data, dict):
+            return jsonify({'success': False, 'error': 'Invalid request body'}), 400
+        svc.set_many(data)
+        # Reconfigure scheduler in case schedule settings changed
+        scheduler = current_app.config.get('SCHEDULER_SERVICE')
+        if scheduler:
+            scheduler.reconfigure()
         return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+            'success': True,
+            'message': 'Settings saved and applied successfully',
+            **svc.get_all_for_api()
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/sync/schedule', methods=['GET'])
+@require_auth(admin_only=True)
+def get_sync_schedule():
+    """Return next scheduled run times for TestRail and Confluence syncs."""
+    try:
+        scheduler = current_app.config.get('SCHEDULER_SERVICE')
+        if not scheduler:
+            return jsonify({'success': True, 'testrail': {'scheduled': False}, 'confluence': {'scheduled': False}}), 200
+        return jsonify({'success': True, **scheduler.get_schedule_info()}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

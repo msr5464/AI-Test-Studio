@@ -40,6 +40,9 @@ rank-bm25==0.2.2
 sentencepiece==0.1.99
 html2text>=2020.1.0
 
+# Scheduler (daily sync jobs)
+APScheduler>=3.10.0
+
 # Production WSGI Server
 gunicorn>=21.2.0  # Production WSGI server (required for production deployment)
 

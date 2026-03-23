@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Complete guide for deploying InHouse Knowledge AI on Windows, macOS, and Linux.
+Complete guide for deploying AI Test Studio on Windows, macOS, and Linux.
 
 ## Table of Contents
 

@@ -413,7 +413,8 @@ class RAGService:
             }
 
     def add_document_file(
-        self, file_path: Path, file_name: str, subdir: Optional[str] = None
+        self, file_path: Path, file_name: str, subdir: Optional[str] = None,
+        extra_metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Add a raw file (e.g. .md, .txt) to the knowledge base without CSV/testcase validation.
@@ -423,6 +424,7 @@ class RAGService:
             file_path: Path to the file
             file_name: Logical name (e.g. confluence_123.md, confluence_batch_0.md)
             subdir: Optional subdirectory (e.g. "confluence") for segregation
+            extra_metadata: Extra key/value pairs to store on every chunk (e.g. {"source_type": "specs"})
 
         Returns:
             Dict with success, document_id, message
@@ -447,6 +449,18 @@ class RAGService:
         shutil.copy2(file_path, saved_path)
         try:
             self.rag.add_files([saved_path], replace_if_exists=True)
+            # Retroactively tag all chunks from this file with extra_metadata (e.g. source_type: specs)
+            if extra_metadata and self.rag.vectorstore:
+                try:
+                    col = self.rag.vectorstore._collection
+                    res = col.get(where={"file_path": str(saved_path)}, include=["metadatas"])
+                    ids = res.get("ids") or []
+                    if ids:
+                        metas = res.get("metadatas") or [{}] * len(ids)
+                        updated = [{**(m or {}), **extra_metadata} for m in metas]
+                        col.update(ids=ids, metadatas=updated)
+                except Exception as _me:
+                    print(f"⚠️  add_document_file: failed to apply extra_metadata: {_me}")
             self.documents[doc_id] = {
                 'id': doc_id,
                 'name': file_name,
@@ -540,6 +554,8 @@ class RAGService:
         Returns:
             List of dicts: [{"testrail_id": "C123", "title": "...", "content": "...", "similarity_score": 0.85}, ...]
         """
+        # Hold lock only for vectorstore swap (microseconds), not during retrieval.
+        # This allows concurrent find_related_tests calls from parallel requirement threads.
         with self._vectorstore_reload_lock:
             if vectorstore is not None:
                 self.rag.vectorstore = vectorstore
@@ -554,20 +570,21 @@ class RAGService:
             if not self.rag.vectorstore:
                 return []
 
-            try:
-                config = get_config()
-                metadata_filter = {"source_type": "testcase"}
-                doc_score_pairs = self.rag.retrieve_documents_with_scores(
-                    requirement_text,
-                    k=config.requirement_retrieval_k,
-                    metadata_filter=metadata_filter,
-                    min_similarity_threshold_override=config.requirement_retrieval_similarity_threshold,
-                    use_hybrid_search_override=config.requirement_use_hybrid_search,
-                    use_reranking_override=config.requirement_use_reranking,
-                )
-            except Exception as e:
-                print(f"⚠️  find_related_tests failed: {e}")
-                return []
+        # Retrieval runs outside the lock — read-only operations are thread-safe
+        try:
+            config = get_config()
+            metadata_filter = {"source_type": "testcase"}
+            doc_score_pairs = self.rag.retrieve_documents_with_scores(
+                requirement_text,
+                k=config.requirement_retrieval_k,
+                metadata_filter=metadata_filter,
+                min_similarity_threshold_override=config.requirement_tests_similarity_threshold,
+                use_hybrid_search_override=config.requirement_use_hybrid_search,
+                use_reranking_override=config.requirement_use_reranking,
+            )
+        except Exception as e:
+            print(f"⚠️  find_related_tests failed: {e}")
+            return []
 
         results = []
         seen_ids = set()
@@ -654,11 +671,14 @@ class RAGService:
         try:
             config = get_config()
             metadata_filter = {"source_type": "specs"}
+            # Confluence spec pages use broader business language, so use a lower similarity threshold
+            # than for TestRail test cases (requirement_specs_similarity_threshold, default 50%).
+            specs_threshold = getattr(config, "requirement_specs_similarity_threshold", 50.0)
             doc_score_pairs = self.rag.retrieve_documents_with_scores(
                 spec_or_requirement_text,
                 k=config.requirement_retrieval_k,
                 metadata_filter=metadata_filter,
-                min_similarity_threshold_override=config.requirement_retrieval_similarity_threshold,
+                min_similarity_threshold_override=specs_threshold,
                 use_hybrid_search_override=config.requirement_use_hybrid_search,
                 use_reranking_override=config.requirement_use_reranking,
             )

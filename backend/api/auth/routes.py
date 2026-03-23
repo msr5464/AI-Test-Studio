@@ -36,30 +36,55 @@ def require_auth(admin_only: bool = False):
     return decorator
 
 
+# Brute force protection: track failed login attempts per IP
+import time as _time
+_login_attempts: dict = {}  # {ip: [timestamp, timestamp, ...]}
+_LOGIN_MAX_ATTEMPTS = 10
+_LOGIN_LOCKOUT_SECONDS = 900  # 15 minutes
+
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """Login endpoint."""
+    # Rate limit check
+    _ip = request.remote_addr or 'unknown'
+    _now = _time.time()
+    _attempts = _login_attempts.get(_ip, [])
+    # Prune old attempts
+    _attempts = [t for t in _attempts if _now - t < _LOGIN_LOCKOUT_SECONDS]
+    _login_attempts[_ip] = _attempts
+    if len(_attempts) >= _LOGIN_MAX_ATTEMPTS:
+        _wait = int(_LOGIN_LOCKOUT_SECONDS - (_now - _attempts[0]))
+        return jsonify({
+            'success': False,
+            'error': f'Too many login attempts. Try again in {_wait} seconds.'
+        }), 429
+
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    
+
     if not username or not password:
         return jsonify({
             'success': False,
             'error': 'Username and password required'
         }), 400
-    
+
     auth_service = current_app.config.get('AUTH_SERVICE')
     if not auth_service:
         return jsonify({
             'success': False,
             'error': 'Authentication service not configured'
         }), 500
-    
+
     result = auth_service.login(username, password)
     if result['success']:
+        # Clear failed attempts on success
+        _login_attempts.pop(_ip, None)
         return jsonify(result), 200
     else:
+        # Record failed attempt
+        _login_attempts.setdefault(_ip, []).append(_now)
         return jsonify(result), 401
 
 

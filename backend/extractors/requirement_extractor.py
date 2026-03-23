@@ -297,8 +297,8 @@ Rules:
 5. Keep titles concise (under 150 chars)
 
 Example transformations:
-- "As an Tech team, I should establish connectivity with ASL sandbox" → "As a Tech team, I should be able to connect with ASL to enable AUD bank account creation"
-- "As an Aspire user, I would like to create counterparties" → "As an Aspire user, I should be able to create counterparties for my AUD account to send funds"
+- "As a Tech team, I should establish connectivity with sandbox" → "As a Tech team, I should be able to connect with the sandbox to enable bank account creation"
+- "As a user, I would like to create counterparties" → "As a user, I should be able to create counterparties for my account to send funds"
 
 Return ONLY valid JSON array (no markdown):
 [
@@ -369,31 +369,68 @@ def clean_descriptions_with_llm(
         return requirements
     
     from langchain_core.prompts import ChatPromptTemplate
-    
-    prompt = ChatPromptTemplate.from_messages([
+
+    # Only clean requirements with non-trivial descriptions
+    to_clean = [(i, req) for i, req in enumerate(requirements)
+                if req.get("description", "") and len(req.get("description", "")) >= 50]
+    if not to_clean:
+        return requirements
+
+    # Build numbered blocks for batch call
+    blocks = []
+    for idx, (_, req) in enumerate(to_clean):
+        raw_desc = req.get("description", "")[:3000]
+        blocks.append(f"[{idx + 1}]\n{raw_desc}")
+    batch_text = "\n\n---\n\n".join(blocks)
+
+    batch_prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are a technical writer. Clean up raw requirement descriptions into readable, structured summaries.
+
+For EACH numbered requirement block, produce a clean description.
+
+REMOVE: HTML tags, API endpoints/payloads, JSON, internal URLs, code snippets, technical configs, status updates.
+KEEP: What user/system can do, key acceptance criteria, business rules, workflow steps (simplified).
+FORMAT: Brief summary sentence + key bullet points (* for bullets). Keep 200-400 chars each.
+
+Return ONLY a valid JSON array in the same order:
+[
+  {{"id": 1, "cleaned": "cleaned text here"}},
+  {{"id": 2, "cleaned": "cleaned text here"}}
+]"""),
+        ("human", """{descriptions}
+
+JSON array:"""),
+    ])
+
+    try:
+        chain = batch_prompt | llm
+        result = chain.invoke({"descriptions": batch_text})
+        raw = result.content if hasattr(result, "content") else str(result)
+        raw = raw.strip()
+        match = re.search(r"\[[\s\S]*\]", raw)
+        if match:
+            cleaned_list = json.loads(match.group())
+            cleaned_map = {item["id"]: item["cleaned"] for item in cleaned_list
+                           if isinstance(item, dict) and "id" in item and "cleaned" in item}
+            for idx, (_, req) in enumerate(to_clean):
+                cleaned = cleaned_map.get(idx + 1, "").strip()
+                if cleaned and len(cleaned) >= 20:
+                    req["raw_description"] = req.get("description", "")
+                    req["description"] = cleaned[:1000]
+            print(f"[clean_descriptions] Batch cleaned {len(cleaned_map)}/{len(to_clean)} requirements in one call")
+            return requirements
+        else:
+            print("⚠️  clean_descriptions_with_llm batch: no JSON array found, falling back to sequential")
+    except Exception as e:
+        print(f"⚠️  clean_descriptions_with_llm batch failed: {e}, falling back to sequential")
+
+    # Sequential fallback
+    single_prompt = ChatPromptTemplate.from_messages([
         ("system", """You are a technical writer. Clean up the raw requirement description into a readable, structured summary.
 
-REMOVE:
-- HTML tags (<aside>, </aside>, etc.)
-- API documentation, endpoints, sample payloads, JSON
-- Internal references ("refer here", "flows here", "click here", URLs)
-- Database schemas, code snippets, technical configs
-- Status updates, team assignments, internal notes
-
-KEEP and REPHRASE as user-facing:
-- What the user/system will be able to do
-- Key acceptance criteria
-- Business rules and constraints
-- Important validations or conditions
-- Workflow steps (simplified)
-
-FORMAT:
-Return a clean, readable description with:
-1. A brief summary sentence of what this enables
-2. Key points as bullet items (use * for bullets)
-Keep it concise (200-400 chars).
-
-Even for technical requirements, extract the PURPOSE (e.g. "Enables secure connectivity with banking partner for account operations").
+REMOVE: HTML tags, API documentation, endpoints, sample payloads, JSON, internal references, URLs, code snippets, technical configs, status updates.
+KEEP: What the user/system will be able to do, key acceptance criteria, business rules, constraints, workflow steps (simplified).
+FORMAT: Brief summary sentence + key points as bullet items (* for bullets). Keep concise (200-400 chars).
 
 Return ONLY the cleaned description text, nothing else."""),
         ("human", """Raw description:
@@ -401,22 +438,17 @@ Return ONLY the cleaned description text, nothing else."""),
 
 Cleaned description:"""),
     ])
-    
-    for req in requirements:
+    for _, req in to_clean:
         raw_desc = req.get("description", "")
-        if not raw_desc or len(raw_desc) < 50:
-            continue
-        
         try:
-            chain = prompt | llm
+            chain = single_prompt | llm
             result = chain.invoke({"description": raw_desc[:3000]})
             cleaned = result.content if hasattr(result, "content") else str(result)
             cleaned = cleaned.strip()
-            
             if cleaned and len(cleaned) >= 20:
                 req["raw_description"] = raw_desc
                 req["description"] = cleaned[:1000]
         except Exception as e:
             print(f"⚠️  clean_descriptions_with_llm failed for {req.get('id')}: {e}")
-    
+
     return requirements

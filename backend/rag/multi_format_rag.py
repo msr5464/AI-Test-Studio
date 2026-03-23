@@ -148,7 +148,7 @@ class MultiFormatRAG(BaseRAG):
         # Remove multiple spaces and normalize whitespace
         cleaned = ' '.join(text.split())
         # Fix common PDF extraction issues: single letters separated by spaces
-        # Pattern: "A s p i r e" -> "Aspire"
+        # Pattern: "H e l l o" -> "Hello"
         cleaned = re.sub(r'\b([A-Za-z])\s+(?=[A-Za-z]\s+[A-Za-z])', r'\1', cleaned)
         # Fix patterns like "Q A" -> "QA", but preserve "Q A -" -> "QA -"
         cleaned = re.sub(r'\b([A-Z])\s+([A-Z])\b(?!\s*-)', r'\1\2', cleaned)
