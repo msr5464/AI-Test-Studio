@@ -32,6 +32,7 @@ else:
 from backend.api.admin.routes import admin_bp
 from backend.api.customer.routes import customer_bp
 from backend.api.auth.routes import auth_bp
+from backend.api.agents.proxy import agents_bp
 from backend.services.rag_service import RAGService
 from backend.services.auth_service import AuthService
 from backend.services.settings_service import SettingsService
@@ -121,6 +122,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(customer_bp, url_prefix='/api/customer')
+    app.register_blueprint(agents_bp, url_prefix='/api/agents')
     
     # Serve frontend files
     @app.route('/')

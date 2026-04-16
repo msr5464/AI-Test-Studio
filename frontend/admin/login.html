@@ -25,19 +25,19 @@
         }
 
         [data-theme="light"] {
-            --primary: #0891b2;
-            --primary-hover: #0e7490;
-            --primary-light: rgba(6, 182, 212, 0.1);
+            --primary: #0369a1;
+            --primary-hover: #075985;
+            --primary-light: rgba(3, 105, 161, 0.12);
             --bg-page: #f1f5f9;
-            --bg-page-gradient: radial-gradient(ellipse at top, #e0f2fe 0%, transparent 50%),
-                radial-gradient(ellipse at bottom right, #ccfbf1 0%, transparent 50%);
+            --bg-page-gradient: radial-gradient(ellipse at top, #bfdbfe 0%, transparent 55%),
+                radial-gradient(ellipse at bottom right, #bae6fd 0%, transparent 55%);
             --bg-card: #ffffff;
-            --bg-input: #ffffff;
+            --bg-input: #f8fafc;
             --text: #0f172a;
-            --text-light: #475569;
-            --text-muted: #94a3b8;
-            --border: #e2e8f0;
-            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            --text-light: #334155;
+            --text-muted: #475569;
+            --border: #94a3b8;
+            --shadow: 0 1px 4px rgba(0, 0, 0, 0.1), 0 8px 28px rgba(0, 0, 0, 0.09);
         }
 
         /* Instant theme switch: disable transitions so toggle feels immediate */
@@ -220,6 +220,32 @@
             color: #b91c1c;
         }
 
+        /* ── Light mode overrides — deep color, high contrast ── */
+        [data-theme="light"] h1 {
+            background: linear-gradient(135deg, #0c4a6e 0%, #1d4ed8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        [data-theme="light"] .btn {
+            background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%);
+            box-shadow: 0 4px 12px rgba(3, 105, 161, 0.35);
+        }
+        [data-theme="light"] .btn:hover {
+            box-shadow: 0 6px 18px rgba(3, 105, 161, 0.45);
+        }
+        [data-theme="light"] input[type="text"]:focus,
+        [data-theme="light"] input[type="password"]:focus {
+            border-color: #0369a1;
+            box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.2);
+        }
+        [data-theme="light"] .login-card {
+            border-color: #94a3b8;
+        }
+        [data-theme="light"] .theme-slider {
+            background: #94a3b8;
+        }
+
         .error-message.show {
             display: block;
         }
@@ -396,7 +422,7 @@
                 <div class="modal-block modal-note" style="margin-top: 12px; margin-bottom: 0;">
                     <strong>Default credentials after reset:</strong><br>
                     <code>Username: admin</code><br>
-                    <code>Password: admin123</code><br>
+                    <code>Password: a random password will be printed to the console on first startup</code><br>
                     <small>Change this password immediately after login!</small>
                 </div>
             </div>

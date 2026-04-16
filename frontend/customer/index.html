@@ -11,8 +11,39 @@
            THEME SYSTEM - Dark & Light Mode
            ========================================== */
         
-        /* Dark Theme (default) */
-        :root, [data-theme="dark"] {
+        /* Default / Colorful Theme */
+        :root, [data-theme="light"] {
+            --primary: #7c3aed;
+            --primary-hover: #6d28d9;
+            --primary-light: rgba(124, 58, 237, 0.12);
+            --secondary: #4f46e5;
+            --success: #059669;
+            --success-light: rgba(5, 150, 105, 0.12);
+            --accent: #f59e0b;
+            --accent-light: rgba(245, 158, 11, 0.12);
+            --bg-page: #f0edff;
+            --bg-page-gradient:
+                radial-gradient(ellipse at 20% 0%, rgba(167, 139, 250, 0.55) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 100%, rgba(196, 181, 253, 0.30) 0%, transparent 55%);
+            --bg-header: rgba(255, 255, 255, 0.92);
+            --bg-card: #ffffff;
+            --bg-card-hover: #faf5ff;
+            --bg-input: #fcfbff;
+            --text: #0f172a;
+            --text-light: #334155;
+            --text-muted: #64748b;
+            --border: #ddd6fe;
+            --bg-white: #ffffff;
+            --bg-dark: #0f172a;
+            --danger: #dc2626;
+            --danger-light: rgba(220, 38, 38, 0.12);
+            --danger-text: #991b1b;
+            --radius: 12px;
+            --shadow: 0 4px 24px rgba(109, 40, 217, 0.10), 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Dark Theme */
+        [data-theme="dark"] {
             --primary: #06b6d4;
             --primary-hover: #0891b2;
             --primary-light: rgba(6, 182, 212, 0.15);
@@ -33,39 +64,11 @@
             --text-muted: #64748b;
             --border: #334155;
             --bg-white: #1e293b;
+            --bg-dark: #0f172a;
             --danger: #ef4444;
             --danger-light: rgba(239, 68, 68, 0.15);
             --danger-text: #fca5a5;
-            --radius: 12px;
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Light Theme */
-        [data-theme="light"] {
-            --primary: #0891b2;
-            --primary-hover: #0e7490;
-            --primary-light: rgba(6, 182, 212, 0.1);
-            --secondary: #0284c7;
-            --success: #16a34a;
-            --success-light: rgba(34, 197, 94, 0.1);
-            --accent: #d97706;
-            --accent-light: rgba(245, 158, 11, 0.1);
-            --bg-page: #f1f5f9;
-            --bg-page-gradient: radial-gradient(ellipse at top, #e0f2fe 0%, transparent 50%),
-                radial-gradient(ellipse at bottom right, #ccfbf1 0%, transparent 50%);
-            --bg-header: rgba(255, 255, 255, 0.95);
-            --bg-card: #ffffff;
-            --bg-card-hover: #f8fafc;
-            --bg-input: #ffffff;
-            --text: #0f172a;
-            --text-light: #475569;
-            --text-muted: #94a3b8;
-            --border: #e2e8f0;
-            --bg-white: #ffffff;
-            --danger: #dc2626;
-            --danger-light: rgba(220, 38, 38, 0.1);
-            --danger-text: #991b1b;
-            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
 
         /* Instant theme switch: disable transitions so toggle feels immediate */
@@ -88,47 +91,26 @@
             min-height: 100vh;
             transition: background-color 0.3s, color 0.3s;
         }
-        /* Initial load: fit in viewport so no scrollbar when blank */
+        /* Initial load: prevent body scrollbar — app-main handles its own scroll */
         body.layout-initial {
-            height: 100vh;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        body.layout-initial .main-container {
-            flex: 1 1 0;
-            min-height: 0;
-            overflow: auto;
-            display: flex;
-            flex-direction: column;
-        }
-        body.layout-initial .tab-panel.active {
-            display: flex;
-            flex-direction: column;
-            flex: 1 1 0;
-            min-height: 0;
-        }
-        body.layout-initial .chat-container {
-            flex: 1 1 0;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-        }
-        body.layout-initial .chat-history-area {
-            flex: 1 1 0;
-            min-height: 0;
         }
 
         /* Header */
         .site-header {
             flex-shrink: 0;
+            height: 64px;
             background: var(--bg-header);
-            backdrop-filter: blur(12px);
-            padding: 14px 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 0 28px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid var(--border);
+            box-shadow: 0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,0.18);
+            position: relative;
+            z-index: 100;
             transition: background-color 0.3s;
         }
 
@@ -185,23 +167,36 @@
         .site-logo {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-weight: 700;
+            gap: 10px;
+            font-weight: 800;
             font-size: 20px;
+            letter-spacing: -0.3px;
             color: var(--text);
             text-decoration: none;
         }
 
         .site-logo #appName {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: linear-gradient(135deg, #06b6d4 0%, #38bdf8 60%, #22d3ee 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .site-logo img {
-            height: 48px;
+            height: 36px;
             filter: brightness(1.25) contrast(1.08);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
         }
 
         .site-nav {
@@ -325,25 +320,545 @@
             display: block;
         }
 
-        /* Ask Panel – content flows; page scrolls at browser level */
-        .chat-container {
+        /* ==========================================
+           APP SHELL — SIDEBAR LAYOUT
+           ========================================== */
+
+        /* Full-height shell below the header */
+        .app-shell {
+            display: flex;
+            height: calc(100vh - 64px);
+        }
+
+        /* Left sidebar */
+        .app-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background: var(--bg-page);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 16px 10px 16px;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .nav-section-label {
+            padding: 0 10px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .nav-group { margin-bottom: 4px; }
+
+        .nav-group-label {
+            padding: 14px 12px 4px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 12px 14px;
+            margin-bottom: 4px;
+            font-size: 13.5px;
+            font-weight: 500;
+            color: var(--text-light);
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+            position: relative;
+            line-height: 1.3;
+            gap: 0;
+        }
+
+        .nav-item:hover:not(.disabled) {
+            background: var(--bg-card);
+            color: var(--text);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 3px 12px rgba(6,182,212,0.35);
+        }
+
+        .nav-item.active::before { display: none; }
+
+        .nav-item.disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+        }
+
+        .nav-soon {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            background: var(--bg-card);
+            color: var(--text-muted);
+            padding: 2px 7px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 10px 10px;
+        }
+
+        .nav-spacer { flex: 1; min-height: 16px; }
+
+        /* Compact service-health row in sidebar */
+        .nav-health {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 12px 4px;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 4px;
+        }
+
+        .nav-health-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            flex-shrink: 0;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+        .nav-health-dot.ok  { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
+        .nav-health-dot.err { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }
+
+        .nav-health-text {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .nav-health-refresh {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1;
+            flex-shrink: 0;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .nav-health-refresh:hover { color: var(--text); background: var(--bg-card); }
+
+        /* ══════════════════════════════════════════════════════════════
+           DEFAULT (COLORFUL) THEME OVERRIDES — vivid violet / indigo
+           Note: JS always sets data-theme so [data-theme="light"] is
+           guaranteed to match; :root vars handle variable-driven rules.
+           ══════════════════════════════════════════════════════════════ */
+
+        /* ── Sidebar: medium violet — clearly darker than page, lighter than original ── */
+        [data-theme="light"] .app-sidebar {
+            background: #7c3aed;
+            border-right-color: rgba(255, 255, 255, 0.10);
+        }
+        [data-theme="light"] .nav-section-label,
+        [data-theme="light"] .nav-group-label {
+            color: #c4b5fd;
+        }
+        [data-theme="light"] .nav-item {
+            color: #e9d5ff;
+        }
+        [data-theme="light"] .nav-item:hover:not(.disabled) {
+            background: rgba(255, 255, 255, 0.10);
+            color: #ffffff;
+        }
+        [data-theme="light"] .nav-item.active {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            box-shadow: inset 3px 0 0 #ffffff, 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        [data-theme="light"] .nav-item.disabled {
+            color: rgba(255, 255, 255, 0.65);
+        }
+        [data-theme="light"] .nav-soon {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.55);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+        [data-theme="light"] .nav-divider {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        [data-theme="light"] .nav-health {
+            border-top-color: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.70);
+        }
+        [data-theme="light"] .nav-health-text {
+            color: rgba(255, 255, 255, 0.85);
+        }
+        [data-theme="light"] .nav-health-dot {
+            background: rgba(255, 255, 255, 0.35);
+        }
+        [data-theme="light"] .nav-health-dot.ok  { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.30); }
+        [data-theme="light"] .nav-health-dot.err { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.30); }
+        [data-theme="light"] .nav-health-refresh {
+            color: rgba(255, 255, 255, 0.70);
+        }
+        [data-theme="light"] .nav-health-refresh:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* ── Header: medium violet — clearly darker than page, lighter than original ── */
+        [data-theme="light"] .site-header {
+            background: #7c3aed;
+            border-bottom-color: rgba(255, 255, 255, 0.10);
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 20px rgba(0, 0, 0, 0.20);
+        }
+        [data-theme="light"] .site-logo {
+            color: #f3e8ff;
+        }
+        [data-theme="light"] .header-divider {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        [data-theme="light"] .sidebar-toggle {
+            color: #ddd6fe;
+        }
+        [data-theme="light"] .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 0.10);
+        }
+
+        /* ── Logo: pale lavender → lilac → pink on medium header ── */
+        [data-theme="light"] .site-logo #appName {
+            background: linear-gradient(135deg, #f3e8ff 0%, #ddd6fe 55%, #fbcfe8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ── Theme toggle on medium violet header ── */
+        [data-theme="light"] .theme-slider {
+            background: rgba(255, 255, 255, 0.22);
+        }
+        [data-theme="light"] .theme-slider:before {
+            background: #ffffff;
+        }
+        [data-theme="light"] .theme-toggle input:checked + .theme-slider {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        /* ── Hero title ── */
+        [data-theme="light"] .hero-title {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ── Active tab button (top nav) ── */
+        [data-theme="light"] .tab-btn.active {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.38);
+        }
+
+        /* ── Toast ── */
+        [data-theme="light"] .toast {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        /* ── Chat question bubble ── */
+        [data-theme="light"] .chat-question {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        /* ── All primary buttons: vivid violet → indigo ── */
+        [data-theme="light"] .analyze-btn {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+        }
+        [data-theme="light"] .analyze-btn:hover {
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.48);
+        }
+        [data-theme="light"] .ask-btn {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 2px 10px rgba(124, 58, 237, 0.35);
+        }
+        [data-theme="light"] .ask-btn:hover {
+            box-shadow: 0 4px 18px rgba(124, 58, 237, 0.48);
+        }
+        [data-theme="light"] .qa-btn:not(.qa-btn-ghost):not(.qa-btn-danger) {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.30);
+        }
+        [data-theme="light"] .qa-btn:not(.qa-btn-ghost):not(.qa-btn-danger):hover:not(:disabled) {
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.42);
+        }
+        [data-theme="light"] .result-header {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        }
+        [data-theme="light"] .analyze-file::file-selector-button,
+        [data-theme="light"] .analyze-file::-webkit-file-upload-button {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
+        }
+
+        /* ── Active tabs and segmented controls ── */
+        [data-theme="light"] .analyze-tab.active {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.30);
+        }
+        [data-theme="light"] .qa-segmented button.active {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.30);
+        }
+
+        /* ── Intro banner ── */
+        [data-theme="light"] .analyze-intro-block {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.06) 0%, rgba(79, 70, 229, 0.04) 100%);
+            border-color: rgba(124, 58, 237, 0.22);
+            border-left-color: #7c3aed;
+        }
+        [data-theme="light"] .analyze-intro-headline { color: #1e1b4b; }
+        [data-theme="light"] .analyze-intro-sub { color: #374151; }
+
+        /* ── Card section headers ── */
+        [data-theme="light"] .qa-card h3 {
+            color: #1e1b4b;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #ddd6fe;
+        }
+        [data-theme="light"] .qa-history-card.collapsed h3 {
+            border-bottom: none;
             padding-bottom: 0;
         }
 
-        .chat-history-area {
-            min-height: 200px;
-            padding: 16px 24px 24px;
-            padding-bottom: 180px; /* space so content is not under fixed input */
+        /* ── Form labels ── */
+        [data-theme="light"] .qa-form-row label { color: #1e1b4b; }
+
+        /* ── Focus rings: vivid violet ── */
+        [data-theme="light"] .analyze-textarea:focus,
+        [data-theme="light"] .analyze-url:focus,
+        [data-theme="light"] input.qa-input:focus,
+        [data-theme="light"] textarea.qa-textarea:focus,
+        [data-theme="light"] select.qa-select:focus,
+        [data-theme="light"] .ask-input:focus {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18) !important;
+        }
+
+        /* ── File drop zone ── */
+        [data-theme="light"] .analyze-file {
+            border-color: #ddd6fe;
+            color: #374151;
+        }
+
+        /* ── pre/code ── */
+        [data-theme="light"] .result-body pre { background: #1e1b4b; color: #e2e8f0; }
+        [data-theme="light"] .result-body code {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+
+        /* ── Table: header ── */
+        [data-theme="light"] .qa-history-table th {
+            background: #f5f3ff;
+            color: #1e1b4b;
+            border-bottom: 2px solid #ddd6fe;
+        }
+        [data-theme="light"] .qa-history-table td { color: #334155; }
+        [data-theme="light"] .qa-history-table tr:hover td { background: #faf5ff; }
+
+        /* ── Status pills ── */
+        [data-theme="light"] .qa-status-pill.completed  { background: #d1fae5; color: #059669; }
+        [data-theme="light"] .qa-status-pill.failed     { background: #fee2e2; color: #dc2626; }
+        [data-theme="light"] .qa-status-pill.running    { background: #ede9fe; color: #7c3aed; }
+        [data-theme="light"] .qa-status-pill.cancelled,
+        [data-theme="light"] .qa-status-pill.interrupted { background: #f5f3ff; color: #64748b; border: 1px solid #ddd6fe; }
+
+        /* ── Empty states ── */
+        [data-theme="light"] .qa-empty-hint {
+            background: #f5f3ff;
+            border-color: #ddd6fe;
+            color: #374151;
+        }
+        [data-theme="light"] .qa-history-empty { color: #64748b; }
+
+        /* ── Update / diff blocks ── */
+        [data-theme="light"] .req-tc-update-block {
+            background: #fff1f2;
+            border-color: rgba(220, 38, 38, 0.35);
+        }
+
+        /* ── Step progress indicators ── */
+        [data-theme="light"] .qa-step {
+            background: #f5f3ff;
+            border-color: #ddd6fe;
+        }
+        [data-theme="light"] .qa-step .qa-step-icon {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+
+        /* ── Ghost buttons ── */
+        [data-theme="light"] .qa-btn.qa-btn-ghost {
+            color: #7c3aed;
+            border-color: #ddd6fe;
+        }
+        [data-theme="light"] .qa-btn.qa-btn-ghost:hover:not(:disabled) {
+            background: #f5f3ff;
+            border-color: #7c3aed;
+        }
+
+        /* ── Theme toggle slider ── */
+        [data-theme="light"] .theme-slider {
+            background: #c4b5fd;
+        }
+
+        /* Main scrollable area */
+        .app-main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Each panel fills the main area naturally */
+        .app-main > .tab-panel {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+        }
+
+        .app-main > .tab-panel.active {
+            display: flex;
+        }
+
+        /* Panel inner content wrapper — consistent padding */
+        .panel-body {
+            flex: 1;
+            padding: 28px 32px 40px;
+            min-width: 0;
+        }
+
+
+        /* Page-level title shown at top of each panel */
+        .page-title {
+            margin: 0 0 24px 0;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-title span {
+            font-size: 22px;
+        }
+
+        @media (max-width: 768px) {
+            .panel-body { padding: 16px 16px 32px; }
+            .page-title { font-size: 18px; margin-bottom: 16px; }
+        }
+
+        /* Hamburger button (hidden on desktop) */
+        .sidebar-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 6px 8px;
+            color: var(--text);
+            font-size: 22px;
+            line-height: 1;
+            margin-right: 8px;
+            border-radius: 8px;
+        }
+        .sidebar-toggle:hover { background: var(--bg-card-hover); }
+
+        /* Scrim behind drawer on mobile */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 199;
+        }
+
+        /* Mobile drawer */
+        @media (max-width: 768px) {
+            .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+
+            .app-sidebar {
+                position: fixed;
+                top: 64px;
+                left: 0;
+                bottom: 0;
+                z-index: 200;
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.25);
+            }
+
+            body.sidebar-open .app-sidebar { transform: translateX(0); }
+            body.sidebar-open .sidebar-overlay { display: block; }
+
+            .app-main { padding: 16px 16px 24px; }
+        }
+
+        /* Chat input: centre within the main area (sidebar offset) */
+        @media (min-width: 769px) {
+            .chat-input-box {
+                left: calc(240px + (100vw - 240px) / 2) !important;
+                width: calc(min(100vw - 240px, 1100px) - 64px) !important;
+                max-width: unset !important;
+            }
+        }
+
+        /* Ask Panel – content flows; page scrolls at browser level */
+        /* Card wrapper for the chat area — matches analyze-box / qa-card appearance */
+        .chat-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-bottom: none;
-            border-radius: 16px 16px 0 0;
-            margin-bottom: 0;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            transition: background-color 0.3s, border-color 0.3s;
+            min-height: 400px;
+        }
+
+        .chat-history-area {
+            padding: 24px 28px 200px; /* bottom space keeps content above fixed input */
             overflow: visible;
         }
 
         .chat-history-area .empty-hint {
-            margin-top: 60px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .chat-card { min-height: 300px; }
+            .chat-history-area { padding: 16px 16px 180px; }
         }
 
         .chat-history-area #chatHistory {
@@ -471,20 +986,20 @@
             min-height: 44px;
         }
 
-        /* Force same “black” well + white text in dark mode so typed text is readable */
-        :root .ask-input,
-        [data-theme="dark"] .ask-input {
-            background: #0f172a !important;
-            color: #f1f5f9 !important;
-            -webkit-text-fill-color: #f1f5f9 !important;
-            caret-color: #f1f5f9;
-        }
-
-        [data-theme="light"] .ask-input {
+        /* Default / light mode: white input with dark text */
+        [data-theme=”light”] .ask-input {
             background: #ffffff !important;
             color: #0f172a !important;
             -webkit-text-fill-color: #0f172a !important;
             caret-color: #0f172a;
+        }
+
+        /* Dark mode: near-black input with light text */
+        [data-theme=”dark”] .ask-input {
+            background: #0f172a !important;
+            color: #f1f5f9 !important;
+            -webkit-text-fill-color: #f1f5f9 !important;
+            caret-color: #f1f5f9;
         }
 
         .ask-input::placeholder {
@@ -584,7 +1099,7 @@
             padding: 10px 18px;
             font-size: 13px;
             font-weight: 500;
-            background: var(--bg-dark);
+            background: var(--bg-input);
             border: 1px solid var(--border);
             border-radius: 8px;
             cursor: pointer;
@@ -3350,6 +3865,93 @@
         .req-tc-update-block .req-tc-row { margin-bottom: 12px; }
         .req-tc-update-block .req-tc-row:last-child { margin-bottom: 0; }
         .req-tc-reason { color: var(--text-light); font-style: normal; }
+
+        /* ── QA Agents tab ─────────────────────────────────────────────── */
+        /* qa-layout: single column — sidebar navigation is now handled by the app sidebar */
+        .qa-layout { display: flex; flex-direction: column; gap: 18px; }
+
+        .qa-content { display: flex; flex-direction: column; gap: 18px; }
+        .qa-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px 28px; box-shadow: var(--shadow); transition: background-color 0.3s, border-color 0.3s; }
+        .qa-card h3 { margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .qa-card h3 .qa-card-sub { font-size: 12px; font-weight: 400; color: var(--text-light); margin-left: auto; }
+
+        .qa-status-row { display: flex; align-items: center; gap: 10px; }
+        .qa-status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-light); transition: background 0.2s; }
+        .qa-status-dot.ok { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+        .qa-status-dot.err { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); }
+        .qa-status-text { font-size: 13px; color: var(--text); }
+        .qa-status-url { font-size: 12px; color: var(--text-light); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+        .qa-form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .qa-form-row label { font-size: 12px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; }
+        .qa-form-row .qa-row-inline { display: flex; gap: 8px; align-items: center; }
+        input.qa-input, textarea.qa-textarea { background: var(--bg-input) !important; color: var(--text) !important; border: 2px solid var(--border) !important; border-radius: 10px !important; padding: 12px 14px !important; font-size: 14px !important; font-family: inherit !important; width: 100% !important; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.3s !important; min-height: 44px !important; }
+        textarea.qa-textarea { min-height: 160px !important; padding: 16px 18px !important; resize: vertical !important; font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important; font-size: 13px !important; line-height: 1.5 !important; }
+        input.qa-input:hover, textarea.qa-textarea:hover { border-color: var(--primary) !important; }
+        input.qa-input:focus, textarea.qa-textarea:focus { outline: none !important; border-color: var(--primary) !important; box-shadow: 0 0 0 3px var(--primary-light) !important; }
+        /* Custom-styled select — replaces native arrow with a consistent SVG chevron */
+        select.qa-select { appearance: none !important; -webkit-appearance: none !important; background-color: var(--bg-input) !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important; background-repeat: no-repeat !important; background-position: right 12px center !important; background-size: 16px !important; color: var(--text) !important; border: 2px solid var(--border) !important; border-radius: 10px !important; padding: 12px 40px 12px 14px !important; font-size: 14px !important; font-family: inherit !important; width: 100% !important; cursor: pointer !important; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.3s !important; min-height: 44px !important; }
+        select.qa-select:hover { border-color: var(--primary) !important; }
+        select.qa-select:focus { outline: none !important; border-color: var(--primary) !important; box-shadow: 0 0 0 3px var(--primary-light) !important; }
+        .qa-checkbox { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer; }
+
+        .qa-btn { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s; }
+        .qa-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(6, 182, 212, 0.35); }
+        .qa-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+        .qa-btn.qa-btn-ghost { background: transparent; color: var(--primary); border: 1px solid var(--border); }
+        .qa-btn.qa-btn-ghost:hover:not(:disabled) { background: var(--bg-card-hover); }
+        .qa-btn.qa-btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+
+        .qa-segmented { display: flex; gap: 10px; margin-bottom: 14px; }
+        .qa-segmented button { padding: 9px 18px; font-size: 13px; font-weight: 500; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; color: var(--text-light); }
+        .qa-segmented button:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+        .qa-segmented button.active { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3); font-weight: 600; }
+
+        .qa-progress-steps { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .qa-step { flex: 1; min-width: 90px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--text-light); display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .qa-step .qa-step-icon { width: 18px; height: 18px; border-radius: 50%; background: var(--border); color: var(--text-light); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+        .qa-step.running { border-color: var(--primary); color: var(--primary); }
+        .qa-step.running .qa-step-icon { background: var(--primary); color: white; animation: qa-pulse 1.4s ease-in-out infinite; }
+        .qa-step.done { border-color: #10b981; color: #10b981; }
+        .qa-step.done .qa-step-icon { background: #10b981; color: white; }
+        .qa-step.failed { border-color: #ef4444; color: #ef4444; }
+        .qa-step.failed .qa-step-icon { background: #ef4444; color: white; }
+        @keyframes qa-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.6); } 50% { box-shadow: 0 0 0 6px rgba(6, 182, 212, 0); } }
+
+        .qa-console { background: #0b1220; color: #cbd5e1; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5; max-height: 340px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+        .qa-console .qa-line-stdout { color: #cbd5e1; }
+        .qa-console .qa-line-step { color: #06b6d4; font-weight: 600; }
+        .qa-console .qa-line-done { color: #10b981; font-weight: 600; }
+        .qa-console .qa-line-error { color: #ef4444; font-weight: 600; }
+
+        .qa-run-meta { display: flex; gap: 16px; align-items: center; font-size: 13px; color: var(--text-light); margin-bottom: 12px; flex-wrap: wrap; }
+        .qa-run-meta .qa-run-session { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); }
+        .qa-run-meta .qa-run-elapsed { margin-left: auto; }
+
+        .qa-history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .qa-history-table th, .qa-history-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+        .qa-history-table th { font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        .qa-history-table tr { cursor: pointer; transition: background 0.15s; }
+        .qa-history-table tbody tr:hover { background: var(--bg-card-hover); }
+        .qa-history-table .qa-session-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); font-size: 12px; }
+        .qa-history-table .qa-status-pill { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .qa-status-pill.completed { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .qa-status-pill.failed { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .qa-status-pill.cancelled, .qa-status-pill.interrupted { background: rgba(148, 163, 184, 0.15); color: var(--text-light); }
+        .qa-status-pill.running { background: rgba(6, 182, 212, 0.15); color: var(--primary); }
+        .qa-history-empty { padding: 24px; text-align: center; color: var(--text-light); font-size: 13px; }
+
+        .qa-empty-hint { padding: 16px; text-align: center; color: var(--text-light); font-size: 13px; background: var(--bg-input); border-radius: 10px; border: 1px dashed var(--border); }
+
+        /* Session detail modal */
+        .qa-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 24px; }
+        .qa-modal-overlay.active { display: flex; }
+        .qa-modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 820px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+        .qa-modal h3 { margin: 0 0 16px 0; display: flex; align-items: center; gap: 10px; }
+        .qa-modal h3 .qa-modal-close { margin-left: auto; background: transparent; border: none; font-size: 22px; color: var(--text-light); cursor: pointer; padding: 0 6px; }
+        .qa-modal-section { margin-bottom: 16px; }
+        .qa-modal-section h4 { margin: 0 0 8px 0; font-size: 12px; text-transform: uppercase; color: var(--text-light); letter-spacing: 0.05em; }
+        .qa-modal-section pre { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.5; overflow-x: auto; color: var(--text); margin: 0; white-space: pre-wrap; word-break: break-word; }
     </style>
 </head>
 
@@ -3361,47 +3963,63 @@
     
     <!-- Header -->
     <header class="site-header">
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Toggle navigation" aria-expanded="false">☰</button>
         <a href="/" class="site-logo">
             <img id="appLogo" src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png" alt="Logo">
             <span id="appName">AI Test Studio</span>
         </a>
-        <nav class="site-nav">
+        <div class="header-right">
+            <div class="header-divider"></div>
             <label class="theme-toggle" title="Toggle theme">
                 <input type="checkbox" id="themeToggle" onchange="toggleTheme()" aria-label="Light mode">
                 <span class="theme-slider"></span>
             </label>
-        </nav>
+        </div>
     </header>
 
-    <!-- Main Content -->
-    <div class="main-container">
-        
-        <!-- Hero -->
-        <div class="hero">
-            <span class="hero-icon" aria-hidden="true">✨</span>
-            <div class="hero-content">
-                <h1 class="hero-title">AI Test Studio</h1>
-                <p class="hero-subtitle">Generate Tests from Requirements · Chat with your Tests &amp; Documents</p>
-            </div>
-            <span class="hero-icon hero-icon-right" aria-hidden="true">✨</span>
-        </div>
+    <!-- Sidebar overlay (mobile scrim) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-        <!-- Tab Navigation -->
-        <div class="tab-nav">
-            <button class="tab-btn active" onclick="showTab('analyze')" id="tabBtnAnalyze">📋 AI Test Generator</button>
-            <button class="tab-btn" onclick="showTab('ask')" id="tabBtnAsk">💬 Talk to Tests</button>
-        </div>
+    <!-- App shell: sidebar + main -->
+    <div class="app-shell">
+
+        <!-- Left sidebar navigation -->
+        <nav class="app-sidebar" id="appSidebar" aria-label="Main navigation">
+            <div class="nav-group">
+                <button class="nav-item active" data-nav="analyze" onclick="showTab('analyze')" style="margin-top: 12px;">📋 Requirements → Tests</button>
+                <button class="nav-item" data-nav="agents" onclick="showTab('agents')">🤖 Tests → Automation Code</button>
+                <button class="nav-item" data-nav="ask" onclick="showTab('ask')">💬 Talk to your Tests</button>
+                <button class="nav-item disabled">🔍 Analyse Failures <span class="nav-soon">soon</span></button>
+                <button class="nav-item disabled">🔧 Fix Broken Tests <span class="nav-soon">soon</span></button>
+            </div>
+            <div class="nav-divider"></div>
+            <div class="nav-group">
+                <button class="nav-item disabled">⚙ Settings <span class="nav-soon">soon</span></button>
+            </div>
+            <div class="nav-spacer"></div>
+            <!-- Agent network status — sidebar footer -->
+            <div class="nav-health">
+                <span class="nav-health-dot" id="qaHealthDot"></span>
+                <span class="nav-health-text" id="qaHealthText">Checking…</span>
+                <button type="button" class="nav-health-refresh" id="qaHealthRefresh" title="Refresh connection">↺</button>
+            </div>
+        </nav>
+
+        <!-- Main scrollable content -->
+        <main class="app-main" id="appMain">
 
         <!-- AI Test Generator Tab -->
         <div class="tab-panel active" id="tabPanelAnalyze">
-            <div class="analyze-box">
-                <div class="analyze-intro-block">
-                    <div class="analyze-intro-content">
-                        <p class="analyze-intro-headline">Turn requirements into test cases</p>
-                        <p class="analyze-intro-sub">Paste text, upload a file, or add a Confluence URL — AI generates coverage for you.</p>
-                    </div>
+        <div class="panel-body">
+            <h2 class="page-title"><span>📋</span> AI Test Generator</h2>
+            <div class="analyze-intro-block">
+                <div class="analyze-intro-content">
+                    <p class="analyze-intro-headline">Turn requirements into test cases</p>
+                    <p class="analyze-intro-sub">Paste text, upload a file, or add a Confluence URL — AI generates coverage for you.</p>
                 </div>
+            </div>
 
+            <div class="analyze-box">
                 <div class="analyze-method" role="tablist" aria-label="Input method">
                     <button type="button" class="analyze-tab active" onclick="showAnalyzePane('paste')" data-pane="paste" role="tab" aria-selected="true">Paste text</button>
                     <button type="button" class="analyze-tab" onclick="showAnalyzePane('file')" data-pane="file" role="tab" aria-selected="false">Upload file</button>
@@ -3466,12 +4084,20 @@
                 </div>
                 <div id="reqResultPaneE2eflows" class="req-result-pane"></div>
             </div>
-        </div>
+        </div><!-- /.panel-body -->
+        </div><!-- /#tabPanelAnalyze -->
 
         <!-- Test Assistant Tab -->
         <div class="tab-panel" id="tabPanelAsk">
-            <div class="chat-container">
-                <!-- Chat History (scrollable) -->
+        <div class="panel-body">
+            <h2 class="page-title"><span>💬</span> Talk to Tests</h2>
+            <div class="analyze-intro-block">
+                <div class="analyze-intro-content">
+                    <p class="analyze-intro-headline">Ask anything about your tests</p>
+                    <p class="analyze-intro-sub">Search across your test suite, documentation, and coverage — get instant answers with sources.</p>
+                </div>
+            </div>
+            <div class="chat-card">
                 <div class="chat-history-area" id="askResults">
                     <div id="chatHistory"></div>
                     <div id="answerSection" style="display: none;">
@@ -3488,8 +4114,6 @@
                         </div>
                     </div>
                     <div class="empty-hint" id="emptyState">
-                        <div class="empty-hint-icon">🤖</div>
-                        <h2 class="empty-hint-title">Talk to Tests</h2>
                         <p>Your AI assistant for test knowledge — ask anything!</p>
                         <div class="empty-hint-examples-label">Try asking</div>
                         <div class="empty-hint-examples">
@@ -3501,13 +4125,134 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </div><!-- /.panel-body -->
+        </div><!-- /#tabPanelAsk -->
 
-    <!-- Footer -->
-    <footer class="site-footer">
-        Made with ❤️ for Engineering Teams &nbsp;·&nbsp; Built by <a href="https://www.linkedin.com/in/mukesh-rajput" target="_blank">Mukesh Rajput</a> &nbsp;·&nbsp; <a href="https://github.com/msr5464/Knowledge-AI" target="_blank">Open Source on GitHub</a>
-    </footer>
+        <!-- QA Agents Tab -->
+        <div class="tab-panel" id="tabPanelAgents">
+        <div class="panel-body">
+            <h2 class="page-title"><span>🤖</span> Test Authoring Agent</h2>
+            <div class="analyze-intro-block">
+                <div class="analyze-intro-content">
+                    <p class="analyze-intro-headline">Generate test code from plain English</p>
+                    <p class="analyze-intro-sub">Describe your test scenario — the agent writes framework-compliant Java files, runs them with Maven, and raises a GitHub PR.</p>
+                </div>
+            </div>
+
+            <!-- Main input card -->
+            <div class="analyze-box">
+                <!-- Mode tabs -->
+                <div class="analyze-method">
+                    <button class="analyze-tab active" data-qa-mode="existing" onclick="qaAgents.switchMode('existing')">📂 Load existing</button>
+                    <button class="analyze-tab" data-qa-mode="new" onclick="qaAgents.switchMode('new')">✏️ Write new</button>
+                </div>
+
+                <!-- Load existing: queue file dropdown -->
+                <div id="qaFeatureExisting" class="analyze-pane active">
+                    <div class="qa-form-row" style="margin-bottom:16px;">
+                        <label for="qaFeatureSelect">Queue file</label>
+                        <div class="qa-row-inline">
+                            <select id="qaFeatureSelect" class="qa-select"><option value="">Loading…</option></select>
+                            <button type="button" class="qa-btn qa-btn-ghost" onclick="qaAgents.loadFeatureFiles()" style="flex-shrink:0;padding:10px 14px;" title="Refresh list">⟳</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Write new: Feature + Type dropdowns (shown above textarea) -->
+                <div id="qaNewFields" class="analyze-pane">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                        <div class="qa-form-row" style="margin-bottom:0;">
+                            <label for="qaNewFeature">Module / Feature Name <span style="color:#ef4444;">*</span></label>
+                            <input type="text" id="qaNewFeature" class="qa-input" placeholder="e.g. Payments" maxlength="80" />
+                        </div>
+                        <div class="qa-form-row" style="margin-bottom:0;">
+                            <label for="qaNewType">Platform Type <span style="color:#ef4444;">*</span></label>
+                            <select id="qaNewType" class="qa-select">
+                                <option value="web">🌐 Web</option>
+                                <option value="mobile">📱 Mobile</option>
+                                <option value="api">🔌 API</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shared textarea: steps for new mode, full content for existing -->
+                <div class="analyze-input-zone">
+                    <textarea id="qaSpecContent" class="analyze-textarea" rows="8"
+                        placeholder="Feature: payments&#10;Type: web&#10;URL: https://app.staging.example.com&#10;&#10;Steps:&#10;1. Login as Admin&#10;2. Navigate to Payments&#10;3. Verify the payments table loads"
+                        oninput="if(window.qaAgents && qaAgents.onSpecInput) qaAgents.onSpecInput()"></textarea>
+                    <span id="qaEditHint" style="display:none;font-size:11px;color:#f59e0b;margin-top:4px;">&#9998; Unsaved edits — will be saved automatically when you Run</span>
+                </div>
+
+                <!-- Write new: optional file name (below textarea) -->
+                <div id="qaNewNameRow" class="analyze-pane">
+                    <div class="qa-form-row" style="margin-top:12px;margin-bottom:0;">
+                        <label for="qaNewFeatureName">Save as <span style="font-weight:400;color:var(--text-muted);">(optional — auto-named if blank)</span></label>
+                        <div class="qa-row-inline">
+                            <input type="text" id="qaNewFeatureName" class="qa-input" placeholder="e.g. payments" maxlength="64" style="max-width:280px;" />
+                            <span id="qaSaveStatus" style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Options + run button -->
+                <div class="analyze-actions">
+                    <label class="analyze-option">
+                        <input type="checkbox" id="qaAutoPush" /> Auto-push PR on success
+                    </label>
+                    <button type="button" class="analyze-btn" id="qaRunBtn" onclick="qaAgents.run()">🚀 Run Agent</button>
+                </div>
+                <p id="qaRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
+            </div>
+
+            <!-- Live run — appears when a run starts -->
+            <div class="qa-card" id="qaLiveCard" style="display:none;margin-top:18px;">
+                <h3>📡 Live run <span class="qa-card-sub" id="qaLiveStatus">running…</span></h3>
+                <div class="qa-run-meta">
+                    <span>Session: <span class="qa-run-session" id="qaLiveSession">—</span></span>
+                    <span>Feature: <span id="qaLiveFeature">—</span></span>
+                    <span class="qa-run-elapsed" id="qaLiveElapsed">00:00</span>
+                </div>
+                <div class="qa-progress-steps" id="qaProgressSteps">
+                    <div class="qa-step" data-step="parse"><span class="qa-step-icon">1</span>Parse</div>
+                    <div class="qa-step" data-step="validate_web"><span class="qa-step-icon">2</span>Validate Web</div>
+                    <div class="qa-step" data-step="generate"><span class="qa-step-icon">3</span>Generate</div>
+                    <div class="qa-step" data-step="run_and_fix"><span class="qa-step-icon">4</span>Run &amp; Fix</div>
+                    <div class="qa-step" data-step="ship"><span class="qa-step-icon">5</span>Ship</div>
+                </div>
+                <div class="qa-console" id="qaConsole"></div>
+                <div class="qa-row-inline" style="margin-top:12px;gap:10px;">
+                    <button type="button" class="qa-btn qa-btn-danger" id="qaCancelBtn" onclick="qaAgents.cancel()">✕ Cancel</button>
+                    <span id="qaLiveResult" style="font-size:13px;color:var(--text-light);"></span>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="qa-card" style="margin-top:18px;">
+                <h3>🕓 History <button type="button" class="qa-btn qa-btn-ghost" onclick="qaAgents.loadHistory()" style="margin-left:auto;padding:6px 12px;font-size:12px;">Refresh</button></h3>
+                <div id="qaHistoryWrap">
+                    <div class="qa-history-empty">No runs yet.</div>
+                </div>
+            </div>
+
+        </div><!-- /.panel-body -->
+        </div><!-- /#tabPanelAgents -->
+
+        <!-- Session detail modal -->
+        <div class="qa-modal-overlay" id="qaSessionModal" onclick="qaAgents.closeSessionModal(event)">
+            <div class="qa-modal" onclick="event.stopPropagation()">
+                <h3>Session detail <button type="button" class="qa-modal-close" onclick="qaAgents.closeSessionModal()" aria-label="Close">×</button></h3>
+                <div id="qaSessionDetail"><div class="qa-empty-hint">Loading…</div></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            Made with ❤️ for Engineering Teams &nbsp;·&nbsp; Built by <a href="https://www.linkedin.com/in/mukesh-rajput" target="_blank">Mukesh Rajput</a> &nbsp;·&nbsp; <a href="https://github.com/msr5464/Knowledge-AI" target="_blank">Open Source on GitHub</a>
+        </footer>
+
+        </main><!-- /.app-main -->
+    </div><!-- /.app-shell -->
 
     <!-- Chat Input: direct child of body -->
     <div class="chat-input-box" id="chatInputBox">
@@ -3958,7 +4703,7 @@
         }
         
         function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
             const toggle = document.getElementById('themeToggle');
             if (toggle) {
@@ -3982,31 +4727,48 @@
         // Load settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadTheme();
-            document.body.setAttribute('data-active-tab', 'analyze');
-            // Force 15px on Test Assistant question input
+            // Activate default panel via the router so sidebar state is consistent
+            showTab('analyze');
             var qInput = document.getElementById('questionInput');
-            if (qInput) {
-                qInput.style.setProperty('font-size', '15px', 'important');
+            if (qInput) qInput.style.setProperty('font-size', '15px', 'important');
+            // Run health check immediately so sidebar footer shows status on any tab,
+            // and wire the refresh button here so it works from every tab (not just Agents).
+            if (window.qaAgents && window.qaAgents.checkHealth) {
+                window.qaAgents.checkHealth();
+                var _refreshBtn = document.getElementById('qaHealthRefresh');
+                if (_refreshBtn) {
+                    _refreshBtn.addEventListener('click', function() { window.qaAgents.checkHealth(); });
+                }
             }
         });
 
         // Also load immediately in case DOMContentLoaded already fired
         loadTheme();
-        if (document.body) document.body.setAttribute('data-active-tab', 'analyze');
 
-        // Simple tab switching
+        // Data-driven nav router — adding a new panel only needs a nav-item + a tab-panel, no JS changes
         function showTab(tab) {
-            currentMode = tab === 'analyze' ? 'req' : 'ask';
+            currentMode = tab === 'analyze' ? 'req' : (tab === 'ask' ? 'ask' : 'agents');
             document.body.setAttribute('data-active-tab', tab);
-            
-            // Update tab buttons
-            document.getElementById('tabBtnAsk').classList.toggle('active', tab === 'ask');
-            document.getElementById('tabBtnAnalyze').classList.toggle('active', tab === 'analyze');
-            
-            // Update tab panels
-            document.getElementById('tabPanelAsk').classList.toggle('active', tab === 'ask');
-            document.getElementById('tabPanelAnalyze').classList.toggle('active', tab === 'analyze');
-            
+
+            // Sidebar active state
+            document.querySelectorAll('.nav-item[data-nav]').forEach(function(btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-nav') === tab);
+            });
+
+            // Panel visibility (works for any number of panels)
+            document.querySelectorAll('.tab-panel').forEach(function(panel) {
+                panel.classList.remove('active');
+            });
+            var panelId = 'tabPanel' + tab.charAt(0).toUpperCase() + tab.slice(1);
+            var panel = document.getElementById(panelId);
+            if (panel) panel.classList.add('active');
+
+            // Close mobile sidebar after navigation
+            document.body.classList.remove('sidebar-open');
+            var toggle = document.getElementById('sidebarToggle');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+
+            // Per-tab init
             if (tab === 'ask') {
                 requestAnimationFrame(function() {
                     var qInput = document.getElementById('questionInput');
@@ -4015,9 +4777,20 @@
                         qInput.focus();
                     }
                 });
+            } else if (tab === 'agents') {
+                if (window.qaAgents && typeof window.qaAgents.init === 'function') {
+                    window.qaAgents.init();
+                }
             } else {
                 document.getElementById('reqSpecText')?.focus();
             }
+        }
+
+        // Mobile sidebar drawer toggle
+        function toggleSidebar() {
+            var open = document.body.classList.toggle('sidebar-open');
+            var toggle = document.getElementById('sidebarToggle');
+            if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
         
         // Show analyze input pane (paste/file/url)
@@ -6918,6 +7691,514 @@
                 }, 300);
             };
         }
+
+        // ── QA Agents module ──────────────────────────────────────────────
+        window.qaAgents = (function() {
+            const API_BASE = '/api/agents';
+            const AGENT_BASE = API_BASE + '/test-authoring-agent';
+            const STEPS = ['parse', 'validate_web', 'generate', 'run_and_fix', 'ship'];
+            const MAX_RETRY = 5;
+
+            const state = {
+                initialised: false,
+                mode: 'existing',
+                eventSource: null,
+                activeSession: null,
+                activeFeature: null,
+                lastSeq: 0,
+                retryCount: 0,
+                retryTimer: null,
+                elapsedTimer: null,
+                startTs: null,
+                featureCache: {},
+                terminal: false,
+                loadedContent: '',   // tracks content when a file was loaded, to detect edits
+            };
+
+            function $(id) { return document.getElementById(id); }
+
+            function escapeHtml(s) {
+                if (s == null) return '';
+                return String(s).replace(/[&<>"']/g, function(c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            async function apiFetch(path, opts) {
+                opts = opts || {};
+                opts.credentials = 'same-origin';
+                opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+                const res = await fetch(path, opts);
+                const text = await res.text();
+                let body = null;
+                try { body = text ? JSON.parse(text) : null; } catch (e) { body = { raw: text }; }
+                if (!res.ok) {
+                    const err = new Error((body && (body.error || body.detail)) || ('HTTP ' + res.status));
+                    err.status = res.status;
+                    err.body = body;
+                    throw err;
+                }
+                return body;
+            }
+
+            // ─ Health ─
+            async function checkHealth() {
+                const dot = $('qaHealthDot');
+                const text = $('qaHealthText');
+                dot.className = 'nav-health-dot';
+                text.textContent = 'Checking…';
+                const ctrl = new AbortController();
+                const tid = setTimeout(function() { ctrl.abort(); }, 8000);
+                try {
+                    const body = await apiFetch(API_BASE + '/health', { signal: ctrl.signal });
+                    clearTimeout(tid);
+                    if (body && body.connected) {
+                        dot.classList.add('ok');
+                        text.textContent = 'Agent Network connected';
+                    } else {
+                        dot.classList.add('err');
+                        text.textContent = 'Agent Network unreachable';
+                    }
+                } catch (e) {
+                    clearTimeout(tid);
+                    dot.classList.add('err');
+                    text.textContent = (e && e.name === 'AbortError') ? 'Health check timed out' : 'Agent Network unreachable';
+                }
+            }
+
+            // ─ Feature files ─
+            async function loadFeatureFiles() {
+                const sel = $('qaFeatureSelect');
+                sel.innerHTML = '<option value="">Loading…</option>';
+                try {
+                    const body = await apiFetch(AGENT_BASE + '/queue');
+                    const items = (body && (body.items || body.features)) || [];
+                    state.featureCache = {};
+                    if (!items.length) {
+                        sel.innerHTML = '<option value="">No feature files yet</option>';
+                        $('qaFeaturePreview').textContent = 'Create a feature file to get started.';
+                        return;
+                    }
+                    sel.innerHTML = '<option value="">— select —</option>' +
+                        items.map(function(it) {
+                            const name = typeof it === 'string' ? it : it.name;
+                            state.featureCache[name] = it;
+                            return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+                        }).join('');
+                } catch (e) {
+                    sel.innerHTML = '<option value="">Failed to load</option>';
+                    $('qaFeaturePreview').textContent = 'Error: ' + (e.message || 'unknown');
+                }
+            }
+
+            async function previewFeature(name) {
+                const ta = $('qaSpecContent');
+                setModifiedHint(false);
+                if (!name) { ta.value = ''; state.loadedContent = ''; return; }
+                ta.value = 'Loading…';
+                ta.disabled = true;
+                try {
+                    const body = await apiFetch(AGENT_BASE + '/queue/' + encodeURIComponent(name));
+                    ta.value = (body && body.content) || '';
+                    state.loadedContent = ta.value;
+                } catch (e) {
+                    ta.value = '';
+                    state.loadedContent = '';
+                } finally {
+                    ta.disabled = false;
+                }
+            }
+
+            function setModifiedHint(show) {
+                var hint = $('qaEditHint');
+                if (hint) hint.style.display = show ? 'inline' : 'none';
+            }
+
+            async function saveFeatureFile() {
+                const name = $('qaNewFeatureName').value.trim();
+                const content = $('qaSpecContent').value;
+                const statusEl = $('qaSaveStatus');
+                if (!name) { statusEl.textContent = 'Name required'; statusEl.style.color = '#ef4444'; return; }
+                if (!content.trim()) { statusEl.textContent = 'Content required'; statusEl.style.color = '#ef4444'; return; }
+                statusEl.textContent = 'Saving…';
+                statusEl.style.color = 'var(--text-light)';
+                try {
+                    await apiFetch(AGENT_BASE + '/queue', { method: 'POST', body: JSON.stringify({ name: name, content: content }) });
+                    statusEl.textContent = 'Saved ✓';
+                    statusEl.style.color = '#10b981';
+                    await loadFeatureFiles();
+                    $('qaFeatureSelect').value = name;
+                    switchMode('existing');
+                } catch (e) {
+                    statusEl.textContent = 'Failed: ' + (e.message || 'unknown');
+                    statusEl.style.color = '#ef4444';
+                }
+            }
+
+            function switchMode(mode) {
+                state.mode = mode;
+                document.querySelectorAll('#tabPanelAgents .analyze-method .analyze-tab').forEach(function(btn) {
+                    btn.classList.toggle('active', btn.dataset.qaMode === mode);
+                });
+                var isNew = mode === 'new';
+                $('qaFeatureExisting').classList.toggle('active', !isNew);
+                $('qaNewFields').classList.toggle('active', isNew);
+                $('qaNewNameRow').classList.toggle('active', isNew);
+                var ta = $('qaSpecContent');
+                if (isNew) {
+                    ta.placeholder = '1. Login as Admin\n2. Navigate to Payments\n3. Verify the payments table loads\n4. Click on a transaction row\n5. Confirm the detail panel opens';
+                    ta.value = '';
+                    $('qaNewFeature').focus();
+                } else {
+                    ta.placeholder = 'Feature: payments\nType: web\nURL: https://app.staging.example.com\n\nSteps:\n1. Login as Admin\n2. Navigate to Payments\n3. Verify the payments table loads';
+                }
+            }
+
+            function onSpecInput() {
+                // Show "unsaved edits" hint only in existing mode when content drifts from loaded
+                if (state.mode === 'existing' && state.loadedContent !== '') {
+                    setModifiedHint($('qaSpecContent').value !== state.loadedContent);
+                }
+            }
+
+            // ─ Run + stream ─
+            async function run() {
+                const autoPush = $('qaAutoPush').checked;
+                const errEl = $('qaRunError');
+                errEl.style.display = 'none';
+                $('qaRunBtn').disabled = true;
+
+                let feature;
+                try {
+                    if (state.mode === 'new') {
+                        const featureName = $('qaNewFeature').value.trim();
+                        const type        = $('qaNewType').value;
+                        const steps       = $('qaSpecContent').value.trim();
+
+                        if (!featureName) {
+                            errEl.textContent = 'Feature name is required.';
+                            errEl.style.display = 'block';
+                            return;
+                        }
+                        if (!steps) {
+                            errEl.textContent = 'Please enter your test steps.';
+                            errEl.style.display = 'block';
+                            return;
+                        }
+
+                        // Assemble file content from structured fields
+                        const content = 'Feature: ' + featureName + '\nType: ' + type + '\n\nSteps:\n' + steps;
+
+                        // Auto-generate a queue file name if the user left it blank
+                        const rawName = $('qaNewFeatureName').value.trim();
+                        const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+                        feature = rawName || (featureName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + ts);
+
+                        // Silently save to queue before running
+                        const statusEl = $('qaSaveStatus');
+                        statusEl.textContent = 'Saving…';
+                        statusEl.style.color = 'var(--text-light)';
+                        await apiFetch(AGENT_BASE + '/queue', {
+                            method: 'POST',
+                            body: JSON.stringify({ name: feature, content: content })
+                        });
+                        statusEl.textContent = 'Saved ✓';
+                        statusEl.style.color = '#10b981';
+                    } else {
+                        feature = $('qaFeatureSelect').value.trim();
+                        if (!feature) {
+                            errEl.textContent = 'Select a feature file first.';
+                            errEl.style.display = 'block';
+                            return;
+                        }
+                        // If the user edited the textarea, save the changes back before running
+                        const currentContent = $('qaSpecContent').value;
+                        if (currentContent !== state.loadedContent) {
+                            const statusEl = $('qaSaveStatus');
+                            if (statusEl) { statusEl.textContent = 'Saving edits…'; statusEl.style.color = 'var(--text-light)'; }
+                            await apiFetch(AGENT_BASE + '/queue', {
+                                method: 'POST',
+                                body: JSON.stringify({ name: feature, content: currentContent })
+                            });
+                            state.loadedContent = currentContent;
+                            if (statusEl) { statusEl.textContent = 'Saved ✓'; statusEl.style.color = '#10b981'; }
+                            setModifiedHint(false);
+                        }
+                    }
+
+                    const body = await apiFetch(AGENT_BASE + '/run', {
+                        method: 'POST',
+                        body: JSON.stringify({ feature: feature, auto_push: autoPush })
+                    });
+                    const sessionId = body && (body.session_id || body.sessionId);
+                    if (!sessionId) throw new Error('No session id returned');
+                    attachLiveRun(sessionId, feature, 0);
+                } catch (e) {
+                    errEl.textContent = 'Run failed: ' + (e.message || 'unknown');
+                    errEl.style.display = 'block';
+                } finally {
+                    $('qaRunBtn').disabled = false;
+                }
+            }
+
+            function attachLiveRun(sessionId, feature, offset) {
+                state.activeSession = sessionId;
+                state.activeFeature = feature || '—';
+                state.lastSeq = offset || 0;
+                state.retryCount = 0;
+                state.terminal = false;
+                state.startTs = Date.now();
+                resetStepUI();
+                $('qaConsole').innerHTML = '';
+                $('qaLiveResult').textContent = '';
+                $('qaLiveCard').style.display = '';
+                $('qaLiveSession').textContent = sessionId;
+                $('qaLiveFeature').textContent = feature || '—';
+                $('qaLiveStatus').textContent = 'running…';
+                $('qaCancelBtn').disabled = false;
+                startElapsed();
+                subscribe();
+            }
+
+            function resetStepUI() {
+                document.querySelectorAll('#qaProgressSteps .qa-step').forEach(function(el) {
+                    el.classList.remove('running', 'done', 'failed');
+                });
+            }
+
+            function setStep(key, status) {
+                const el = document.querySelector('#qaProgressSteps .qa-step[data-step="' + key + '"]');
+                if (!el) return;
+                el.classList.remove('running', 'done', 'failed');
+                if (status) el.classList.add(status);
+            }
+
+            function subscribe() {
+                closeStream();
+                const url = AGENT_BASE + '/run/' + encodeURIComponent(state.activeSession) + '/stream?offset=' + state.lastSeq;
+                const es = new EventSource(url, { withCredentials: true });
+                state.eventSource = es;
+
+                es.addEventListener('stdout', function(ev) { handleEvent('stdout', ev); });
+                es.addEventListener('step', function(ev) { handleEvent('step', ev); });
+                es.addEventListener('done', function(ev) { handleEvent('done', ev); });
+                es.addEventListener('error', function(ev) { handleEvent('error', ev); });
+                es.addEventListener('status', function(ev) { handleEvent('status', ev); });
+                es.onerror = function() {
+                    if (state.terminal) { closeStream(); return; }
+                    closeStream();
+                    if (state.retryCount >= MAX_RETRY) {
+                        appendLine('error', '[stream] gave up after ' + MAX_RETRY + ' retries');
+                        stopElapsed();
+                        return;
+                    }
+                    const delay = Math.min(8000, 500 * Math.pow(2, state.retryCount));
+                    state.retryCount += 1;
+                    appendLine('error', '[stream] disconnected — retrying in ' + delay + 'ms');
+                    state.retryTimer = setTimeout(subscribe, delay);
+                };
+            }
+
+            function handleEvent(kind, ev) {
+                let envelope = {};
+                try { envelope = ev.data ? JSON.parse(ev.data) : {}; } catch (e) { envelope = { raw: ev.data }; }
+                if (typeof envelope.seq === 'number') state.lastSeq = Math.max(state.lastSeq, envelope.seq + 1);
+                const payload = envelope.data || envelope; // runner wraps, allow raw fallback
+
+                if (kind === 'stdout') {
+                    appendLine('stdout', payload.line || envelope.raw || '');
+                } else if (kind === 'step') {
+                    const key = payload.key || payload.step;
+                    const status = payload.status || 'running';
+                    if (key) {
+                        if (status === 'done') {
+                            setStep(key, 'done');
+                            const idx = STEPS.indexOf(key);
+                            if (idx >= 0) STEPS.slice(0, idx).forEach(function(s) { setStep(s, 'done'); });
+                            appendLine('step', '✓ ' + (payload.display || key));
+                        } else if (status === 'running') {
+                            setStep(key, 'running');
+                            appendLine('step', '⟳ ' + (payload.display || key));
+                        } else if (status === 'failed') {
+                            setStep(key, 'failed');
+                            appendLine('error', '✗ ' + (payload.display || key));
+                        }
+                    }
+                } else if (kind === 'done') {
+                    state.terminal = true;
+                    stopElapsed();
+                    const status = payload.status || 'completed';
+                    $('qaLiveStatus').textContent = status;
+                    $('qaCancelBtn').disabled = true;
+                    const prUrl = payload.pr_url;
+                    const parts = [];
+                    if (prUrl) parts.push('PR: <a href="' + escapeHtml(prUrl) + '" target="_blank" style="color:var(--primary);">' + escapeHtml(prUrl) + '</a>');
+                    if (payload.verdict) parts.push('verdict=' + escapeHtml(payload.verdict));
+                    if (payload.test_passed != null) parts.push('test_passed=' + payload.test_passed);
+                    if (payload.exit_code != null) parts.push('exit=' + payload.exit_code);
+                    $('qaLiveResult').innerHTML = parts.join(' · ');
+                    appendLine(status === 'completed' ? 'done' : 'error', '[' + status + '] ' + (payload.message || payload.verdict || ''));
+                    closeStream();
+                    loadHistory();
+                } else if (kind === 'status') {
+                    $('qaLiveStatus').textContent = payload.status || '';
+                } else if (kind === 'error') {
+                    appendLine('error', payload.message || envelope.raw || 'stream error');
+                }
+            }
+
+            function appendLine(cls, text) {
+                const con = $('qaConsole');
+                const div = document.createElement('div');
+                div.className = 'qa-line-' + cls;
+                div.textContent = text;
+                con.appendChild(div);
+                con.scrollTop = con.scrollHeight;
+            }
+
+            function closeStream() {
+                if (state.eventSource) { try { state.eventSource.close(); } catch (e) {} state.eventSource = null; }
+                if (state.retryTimer) { clearTimeout(state.retryTimer); state.retryTimer = null; }
+            }
+
+            function startElapsed() {
+                stopElapsed();
+                state.elapsedTimer = setInterval(function() {
+                    if (!state.startTs) return;
+                    const s = Math.floor((Date.now() - state.startTs) / 1000);
+                    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+                    const ss = String(s % 60).padStart(2, '0');
+                    $('qaLiveElapsed').textContent = mm + ':' + ss;
+                }, 1000);
+            }
+            function stopElapsed() {
+                if (state.elapsedTimer) { clearInterval(state.elapsedTimer); state.elapsedTimer = null; }
+            }
+
+            async function cancel() {
+                if (!state.activeSession) return;
+                $('qaCancelBtn').disabled = true;
+                try {
+                    await apiFetch(AGENT_BASE + '/run/' + encodeURIComponent(state.activeSession) + '/cancel', { method: 'POST' });
+                    appendLine('error', '[cancel] requested');
+                } catch (e) {
+                    appendLine('error', '[cancel] failed: ' + (e.message || 'unknown'));
+                    $('qaCancelBtn').disabled = false;
+                }
+            }
+
+            // ─ History ─
+            async function loadHistory() {
+                const wrap = $('qaHistoryWrap');
+                try {
+                    const body = await apiFetch(AGENT_BASE + '/sessions');
+                    const items = (body && (body.items || body.sessions)) || [];
+                    if (!items.length) {
+                        wrap.innerHTML = '<div class="qa-history-empty">No runs yet.</div>';
+                        return;
+                    }
+                    let html = '<table class="qa-history-table"><thead><tr><th>Session</th><th>Feature</th><th>Started</th><th>Status</th><th>Logs</th><th>PR</th></tr></thead><tbody>';
+                    items.forEach(function(s) {
+                        const sid = s.session_id || s.id || '';
+                        const status = (s.status || 'unknown').toLowerCase();
+                        const pr = s.pr_url ? '<a href="' + escapeHtml(s.pr_url) + '" target="_blank" onclick="event.stopPropagation();" style="color:var(--primary);">link</a>' : '—';
+                        const feat = s.feature || '';
+                        const logs = '<a href="#" class="qa-history-logs" data-session="' + escapeHtml(sid) + '" data-feature="' + escapeHtml(feat) + '" onclick="event.stopPropagation();event.preventDefault();qaAgents.viewLogs(this.dataset.session,this.dataset.feature);" style="color:var(--primary);">view</a>';
+                        html += '<tr data-session="' + escapeHtml(sid) + '">'
+                              + '<td class="qa-session-id">' + escapeHtml(sid) + '</td>'
+                              + '<td>' + escapeHtml(feat || '—') + '</td>'
+                              + '<td>' + escapeHtml(s.started_at || '—') + '</td>'
+                              + '<td><span class="qa-status-pill ' + escapeHtml(status) + '">' + escapeHtml(status) + '</span></td>'
+                              + '<td>' + logs + '</td>'
+                              + '<td>' + pr + '</td>'
+                              + '</tr>';
+                    });
+                    html += '</tbody></table>';
+                    wrap.innerHTML = html;
+                    wrap.querySelectorAll('tbody tr').forEach(function(tr) {
+                        tr.addEventListener('click', function() { openSessionModal(tr.dataset.session); });
+                    });
+                } catch (e) {
+                    wrap.innerHTML = '<div class="qa-history-empty">Failed to load: ' + escapeHtml(e.message || '') + '</div>';
+                }
+            }
+
+            async function openSessionModal(sessionId) {
+                if (!sessionId) return;
+                const modal = $('qaSessionModal');
+                const body = $('qaSessionDetail');
+                body.innerHTML = '<div class="qa-empty-hint">Loading…</div>';
+                modal.classList.add('active');
+                try {
+                    const data = await apiFetch(AGENT_BASE + '/sessions/' + encodeURIComponent(sessionId));
+                    renderSessionDetail(data || {});
+                } catch (e) {
+                    body.innerHTML = '<div class="qa-empty-hint">Failed: ' + escapeHtml(e.message || '') + '</div>';
+                }
+            }
+
+            function renderSessionDetail(d) {
+                const body = $('qaSessionDetail');
+                const sections = [];
+                sections.push('<div class="qa-modal-section"><h4>Summary</h4><pre>' + escapeHtml(JSON.stringify({
+                    session_id: d.session_id, feature: d.feature, status: d.status,
+                    started_at: d.started_at, ended_at: d.ended_at, pr_url: d.pr_url,
+                }, null, 2)) + '</pre></div>');
+                const steps = d.steps || {};
+                STEPS.forEach(function(key) {
+                    if (steps[key]) {
+                        sections.push('<div class="qa-modal-section"><h4>' + escapeHtml(key) + '</h4><pre>' + escapeHtml(JSON.stringify(steps[key], null, 2)) + '</pre></div>');
+                    }
+                });
+                body.innerHTML = sections.join('');
+            }
+
+            function viewLogs(sessionId, feature) {
+                if (!sessionId) return;
+                attachLiveRun(sessionId, feature || '—', 0);
+                const card = $('qaLiveCard');
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            function closeSessionModal(ev) {
+                if (ev && ev.target && !ev.target.id) return;
+                $('qaSessionModal').classList.remove('active');
+            }
+
+            // ─ Re-attach on mount ─
+            async function init() {
+                if (!state.initialised) {
+                    state.initialised = true;
+                    $('qaHealthRefresh').addEventListener('click', checkHealth);
+                    $('qaFeatureSelect').addEventListener('change', function(ev) { previewFeature(ev.target.value); });
+                    window.addEventListener('beforeunload', closeStream);
+                }
+                checkHealth();
+                loadFeatureFiles();
+                loadHistory();
+                // Re-attach to any active run
+                try {
+                    const body = await apiFetch(AGENT_BASE + '/run/active');
+                    if (body && body.active && body.session_id) {
+                        attachLiveRun(body.session_id, body.feature || '', 0);
+                    }
+                } catch (e) { /* ignore — no active run or network down */ }
+            }
+
+            return {
+                init: init,
+                checkHealth: checkHealth,
+                loadFeatureFiles: loadFeatureFiles,
+                saveFeatureFile: saveFeatureFile,
+                switchMode: switchMode,
+                onSpecInput: onSpecInput,
+                run: run,
+                cancel: cancel,
+                loadHistory: loadHistory,
+                viewLogs: viewLogs,
+                closeSessionModal: closeSessionModal,
+            };
+        })();
     </script>
 </body>
 

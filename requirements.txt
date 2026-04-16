@@ -34,6 +34,7 @@ numpy>=1.26.0,<2.0.0
 sentence-transformers>=2.7.0
 huggingface-hub>=0.20.0
 urllib3<2.0.0  # Pin to <2.0 to avoid OpenSSL warning on macOS (LibreSSL)
+requests>=2.31.0  # used by backend/api/agents/proxy.py to forward to QA-Agent-Network
 
 # Optional: For advanced features
 rank-bm25==0.2.2
