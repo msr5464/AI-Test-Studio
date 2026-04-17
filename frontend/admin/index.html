@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Test Studio - Admin</title>
+    <title>AI Test Studio - Admin — Powered by QA Agent Network</title>
     <style>
         /* Theme system – match Customer portal (dark default) */
-        :root, [data-theme="dark"] {
+        :root,
+        [data-theme="dark"] {
             --primary: #06b6d4;
             --primary-hover: #0891b2;
             --primary-light: rgba(6, 182, 212, 0.15);
@@ -60,7 +61,11 @@
             transition: none !important;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -106,11 +111,16 @@
             font-size: 18px;
             color: var(--text);
         }
+
         .site-logo-context {
             font-size: 13px;
             font-weight: 500;
             color: var(--text-muted);
             margin-left: 4px;
+        }
+
+        .site-tagline {
+            color: var(--text-light);
         }
 
         .site-nav {
@@ -125,7 +135,8 @@
             margin-right: 8px;
         }
 
-        .site-nav a, .site-nav .btn-header {
+        .site-nav a,
+        .site-nav .btn-header {
             padding: 8px 14px;
             font-size: 13px;
             font-weight: 500;
@@ -139,7 +150,8 @@
             font-family: inherit;
         }
 
-        .site-nav a:hover, .site-nav .btn-header:hover {
+        .site-nav a:hover,
+        .site-nav .btn-header:hover {
             background: var(--primary);
             border-color: var(--primary);
             color: white;
@@ -151,12 +163,19 @@
             height: 28px;
         }
 
-        .theme-toggle input { opacity: 0; width: 0; height: 0; }
+        .theme-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
 
         .theme-slider {
             position: absolute;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: var(--border);
             border-radius: 28px;
             transition: 0.3s;
@@ -178,11 +197,11 @@
             font-size: 12px;
         }
 
-        .theme-toggle input:checked + .theme-slider {
+        .theme-toggle input:checked+.theme-slider {
             background: var(--primary);
         }
 
-        .theme-toggle input:checked + .theme-slider:before {
+        .theme-toggle input:checked+.theme-slider:before {
             transform: translateX(28px);
             content: "☀️";
         }
@@ -244,41 +263,56 @@
            LIGHT MODE OVERRIDES — deep color, high contrast
            ══════════════════════════════════════════════════════════════ */
 
-        /* Logo name: deep dark-to-blue gradient */
+        /* Logo name: white to indigo gradient */
         [data-theme="light"] .site-logo-app {
-            background: linear-gradient(135deg, #0c4a6e 0%, #1d4ed8 100%);
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        /* Header: clean white, strong border */
+        [data-theme="light"] .site-logo-context {
+            color: #a5b4fc;
+        }
+
+        [data-theme="light"] .site-tagline {
+            color: #a5b4fc;
+        }
+
+        [data-theme="light"] .user-info {
+            color: #e0e7ff;
+        }
+
+        /* Header: colorful contrast */
         [data-theme="light"] .site-header {
-            border-bottom-color: #94a3b8;
-            box-shadow: 0 1px 0 #94a3b8, 0 4px 16px rgba(0,0,0,0.08);
+            background: #1e1b4b;
+            border-bottom-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.15);
         }
 
         /* Header nav buttons */
         [data-theme="light"] .site-nav a,
         [data-theme="light"] .site-nav .btn-header {
-            color: #334155;
-            border-color: #94a3b8;
-            background: #ffffff;
-        }
-        [data-theme="light"] .site-nav a:hover,
-        [data-theme="light"] .site-nav .btn-header:hover {
-            background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%);
-            border-color: transparent;
-            color: white;
+            color: #e0e7ff;
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        /* All primary buttons: deep blue */
-        [data-theme="light"] .btn:not(.btn-danger) {
-            background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%);
-            box-shadow: 0 2px 10px rgba(3, 105, 161, 0.35);
+        [data-theme="light"] .site-nav a:hover,
+        [data-theme="light"] .site-nav .btn-header:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: transparent;
+            color: #ffffff;
         }
+
+        /* All primary buttons: deep indigo (matching main app) */
+        [data-theme="light"] .btn:not(.btn-danger) {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.35);
+        }
+
         [data-theme="light"] .btn:not(.btn-danger):hover:not(:disabled) {
-            box-shadow: 0 4px 16px rgba(3, 105, 161, 0.45);
+            box-shadow: 0 4px 16px rgba(79, 70, 229, 0.45);
         }
 
         /* Input focus rings */
@@ -304,12 +338,19 @@
             background: #f8fafc;
             border-color: #94a3b8;
         }
+
         [data-theme="light"] .document-item:hover {
             background: #eff6ff;
             border-color: #0369a1;
         }
-        [data-theme="light"] .document-name { color: #0f172a; }
-        [data-theme="light"] .document-meta { color: #475569; }
+
+        [data-theme="light"] .document-name {
+            color: #0f172a;
+        }
+
+        [data-theme="light"] .document-meta {
+            color: #475569;
+        }
 
         /* Chunk items */
         [data-theme="light"] .chunk-item {
@@ -323,6 +364,7 @@
             background: #eff6ff;
             border-color: #93c5fd;
         }
+
         [data-theme="light"] .upload-area:hover {
             border-color: #0369a1;
             background: #dbeafe;
@@ -333,14 +375,23 @@
             background: #e2e8f0;
             color: #334155;
         }
+
         [data-theme="light"] .sync-step.active {
             background: linear-gradient(135deg, #0369a1, #1d4ed8);
             color: white;
         }
 
-        /* Theme toggle */
+        /* Theme toggle on dark header */
         [data-theme="light"] .theme-slider {
-            background: #94a3b8;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        [data-theme="light"] .theme-slider:before {
+            background: #ffffff;
+        }
+
+        [data-theme="light"] .theme-toggle input:checked+.theme-slider {
+            background: #818cf8;
         }
 
         /* Footer */
@@ -350,9 +401,17 @@
         }
 
         @keyframes loading {
-            0% { transform: translateX(-100%); }
-            50% { transform: translateX(0%); }
-            100% { transform: translateX(100%); }
+            0% {
+                transform: translateX(-100%);
+            }
+
+            50% {
+                transform: translateX(0%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
         }
 
         .sync-step {
@@ -417,8 +476,13 @@
             text-align: center;
         }
 
-        .upload-row .upload-area p:first-of-type { margin-bottom: 0; }
-        .upload-row .upload-area p:last-of-type { margin-top: 2px; }
+        .upload-row .upload-area p:first-of-type {
+            margin-bottom: 0;
+        }
+
+        .upload-row .upload-area p:last-of-type {
+            margin-top: 2px;
+        }
 
         .upload-row .btn-upload {
             min-height: 48px;
@@ -617,33 +681,41 @@
         #usersList .document-item .document-name {
             color: var(--text);
         }
+
         #usersList .user-meta-text {
             color: var(--text-muted);
         }
+
         #usersList .user-you {
             color: var(--primary);
         }
+
         #usersList .user-role-select {
             background: var(--bg-input) !important;
             color: var(--text) !important;
             border: 2px solid var(--border) !important;
         }
+
         #usersList .user-role-select option {
             background: var(--bg-input);
             color: var(--text);
         }
+
         #usersList .user-badge-admin {
             background: var(--primary);
             color: white;
         }
+
         #usersList .user-badge-customer {
             background: var(--success);
             color: white;
         }
+
         #usersList .btn-reset {
             background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
             color: #1a1a1a;
         }
+
         #usersList .btn-reset:hover:not(:disabled) {
             color: #1a1a1a;
         }
@@ -712,13 +784,27 @@
         }
 
         @keyframes flyIn {
-            from { opacity: 0; transform: translateX(-50%) translateY(-150px) scale(0.9); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-150px) scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
         }
 
         @keyframes flyOut {
-            from { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-            to { opacity: 0; transform: translateX(-50%) translateY(-150px) scale(0.9); }
+            from {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-150px) scale(0.9);
+            }
         }
 
         .message.success {
@@ -743,7 +829,7 @@
             display: inline-block;
             width: 18px;
             height: 18px;
-            border: 3px solid rgba(255,255,255,0.3);
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-top-color: white;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
@@ -752,8 +838,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         input[type="text"],
@@ -769,7 +860,8 @@
             transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        input:focus, select:focus {
+        input:focus,
+        select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--primary-light);
@@ -809,7 +901,9 @@
             font-size: 13px;
         }
 
-        tr:last-child td { border-bottom: none; }
+        tr:last-child td {
+            border-bottom: none;
+        }
 
         tr:hover {
             background: var(--bg-card-hover);
@@ -822,14 +916,17 @@
             margin-bottom: 8px;
             border: 1px solid var(--border);
         }
+
         .create-user-form h3 {
             color: var(--text);
         }
+
         .create-user-form label {
             color: var(--text);
         }
 
-        .sync-box, .confluence-sync-box {
+        .sync-box,
+        .confluence-sync-box {
             padding: 12px 14px;
             border-radius: 8px;
             margin-bottom: 0;
@@ -838,29 +935,46 @@
             color: var(--text);
         }
 
-        .sync-box p, .sync-box span, .confluence-sync-box p, .confluence-sync-box span {
+        .sync-box p,
+        .sync-box span,
+        .confluence-sync-box p,
+        .confluence-sync-box span {
             color: var(--text-light);
         }
 
-        .sync-box .sync-stat-num, .confluence-sync-box .sync-stat-num {
+        .sync-box .sync-stat-num,
+        .confluence-sync-box .sync-stat-num {
             color: var(--primary);
             font-weight: 700;
         }
 
-        #syncLog, #confluenceSyncLog {
+        #syncLog,
+        #confluenceSyncLog {
             background: var(--bg-input) !important;
             color: var(--text) !important;
             border: 1px solid var(--border);
             border-radius: 8px;
         }
 
-        .sync-progress-inner, .sync-stat-box {
+        .sync-progress-inner,
+        .sync-stat-box {
             background: var(--bg-input) !important;
             border-radius: 6px;
             color: var(--text);
         }
-        .sync-stat-box { padding: 8px 10px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-        .sync-progress-inner { padding: 8px; }
+
+        .sync-stat-box {
+            padding: 8px 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sync-progress-inner {
+            padding: 8px;
+        }
+
         .sync-live-badge {
             background: var(--success) !important;
             color: white !important;
@@ -869,10 +983,12 @@
             border-radius: 4px;
             margin-left: 6px;
         }
+
         .btn-sync-now {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%) !important;
             color: white !important;
         }
+
         .alert-success {
             background: var(--success-light) !important;
             color: var(--success) !important;
@@ -880,6 +996,7 @@
             border-radius: 8px;
             border: 1px solid var(--success);
         }
+
         .alert-danger {
             background: var(--danger-light) !important;
             color: var(--danger) !important;
@@ -896,11 +1013,30 @@
         }
 
         @media (max-width: 768px) {
-            .main-container { padding: 12px 16px; }
-            .section { padding: 14px 16px; margin-bottom: 12px; }
-            .section h2 { margin-bottom: 10px; font-size: 17px; }
-            .stats { grid-template-columns: 1fr; gap: 8px; }
-            .message { width: 95%; padding: 12px 16px; font-size: 14px; }
+            .main-container {
+                padding: 12px 16px;
+            }
+
+            .section {
+                padding: 14px 16px;
+                margin-bottom: 12px;
+            }
+
+            .section h2 {
+                margin-bottom: 10px;
+                font-size: 17px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .message {
+                width: 95%;
+                padding: 12px 16px;
+                font-size: 14px;
+            }
         }
 
         /* ── Settings Modal ──────────────────────────────────────────── */
@@ -912,6 +1048,7 @@
             backdrop-filter: blur(3px);
             z-index: 900;
         }
+
         .settings-modal {
             display: none;
             position: fixed;
@@ -923,15 +1060,22 @@
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 14px;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
             z-index: 901;
             display: none;
             flex-direction: column;
             overflow: hidden;
         }
+
         .settings-modal.open,
-        .settings-modal-backdrop.open { display: flex; }
-        .settings-modal-backdrop.open { display: block; }
+        .settings-modal-backdrop.open {
+            display: flex;
+        }
+
+        .settings-modal-backdrop.open {
+            display: block;
+        }
+
         .settings-modal-header {
             display: flex;
             align-items: center;
@@ -940,6 +1084,7 @@
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
+
         .settings-modal-close {
             background: none;
             border: none;
@@ -951,18 +1096,25 @@
             transition: background 0.15s, color 0.15s;
             line-height: 1;
         }
-        .settings-modal-close:hover { background: var(--bg-card-hover); color: var(--text); }
+
+        .settings-modal-close:hover {
+            background: var(--bg-card-hover);
+            color: var(--text);
+        }
+
         .settings-modal-body {
             padding: 20px;
             overflow-y: auto;
             flex: 1;
         }
+
         .settings-tabs {
             display: flex;
             gap: 6px;
             margin-bottom: 16px;
             flex-wrap: wrap;
         }
+
         .settings-tab-btn {
             padding: 7px 16px;
             font-size: 13px;
@@ -975,19 +1127,58 @@
             transition: all 0.18s;
             font-family: inherit;
         }
-        .settings-tab-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
-        .settings-tab-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-        .settings-tab-pane { display: none; }
-        .settings-tab-pane.active { display: block; }
+
+        .settings-tab-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .settings-tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .settings-tab-pane {
+            display: none;
+        }
+
+        .settings-tab-pane.active {
+            display: block;
+        }
+
         .settings-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 14px 20px;
         }
-        @media (max-width: 640px) { .settings-grid { grid-template-columns: 1fr; } }
-        .settings-field { display: flex; flex-direction: column; gap: 5px; }
-        .settings-field label { font-size: 13px; font-weight: 600; color: var(--text); }
-        .settings-field .field-desc { font-size: 11px; color: var(--text-muted); margin-top: 1px; line-height: 1.4; }
+
+        @media (max-width: 640px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .settings-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .settings-field label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .settings-field .field-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+            line-height: 1.4;
+        }
+
         .settings-field input[type="text"],
         .settings-field input[type="password"],
         .settings-field input[type="number"],
@@ -1002,34 +1193,57 @@
             font-family: inherit;
             transition: border-color 0.18s;
         }
+
         .settings-field input:focus,
-        .settings-field select:focus { outline: none; border-color: var(--primary); }
-        .settings-full-width { grid-column: 1 / -1; }
-        .settings-inline-pair { grid-column: 1 / -1; display: flex; gap: 20px; }
-        .settings-inline-pair .settings-field { flex: 1; }
+        .settings-field select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .settings-full-width {
+            grid-column: 1 / -1;
+        }
+
+        .settings-inline-pair {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 20px;
+        }
+
+        .settings-inline-pair .settings-field {
+            flex: 1;
+        }
+
         .settings-checkbox-row {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-top: 4px;
         }
+
         .settings-checkbox-row input[type="checkbox"] {
             width: 16px;
             height: 16px;
             accent-color: var(--primary);
             cursor: pointer;
         }
-        .settings-checkbox-row span { font-size: 13px; color: var(--text-light); }
+
+        .settings-checkbox-row span {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
         .settings-section-note {
             grid-column: 1 / -1;
             font-size: 12px;
             color: var(--warning, #f59e0b);
-            background: rgba(245,158,11,0.08);
-            border: 1px solid rgba(245,158,11,0.25);
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
             border-radius: 8px;
             padding: 8px 12px;
             margin-top: 4px;
         }
+
         .settings-save-row {
             grid-column: 1 / -1;
             display: flex;
@@ -1039,7 +1253,11 @@
             padding-top: 14px;
             border-top: 1px solid var(--border);
         }
-        .settings-save-status { font-size: 13px; color: var(--text-muted); }
+
+        .settings-save-status {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 
@@ -1048,8 +1266,13 @@
         <a href="/customer" class="site-logo" target="_blank" rel="noopener noreferrer">
             <img src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png"
                 alt="Logo">
-            <span class="site-logo-app">AI Test Studio</span>
-            <span class="site-logo-context">Admin</span>
+            <div style="display:flex;flex-direction:column;line-height:1.1;">
+                <div style="display:flex;align-items:center;gap:8px;"><span class="site-logo-app">AI Test
+                        Studio</span><span class="site-logo-context">Admin</span></div>
+                <span class="site-tagline"
+                    style="font-size:10px;font-weight:500;letter-spacing:0.5px;margin-top:2px;">Powered
+                    by QA Agent Network</span>
+            </div>
         </a>
         <nav class="site-nav">
             <span id="userInfo" class="user-info"></span>
@@ -1075,7 +1298,8 @@
                 <button class="settings-tab-btn" onclick="showSettingsTab('confluence', this)">📄 Confluence</button>
                 <button class="settings-tab-btn" onclick="showSettingsTab('llm', this)">🤖 LLM & RAG</button>
                 <button class="settings-tab-btn" onclick="showSettingsTab('chat', this)">💬 Chat</button>
-                <button class="settings-tab-btn" onclick="showSettingsTab('requirements', this)">📋 Requirements</button>
+                <button class="settings-tab-btn" onclick="showSettingsTab('requirements', this)">📋
+                    Requirements</button>
             </div>
             <div id="settingsTabContent">
                 <p style="color: var(--text-muted); padding: 24px 0; text-align: center;">⏳ Loading settings...</p>
@@ -1093,7 +1317,8 @@
 
                 <!-- Create User Form -->
                 <div class="create-user-form">
-                    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 15px; font-weight: 700;">✨ Create New User Account</h3>
+                    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 15px; font-weight: 700;">✨ Create New User
+                        Account</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: end;">
                         <div>
                             <label for="newUsername">👤 Username</label>
@@ -1110,13 +1335,15 @@
                                 <option value="admin">Admin</option>
                             </select>
                         </div>
-                        <button type="button" class="btn" onclick="createUser()" style="padding: 8px 16px; font-size: 13px; white-space: nowrap;">✨ Create User</button>
+                        <button type="button" class="btn" onclick="createUser()"
+                            style="padding: 8px 16px; font-size: 13px; white-space: nowrap;">✨ Create User</button>
                     </div>
                 </div>
 
                 <!-- Users List -->
                 <div id="usersList" style="margin-top: 10px;">
-                    <p style="text-align: center; color: var(--text-muted); padding: 8px; font-size: 13px;">🔄 Loading user accounts...</p>
+                    <p style="text-align: center; color: var(--text-muted); padding: 8px; font-size: 13px;">🔄 Loading
+                        user accounts...</p>
                 </div>
             </div>
 
@@ -1140,14 +1367,19 @@
                 <h2>📤 Sync Documents</h2>
                 <div class="upload-row">
                     <div class="upload-area" id="uploadArea">
-                        <p style="font-size: 14px; font-weight: 600; margin-bottom: 0;">📄 Drag and drop files here or click to browse</p>
-                        <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">CSV, Excel, PDF, Word, PowerPoint, text</p>
-                        <input type="file" id="fileInput" multiple accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.pptx,.ppt,.txt,.md">
+                        <p style="font-size: 14px; font-weight: 600; margin-bottom: 0;">📄 Drag and drop files here or
+                            click to browse</p>
+                        <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">CSV, Excel, PDF, Word,
+                            PowerPoint, text</p>
+                        <input type="file" id="fileInput" multiple
+                            accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.pptx,.ppt,.txt,.md">
                     </div>
                     <button class="btn btn-upload" id="uploadBtn" disabled>📤 Upload & Process Files</button>
                 </div>
-                <div class="documents-list" id="documentsList" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
-                    <p style="text-align: center; color: var(--text-muted); padding: 16px; font-size: 13px;">📭 No documents uploaded yet. Upload your first document to get started!</p>
+                <div class="documents-list" id="documentsList"
+                    style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+                    <p style="text-align: center; color: var(--text-muted); padding: 16px; font-size: 13px;">📭 No
+                        documents uploaded yet. Upload your first document to get started!</p>
                 </div>
             </div>
 
@@ -1158,10 +1390,14 @@
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                         <div style="flex: 1;">
-                            <p style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px;">📊 Status</p>
-                            <p id="syncStatusText" style="font-size: 14px; color: var(--text-muted); margin: 0;">Not yet synced</p>
-                            <p id="syncLastTime" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;"></p>
-                            <p id="testrailNextRun" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;"></p>
+                            <p style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px;">📊
+                                Status</p>
+                            <p id="syncStatusText" style="font-size: 14px; color: var(--text-muted); margin: 0;">Not yet
+                                synced</p>
+                            <p id="syncLastTime" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                            </p>
+                            <p id="testrailNextRun" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                            </p>
                         </div>
                         <button id="syncNowBtn" class="btn btn-sync-now">
                             🚀 Sync Now
@@ -1170,22 +1406,30 @@
 
                     <div id="syncProgress" style="display: none; margin-top: 8px;">
                         <div class="sync-progress-inner">
-                            <div id="syncStepIndicator" style="display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+                            <div id="syncStepIndicator"
+                                style="display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
                                 <span id="syncStep1" class="sync-step">1. Fetch from TestRail</span>
                                 <span id="syncStep2" class="sync-step">2. Validate</span>
                                 <span id="syncStep3" class="sync-step">3. Update knowledge base</span>
                             </div>
-                            <p id="syncProgressText" style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳ Syncing test cases from TestRail...</p>
+                            <p id="syncProgressText" style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳
+                                Syncing test cases from TestRail...</p>
                             <p id="syncProgressDetail" style="font-size: 12px; margin: 2px 0 6px 0;"></p>
                             <div style="background: var(--border); height: 8px; border-radius: 4px; overflow: hidden;">
-                                <div id="syncProgressBarFill" style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-hover)); width: 0%; transition: width 0.4s ease;"></div>
+                                <div id="syncProgressBarFill"
+                                    style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-hover)); width: 0%; transition: width 0.4s ease;">
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div id="syncLogContainer" style="margin-top: 10px;">
-                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📋 Running log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span></p>
-                        <div id="syncLog" style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
+                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📋 Running
+                            log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span>
+                        </p>
+                        <div id="syncLog"
+                            style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">
+                            No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
                     </div>
 
                     <div id="syncResult" style="display: none; margin-top: 10px;"></div>
@@ -1212,26 +1456,37 @@
             <div id="confluenceSyncSection" class="section">
                 <h2>📄 Sync Confluence</h2>
                 <div class="confluence-sync-box">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <div style="flex: 1;">
-                            <p style="font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📊 Status</p>
-                            <p id="confluenceSyncStatusText" style="font-size: 13px; margin: 0; color: var(--text-muted);">Not yet synced</p>
-                            <p id="confluenceSyncLastTime" style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
-                            <p id="confluenceNextRun" style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
+                            <p style="font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📊
+                                Status</p>
+                            <p id="confluenceSyncStatusText"
+                                style="font-size: 13px; margin: 0; color: var(--text-muted);">Not yet synced</p>
+                            <p id="confluenceSyncLastTime"
+                                style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
+                            <p id="confluenceNextRun"
+                                style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
                         </div>
                         <button id="confluenceSyncNowBtn" class="btn btn-sync-now">🚀 Sync Now</button>
                     </div>
 
                     <div id="confluenceSyncProgress" style="display: none; margin-top: 8px;">
                         <div class="sync-progress-inner">
-                            <p id="confluenceSyncProgressText" style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳ Syncing pages from Confluence (CQL)...</p>
+                            <p id="confluenceSyncProgressText"
+                                style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳ Syncing pages from
+                                Confluence (CQL)...</p>
                             <p id="confluenceSyncProgressDetail" style="font-size: 12px; margin: 2px 0 6px 0;"></p>
                         </div>
                     </div>
 
                     <div id="confluenceSyncLogContainer" style="margin-top: 10px;">
-                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📋 Running log <span id="confluenceSyncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span></p>
-                        <div id="confluenceSyncLog" style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
+                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📋 Running
+                            log <span id="confluenceSyncLogLiveBadge" class="sync-live-badge"
+                                style="display: none;">Live</span></p>
+                        <div id="confluenceSyncLog"
+                            style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">
+                            No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
                     </div>
 
                     <div id="confluenceSyncStats"
@@ -1257,14 +1512,17 @@
                     </button>
                 </div>
                 <div id="chromadbInfo" style="margin-bottom: 8px; padding: 10px;">
-                    <p style="text-align: center; color: var(--text-muted); font-weight: 500;">🔄 Loading ChromaDB contents...</p>
+                    <p style="text-align: center; color: var(--text-muted); font-weight: 500;">🔄 Loading ChromaDB
+                        contents...</p>
                 </div>
                 <div class="chunks-list" id="chunksList"></div>
             </div>
         </div>
 
         <div class="attribution-footer">
-            Made with ❤️ for Engineering Teams &nbsp;·&nbsp; Built by <a target="_blank" href="https://www.linkedin.com/in/mukesh-rajput">Mukesh Rajput</a> &nbsp;·&nbsp; <a target="_blank" href="https://github.com/msr5464/Knowledge-AI">Open Source on GitHub</a>
+            Made with ❤️ for Engineering Teams &nbsp;·&nbsp; Built by <a target="_blank"
+                href="https://www.linkedin.com/in/mukesh-rajput">Mukesh Rajput</a> &nbsp;·&nbsp; <a target="_blank"
+                href="https://github.com/msr5464/Knowledge-AI">Open Source on GitHub</a>
         </div>
     </div><!-- .main-container -->
 
@@ -1324,7 +1582,7 @@
                     redirectToLogin();
                 }
             } catch (error) {
-                void('Auth check failed:', error);
+                void ('Auth check failed:', error);
                 redirectToLogin();
             }
         }
@@ -1349,7 +1607,7 @@
                 });
                 window.location.href = '/admin/login';
             } catch (error) {
-                void('Logout failed:', error);
+                void ('Logout failed:', error);
                 window.location.href = '/admin/login';
             }
         }
@@ -1456,7 +1714,7 @@
                     displayDocuments(result.documents);
                 }
             } catch (error) {
-                void('Error loading documents:', error);
+                void ('Error loading documents:', error);
             }
         }
 
@@ -1518,7 +1776,7 @@
                     document.getElementById('totalChunks').textContent = result.total_chunks || 0;
                 }
             } catch (error) {
-                void('Error loading stats:', error);
+                void ('Error loading stats:', error);
             }
         }
 
@@ -1675,7 +1933,7 @@
         function toggleChunk(index) {
             const contentDiv = document.getElementById(`chunkContent${index}`);
             if (!contentDiv) {
-                void(`Content div not found for chunk ${index}`);
+                void (`Content div not found for chunk ${index}`);
                 return;
             }
 
@@ -1686,14 +1944,14 @@
             }
 
             if (!btn) {
-                void(`Button not found for chunk ${index}`);
+                void (`Button not found for chunk ${index}`);
                 return;
             }
 
             // Get full content from data attribute
             const fullContent = contentDiv.getAttribute('data-full-content');
             if (!fullContent) {
-                void(`Full content not found for chunk ${index}`);
+                void (`Full content not found for chunk ${index}`);
                 return;
             }
 
@@ -2074,12 +2332,12 @@
                 headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') }
             }).then(function (r) { return r.json(); }).then(function (statusData) {
                 if (!statusData.status) return;
-                    if (!statusData.status.is_syncing) {
-                        if (syncPollIntervalId) { clearInterval(syncPollIntervalId); syncPollIntervalId = null; }
-                        var liveBadge = document.getElementById('syncLogLiveBadge');
-                        if (liveBadge) liveBadge.style.display = 'none';
-                        var logArr = statusData.status.sync_log && Array.isArray(statusData.status.sync_log) ? statusData.status.sync_log : [];
-                        updateSyncLog(logArr);
+                if (!statusData.status.is_syncing) {
+                    if (syncPollIntervalId) { clearInterval(syncPollIntervalId); syncPollIntervalId = null; }
+                    var liveBadge = document.getElementById('syncLogLiveBadge');
+                    if (liveBadge) liveBadge.style.display = 'none';
+                    var logArr = statusData.status.sync_log && Array.isArray(statusData.status.sync_log) ? statusData.status.sync_log : [];
+                    updateSyncLog(logArr);
                     var latest = statusData.status.latest_sync_record;
                     if (latest && latest.status === 'success') {
                         result.innerHTML = '<div class="alert-success">' +
@@ -2117,7 +2375,7 @@
                     var liveBadge = document.getElementById('syncLogLiveBadge');
                     if (liveBadge) liveBadge.style.display = 'inline';
                 }
-            }).catch(function (e) { void('Polling error', e); });
+            }).catch(function (e) { void ('Polling error', e); });
         }
 
         function startSyncPolling(fromReload) {
@@ -2216,7 +2474,7 @@
                     }
                 }
             } catch (error) {
-                void('Error loading sync status:', error);
+                void ('Error loading sync status:', error);
             }
         }
 
@@ -2294,7 +2552,7 @@
                             loadChromaDBContents();
                         }
                     }
-                }).catch(function (e) { void('Confluence poll error', e); });
+                }).catch(function (e) { void ('Confluence poll error', e); });
         }
 
         function startConfluenceSyncPolling() {
@@ -2414,7 +2672,7 @@
                 if (response.status === 202 || (response.ok && data.success)) {
                     // Show immediate feedback in log (backend sets is_syncing in a background thread, so first poll can miss it)
                     var now = new Date();
-                    var timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+                    var timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
                     document.getElementById('confluenceSyncLog').textContent = '[' + timeStr + '] Sync started. Fetching pages from Confluence (CQL)...';
                     document.getElementById('confluenceSyncStatusText').textContent = '⏳ Syncing...';
                     startConfluenceSyncPolling();
@@ -2459,7 +2717,7 @@
         }
 
         // Close on Escape key
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closeSettingsModal();
         });
 
@@ -2476,15 +2734,15 @@
                         `<p style="color:var(--danger);padding:16px 0;">❌ Failed to load settings: ${data.error || 'Unknown error'}</p>`;
                 }
             } catch (e) {
-                void('loadSettings error:', e);
+                void ('loadSettings error:', e);
             }
         }
 
         // Which LLM fields belong to each provider
         const LLM_PROVIDER_GROUPS = {
-            ollama:  ['ollama_base_url', 'ollama_model'],
-            openai:  ['openai_api_key', 'openai_model'],
-            gemini:  ['google_api_key', 'gemini_model']
+            ollama: ['ollama_base_url', 'ollama_model'],
+            openai: ['openai_api_key', 'openai_model'],
+            gemini: ['google_api_key', 'gemini_model']
         };
 
         function updateLLMFields() {

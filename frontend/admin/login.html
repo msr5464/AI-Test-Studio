@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Test Studio - Admin Login</title>
+    <title>AI Test Studio - Admin Login — Powered by QA Agent Network</title>
     <style>
         /* Theme system – match Customer portal (dark default) */
-        :root, [data-theme="dark"] {
+        :root,
+        [data-theme="dark"] {
             --primary: #06b6d4;
             --primary-hover: #0891b2;
             --primary-light: rgba(6, 182, 212, 0.15);
@@ -48,7 +49,11 @@
             transition: none !important;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -100,12 +105,19 @@
             height: 28px;
         }
 
-        .theme-toggle input { opacity: 0; width: 0; height: 0; }
+        .theme-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
 
         .theme-slider {
             position: absolute;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: var(--border);
             border-radius: 28px;
             transition: 0.3s;
@@ -127,11 +139,11 @@
             font-size: 12px;
         }
 
-        .theme-toggle input:checked + .theme-slider {
+        .theme-toggle input:checked+.theme-slider {
             background: var(--primary);
         }
 
-        .theme-toggle input:checked + .theme-slider:before {
+        .theme-toggle input:checked+.theme-slider:before {
             transform: translateX(28px);
             content: "☀️";
         }
@@ -147,7 +159,7 @@
         }
 
         .subtitle {
-            color: var(--text-muted);
+            color: var(--text-light);
             font-size: 14px;
         }
 
@@ -227,21 +239,26 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+
         [data-theme="light"] .btn {
             background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%);
             box-shadow: 0 4px 12px rgba(3, 105, 161, 0.35);
         }
+
         [data-theme="light"] .btn:hover {
             box-shadow: 0 6px 18px rgba(3, 105, 161, 0.45);
         }
+
         [data-theme="light"] input[type="text"]:focus,
         [data-theme="light"] input[type="password"]:focus {
             border-color: #0369a1;
             box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.2);
         }
+
         [data-theme="light"] .login-card {
             border-color: #94a3b8;
         }
+
         [data-theme="light"] .theme-slider {
             background: #94a3b8;
         }
@@ -269,7 +286,10 @@
         #forgotPasswordModal {
             display: none;
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
             align-items: center;
@@ -335,7 +355,8 @@
             font-size: 15px;
         }
 
-        .modal-block p, .modal-block ol {
+        .modal-block p,
+        .modal-block ol {
             color: var(--text-light);
             line-height: 1.6;
             font-size: 14px;
@@ -371,7 +392,7 @@
                 <img src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png"
                     alt="Logo" class="logo">
                 <h1>Admin Login</h1>
-                <p class="subtitle">AI Test Studio</p>
+                <p class="subtitle">Powered by QA Agent Network</p>
             </div>
             <label class="theme-toggle" title="Toggle theme">
                 <input type="checkbox" id="themeToggle" aria-label="Light mode">
@@ -384,11 +405,13 @@
         <form id="loginForm">
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" required autocomplete="username" placeholder="Enter username">
+                <input type="text" id="username" name="username" required autocomplete="username"
+                    placeholder="Enter username">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter password">
+                <input type="password" id="password" name="password" required autocomplete="current-password"
+                    placeholder="Enter password">
             </div>
             <button type="submit" class="btn" id="loginBtn">Login</button>
         </form>
@@ -403,15 +426,19 @@
         <div class="modal-inner" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h2>Password Recovery Options</h2>
-                <button type="button" class="modal-close" onclick="hideForgotPassword()" aria-label="Close">&times;</button>
+                <button type="button" class="modal-close" onclick="hideForgotPassword()"
+                    aria-label="Close">&times;</button>
             </div>
             <div class="modal-block">
                 <h3>Option 1: Contact Another Admin</h3>
-                <p>If there are other admin users in the system, contact them to reset your password. They can access the User Management section in the admin panel to reset your password.</p>
+                <p>If there are other admin users in the system, contact them to reset your password. They can access
+                    the User Management section in the admin panel to reset your password.</p>
             </div>
             <div class="modal-block modal-warning">
                 <h3>Option 2: Manual Reset</h3>
-                <p><strong>WARNING:</strong> This will <strong>DELETE ALL EXISTING USERS</strong> including all admin and customer accounts. Only use this if you are the only admin and have no other way to recover access.</p>
+                <p><strong>WARNING:</strong> This will <strong>DELETE ALL EXISTING USERS</strong> including all admin
+                    and customer accounts. Only use this if you are the only admin and have no other way to recover
+                    access.</p>
                 <p style="margin-top: 12px;">Manually reset by deleting the user database file:</p>
                 <ol style="margin-top: 8px;">
                     <li>Stop the server</li>
@@ -463,7 +490,7 @@
                 if (response.ok) {
                     window.location.href = '/admin';
                 }
-            } catch (e) {}
+            } catch (e) { }
         }
 
         loginForm.addEventListener('submit', async function (e) {
