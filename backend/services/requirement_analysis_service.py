@@ -2411,6 +2411,64 @@ Priority exactly one of P0, P1, P2, P3. Steps as a numbered list with newlines (
             print(f"⚠️  suggest_case_update failed for {testrail_id}: {e}")
             return None, str(e) or "Could not generate suggestion. Try again."
 
+    def improve_for_automation(
+        self,
+        testrail_id: str,
+        title: str,
+        preconditions: str = '',
+        steps: str = '',
+        expected_result: str = '',
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+        """
+        Rewrite a TestRail test case to be clearer and more actionable for UI/API automation.
+        Returns (result_dict, error_message). result_dict has title, preconditions, steps, expected_result, priority.
+        """
+        rag = self.rag_service.rag
+        if not rag or not rag.llm:
+            return None, "LLM is not configured."
+
+        current_content = (
+            f"Title: {title}\n"
+            f"Preconditions: {preconditions or 'N/A'}\n"
+            f"Steps: {steps or 'N/A'}\n"
+            f"Expected Result: {expected_result or 'N/A'}"
+        )
+
+        from langchain_core.prompts import ChatPromptTemplate
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are a senior QA automation engineer at {company_name}. Your job is to rewrite a manual test case so it is clear and unambiguous for an automation framework (Playwright/Selenium).
+
+RULES:
+1. Keep the same intent and scope — do NOT add new test scenarios or change what is being tested.
+2. Make each step atomic and deterministic: replace vague steps like "fill in the form" with specific actions like "Enter 'user@example.com' in the Email field".
+3. Use precise UI element identifiers where implied (button labels, field names, URLs).
+4. Preconditions must list everything needed before step 1 (logged-in state, data setup, etc.).
+5. Expected result must be a verifiable assertion, not a description.
+6. Keep the priority the same unless the original has no priority — default to P2.
+7. Return ONLY valid JSON (no markdown): {{"title": "...", "priority": "P0"|"P1"|"P2"|"P3", "preconditions": "...", "steps": "1. ...\\n2. ...", "expected_result": "..."}}"""),
+            ("human", "Rewrite the following test case for automation clarity:\n\n{current_test}"),
+        ])
+
+        try:
+            chain = prompt | rag.llm
+            result = chain.invoke({
+                "company_name": _get_company_name(),
+                "current_test": current_content[:6000],
+            })
+            raw = getattr(result, "content", None)
+            if not isinstance(raw, str):
+                raw = str(raw) if raw is not None else ""
+            match = re.search(r"\{[\s\S]*\}", raw)
+            if match:
+                data = json.loads(match.group())
+                if isinstance(data, dict) and data.get("title"):
+                    return data, None
+            return None, "Model did not return valid JSON. Try again."
+        except json.JSONDecodeError:
+            return None, "Invalid JSON in model response. Try again."
+        except Exception as e:
+            return None, str(e) or "Could not generate suggestion. Try again."
+
     @staticmethod
     def _clean_case_field(html_text: Any) -> str:
         """Strip HTML from a case field for plain-text display."""

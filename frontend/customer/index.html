@@ -3952,8 +3952,7 @@
         }
 
         .req-results {
-            max-width: 1100px;
-            margin: 24px auto 40px;
+            margin: 24px 0 40px;
             padding: 24px;
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -5438,6 +5437,10 @@
             padding: 14px 18px;
             background: var(--bg-card);
             border-radius: 0 0 12px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .req-tc-meta-group {
@@ -5775,6 +5778,218 @@
             font-size: 13px;
             color: var(--text);
             cursor: pointer;
+        }
+
+        @keyframes qa-spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        .qa-import-priority {
+            accent-color: var(--primary);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+
+        .qa-import-chip {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .qa-import-chip input[type="checkbox"] {
+            display: none;
+        }
+
+        .qa-import-chip span {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-light);
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .qa-import-chip input:checked + span {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .qa-import-chip:hover span {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .qa-import-chip input:checked + span:hover {
+            color: #fff;
+        }
+
+        #qaImportCount .qa-import-count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        #qaImportCount .qa-import-count-pending {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 18px;
+        }
+
+        #qaImportCount .qa-import-count-total {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ── Agent panel: compact form elements ── */
+        #tabPanelAgents input.qa-input,
+        #tabPanelAgents select.qa-select {
+            padding: 8px 12px !important;
+            font-size: 13px !important;
+            min-height: 36px !important;
+            border-radius: 8px !important;
+        }
+        #tabPanelAgents select.qa-select {
+            padding: 8px 36px 8px 12px !important;
+        }
+        #tabPanelAgents .analyze-textarea {
+            padding: 12px 14px;
+            font-size: 13px;
+            border-radius: 8px;
+        }
+        #tabPanelAgents .analyze-btn {
+            padding: 11px 24px;
+            font-size: 14px;
+        }
+
+        #tabPanelAgents .analyze-file {
+            min-height: unset;
+            padding: 8px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+        #tabPanelAgents .analyze-file::file-selector-button,
+        #tabPanelAgents .analyze-file::-webkit-file-upload-button {
+            padding: 5px 12px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        #tabPanelAgents .analyze-input-zone {
+            margin-bottom: 10px;
+        }
+
+        /* ── Agent tabs: inline label layout ── */
+        #tabPanelAgents .qa-form-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        #tabPanelAgents .qa-form-row label {
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-bottom: 0;
+        }
+        #tabPanelAgents .qa-form-row > input,
+        #tabPanelAgents .qa-form-row > select,
+        #tabPanelAgents .qa-form-row > .qa-row-inline {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* ── Agent tab buttons: constrain height to match AI Test Generator (emojis inflate line-height) ── */
+        #tabPanelAgents .analyze-tab {
+            display: inline-flex;
+            align-items: center;
+            height: 37px;
+            box-sizing: border-box;
+            line-height: 1;
+        }
+
+        /* ── TestRail inline sub-section: compact secondary sizing ── */
+        #qaTestrailSection {
+            margin-top: 4px;
+        }
+        #qaTestrailSection .qa-tr-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 14px;
+        }
+        #qaTestrailSection .qa-tr-divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border-light, #e2e8f0);
+        }
+        #qaTestrailSection .qa-tr-divider-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        #qaTestrailSection .qa-form-row {
+            margin-bottom: 0;
+        }
+        #qaTestrailSection .qa-form-row label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary, var(--text-muted));
+        }
+        #qaTestrailSection .qa-select {
+            font-size: 12px;
+        }
+        #qaTestrailSection .qa-import-chip span {
+            padding: 3px 10px;
+            font-size: 11px;
+            border-radius: 14px;
+        }
+        #qaTestrailSection #qaImportLoadBtn {
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        #qaTestrailSection .qa-tr-filters {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+        #qaTestrailSection .qa-tr-priority-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        #qaTestrailSection .qa-tr-priority-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary, var(--text-muted));
+            margin-right: 2px;
+        }
+        #qaImportCount .qa-import-count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+        #qaImportCount .qa-import-count-pending {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 16px;
+        }
+        #qaImportCount .qa-import-count-total {
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
         .qa-btn {
@@ -6368,39 +6583,64 @@
                     <!-- Main input card -->
                     <div class="analyze-box">
                         <!-- Mode tabs -->
-                        <div class="analyze-method">
-                            <button class="analyze-tab active" data-qa-mode="existing"
-                                onclick="qaAgents.switchMode('existing')">📂 Load existing</button>
-                            <button class="analyze-tab" data-qa-mode="new" onclick="qaAgents.switchMode('new')">✏️ Write
-                                new</button>
+                        <div class="analyze-method" role="tablist" aria-label="Input method">
+                            <button type="button" class="analyze-tab active" data-qa-mode="new"
+                                role="tab" aria-selected="true"
+                                onclick="qaAgents.switchMode('new')">✏️ Write</button>
+                            <button type="button" class="analyze-tab" data-qa-mode="existing"
+                                role="tab" aria-selected="false"
+                                onclick="qaAgents.switchMode('existing')">📂 Saved Drafts</button>
+                            <button type="button" class="analyze-tab" data-qa-mode="testrail"
+                                role="tab" aria-selected="false"
+                                onclick="qaAgents.switchMode('testrail')">📥 From TestRail</button>
                         </div>
+                        <p id="qaTabHint" style="font-size:12px;color:var(--text-muted);margin:6px 0 10px;">Describe your test steps in plain English — the agent writes the automation code.</p>
 
-                        <!-- Load existing: queue file dropdown -->
-                        <div id="qaFeatureExisting" class="analyze-pane active">
-                            <div class="qa-form-row" style="margin-bottom:16px;">
-                                <label for="qaFeatureSelect">Queue file</label>
+                        <!-- Saved Drafts tab -->
+                        <div id="qaModuleExisting" class="analyze-pane">
+                            <div class="qa-form-row" style="margin-bottom:10px;">
+                                <label for="qaModuleSelect">Select file</label>
                                 <div class="qa-row-inline">
-                                    <select id="qaFeatureSelect" class="qa-select">
+                                    <select id="qaModuleSelect" class="qa-select">
                                         <option value="">Loading…</option>
                                     </select>
                                     <button type="button" class="qa-btn qa-btn-ghost"
-                                        onclick="qaAgents.loadFeatureFiles()" style="flex-shrink:0;padding:10px 14px;"
+                                        onclick="qaAgents.loadModuleFiles()" style="flex-shrink:0;padding:10px 14px;"
                                         title="Refresh list">⟳</button>
                                 </div>
                             </div>
+                            <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px;">
+                                Want to add more tests in Queue/Drafts?
+                                <a href="#" style="color:var(--primary);text-decoration:none;font-weight:500;"
+                                    onclick="qaAgents.switchMode('testrail');return false;">Fetch From TestRail →</a>
+                            </p>
                         </div>
 
-                        <!-- Write new: Feature + Type dropdowns (shown above textarea) -->
-                        <div id="qaNewFields" class="analyze-pane">
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                        <!-- Upload File tab pane: file picker at top, above fields -->
+                        <div id="qaUploadPane" style="margin-bottom:14px;">
+                            <input type="file" id="qaSpecFile" style="display:none"
+                                accept=".txt,.md,.feature,.csv"
+                                onchange="qaAgents.handleFileUpload(this)">
+                            <div style="display:flex;align-items:center;gap:10px;border:1.5px dashed var(--border);border-radius:10px;padding:10px 14px;background:var(--bg-input);">
+                                <button type="button" class="qa-btn qa-btn-secondary"
+                                    style="font-size:12px;padding:6px 14px;flex-shrink:0;"
+                                    onclick="document.getElementById('qaSpecFile').click()">
+                                    📎 Choose file <span style="opacity:0.6;">(optional)</span>
+                                </button>
+                                <span id="qaSpecFileName" style="font-size:12px;color:var(--text-muted);">Supports .txt, .md files. Filename becomes the module name; content loads into the editor below.</span>
+                            </div>
+                        </div>
+
+                        <!-- Write new: Module + Type dropdowns (shown above textarea) -->
+                        <div id="qaNewFields" class="analyze-pane active">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;margin-bottom:14px;">
                                 <div class="qa-form-row" style="margin-bottom:0;">
-                                    <label for="qaNewFeature">Module / Feature Name <span
-                                            style="color:#ef4444;">*</span></label>
-                                    <input type="text" id="qaNewFeature" class="qa-input" placeholder="e.g. Payments"
+                                    <label for="qaNewModule">Module Name </label>
+                                    <input type="text" id="qaNewModule" class="qa-input" placeholder="e.g. Payments"
                                         maxlength="80" />
                                 </div>
                                 <div class="qa-form-row" style="margin-bottom:0;">
-                                    <label for="qaNewType">Platform Type <span style="color:#ef4444;">*</span></label>
+                                    <label for="qaNewType">Platform Type </label>
                                     <select id="qaNewType" class="qa-select">
                                         <option value="web">🌐 Web</option>
                                         <option value="mobile">📱 Mobile</option>
@@ -6411,9 +6651,9 @@
                         </div>
 
                         <!-- Shared textarea: steps for new mode, full content for existing -->
-                        <div class="analyze-input-zone">
+                        <div class="analyze-input-zone" id="qaInputZone">
                             <textarea id="qaSpecContent" class="analyze-textarea" rows="8"
-                                placeholder="Feature: payments&#10;Type: web&#10;URL: https://app.staging.example.com&#10;&#10;Steps:&#10;1. Login as Admin&#10;2. Navigate to Payments&#10;3. Verify the payments table loads"
+                                placeholder="Module: payments&#10;Type: web&#10;&#10;Steps:&#10;1. Navigate to customer portal using url: https://app.staging.example.com&#10;2. Login as Admin user using username: &lt;username&gt;, password: &lt;password&gt;&#10;3. Navigate to Payments&#10;4. Verify the payments table loads"
                                 oninput="if(window.qaAgents && qaAgents.onSpecInput) qaAgents.onSpecInput()"></textarea>
                             <span id="qaEditHint"
                                 style="display:none;font-size:11px;color:#f59e0b;margin-top:4px;">&#9998; Unsaved edits
@@ -6421,13 +6661,12 @@
                         </div>
 
                         <!-- Write new: optional file name (below textarea) -->
-                        <div id="qaNewNameRow" class="analyze-pane">
-                            <div class="qa-form-row" style="margin-top:12px;margin-bottom:0;">
-                                <label for="qaNewFeatureName">Save as <span
-                                        style="font-weight:400;color:var(--text-muted);">(optional — auto-named if
-                                        blank)</span></label>
+                        <div id="qaNewNameRow" class="analyze-pane active">
+                            <div class="qa-form-row" style="margin-top:6px;margin-bottom:0;">
+                                <label for="qaNewModuleName">Save as <span
+                                        style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
                                 <div class="qa-row-inline">
-                                    <input type="text" id="qaNewFeatureName" class="qa-input"
+                                    <input type="text" id="qaNewModuleName" class="qa-input"
                                         placeholder="e.g. payments" maxlength="64" style="max-width:280px;" />
                                     <span id="qaSaveStatus"
                                         style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
@@ -6435,10 +6674,71 @@
                             </div>
                         </div>
 
+                        <!-- TestRail full tab pane (shown when mode='testrail') -->
+                        <div id="qaTestrailSection" style="display:none;">
+                            <!-- Filters -->
+                            <div class="qa-tr-filters">
+                                <div class="qa-form-row">
+                                    <label for="qaImportProject">Project</label>
+                                    <select id="qaImportProject" class="qa-select"
+                                        onchange="qaImport.onProjectChange()">
+                                        <option value="">— Select project —</option>
+                                    </select>
+                                </div>
+                                <div class="qa-form-row">
+                                    <label for="qaImportSuite">Suite</label>
+                                    <select id="qaImportSuite" class="qa-select"
+                                        onchange="qaImport.onSuiteChange()">
+                                        <option value="">— Select suite —</option>
+                                    </select>
+                                </div>
+                                <div class="qa-form-row">
+                                    <label for="qaImportSection">Section</label>
+                                    <select id="qaImportSection" class="qa-select"
+                                        onchange="qaImport._saveSelection()">
+                                        <option value="">— All sections —</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- Priority chips -->
+                            <div class="qa-tr-priority-row" style="margin-top:18px;margin-bottom:18px;">
+                                <span class="qa-tr-priority-label">Priority</span>
+                                <label class="qa-import-chip"><input type="checkbox" class="qa-import-priority" value="P0" checked><span>P0</span></label>
+                                <label class="qa-import-chip"><input type="checkbox" class="qa-import-priority" value="P1" checked><span>P1</span></label>
+                                <label class="qa-import-chip"><input type="checkbox" class="qa-import-priority" value="P2"><span>P2</span></label>
+                                <label class="qa-import-chip"><input type="checkbox" class="qa-import-priority" value="P3"><span>P3</span></label>
+                            </div>
+                            <!-- Load button: full-width, prominent -->
+                            <button type="button" class="analyze-btn" id="qaImportLoadBtn"
+                                onclick="qaImport.loadCases()">🔍 Fetch Automatable Tests</button>
+                            <!-- Results -->
+                            <div id="qaImportResults" style="display:none;margin-top:16px;">
+                                <div id="qaImportCount" style="margin-bottom:10px;"></div>
+                                <div id="qaImportControls" style="display:none;">
+                                    <div class="req-expand-collapse-bar">
+                                        <a href="#" onclick="qaImport.expandAll();return false;">Expand All</a> |
+                                        <a href="#" onclick="qaImport.collapseAll();return false;">Collapse All</a>
+                                    </div>
+                                    <div class="req-gen-select-actions" style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                                        <a href="#" id="qaImportSelectToggle" class="req-gen-select-link" onclick="qaImport.toggleSelectAll(this);return false;">Select all</a>
+                                        <button type="button" class="req-tr-btn" id="qaImportAddBtn" onclick="qaImport.addToQueue()">Save selected in Queue/Drafts</button>
+                                        <span id="qaImportStatus" style="font-size:13px;color:var(--text-light);"></span>
+                                    </div>
+                                </div>
+                                <div id="qaImportTable" style="max-height:750px;overflow-y:auto;"></div>
+                            </div>
+                            <!-- Bottom navigation hint -->
+                            <p style="font-size:12px;color:var(--text-muted);margin:14px 0 0;">
+                                Already have tests in Queue/Drafts? Run using
+                                <a href="#" style="color:var(--primary);text-decoration:none;font-weight:500;"
+                                    onclick="qaAgents.switchMode('existing');return false;">Saved Drafts →</a>
+                            </p>
+                        </div>
+
                         <!-- Options + run button -->
-                        <div class="analyze-actions">
+                        <div class="analyze-actions" id="qaRunActions">
                             <label class="analyze-option">
-                                <input type="checkbox" id="qaAutoPush" /> Auto-push PR on success
+                                <input type="checkbox" id="qaAutoPush" checked /> Auto-push PR on success
                             </label>
                             <button type="button" class="analyze-btn" id="qaRunBtn" onclick="qaAgents.run()">🚀 Run
                                 Agent</button>
@@ -6451,7 +6751,7 @@
                         <h3>📡 Live run <span class="qa-card-sub" id="qaLiveStatus">running…</span></h3>
                         <div class="qa-run-meta">
                             <span>Session: <span class="qa-run-session" id="qaLiveSession">—</span></span>
-                            <span>Feature: <span id="qaLiveFeature">—</span></span>
+                            <span>Module: <span id="qaLiveModule">—</span></span>
                             <span class="qa-run-elapsed" id="qaLiveElapsed">00:00</span>
                         </div>
                         <div class="qa-progress-steps" id="qaProgressSteps">
@@ -6582,6 +6882,38 @@
             <div class="req-case-edit-actions">
                 <button type="button" class="req-tr-btn" id="reqPushModalCancel">Cancel</button>
                 <button type="button" class="req-tr-btn" id="reqPushModalPush">Push to TestRail</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import-from-TestRail AI improvement modal -->
+    <div id="qaImportAiModal" class="req-case-edit-modal-overlay" role="dialog" aria-label="Improve test case for automation" onclick="if(event.target===this)qaImport.closeAiModal()">
+        <div class="req-case-edit-modal" onclick="event.stopPropagation()" style="max-width:620px;">
+            <h3>✨ Improve for Automation</h3>
+            <div class="req-case-edit-body">
+                <div id="qaImportAiLoading" style="padding:24px 0;text-align:center;color:var(--text-light);font-size:14px;">Getting AI suggestion…</div>
+                <div id="qaImportAiForm" style="display:none;">
+                    <label for="qaImportAiTitle">Title</label>
+                    <input type="text" id="qaImportAiTitle" placeholder="Test case title" />
+                    <label for="qaImportAiPriority">Priority</label>
+                    <select id="qaImportAiPriority">
+                        <option value="P0">P0 – Critical</option>
+                        <option value="P1">P1 – High</option>
+                        <option value="P2" selected>P2 – Medium</option>
+                        <option value="P3">P3 – Low</option>
+                    </select>
+                    <label for="qaImportAiPreconditions">Preconditions</label>
+                    <textarea id="qaImportAiPreconditions" placeholder="Preconditions" rows="3"></textarea>
+                    <label for="qaImportAiSteps">Steps</label>
+                    <textarea id="qaImportAiSteps" placeholder="1. Step one&#10;2. Step two" rows="6"></textarea>
+                    <label for="qaImportAiExpected">Expected result</label>
+                    <textarea id="qaImportAiExpected" placeholder="Expected result" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="req-case-edit-actions">
+                <button type="button" class="req-tr-btn" onclick="qaImport.closeAiModal()">Cancel</button>
+                <button type="button" class="req-tr-btn" id="qaImportAiAcceptBtn" style="display:none;" onclick="qaImport.acceptAi()">Accept &amp; Update locally</button>
+                <button type="button" class="req-tr-btn" id="qaImportAiQueueBtn" style="display:none;" onclick="qaImport.acceptAndUpdateTestrail()">Accept &amp; Update in TestRail</button>
             </div>
         </div>
     </div>
@@ -6879,7 +7211,7 @@
 
         /** Parse test case content string (from KB chunk) into structured fields for display. Matches TestRail format: Preconditions, Steps, Expected Result (no Description column). */
         function parseTestCaseContent(content) {
-            var out = { title: '', testrailId: '', priority: '', platform: '', moduleFeature: '', type: '', steps: '', expectedResult: '', preconditions: '', sections: [] };
+            var out = { title: '', testrailId: '', priority: '', platform: '', module: '', type: '', steps: '', expectedResult: '', preconditions: '', sections: [] };
             if (!content || typeof content !== 'string') return out;
             var lines = content.split(/\r?\n/);
             var keyVal = {};
@@ -6897,7 +7229,7 @@
             out.title = get('title') || '';
             out.priority = get('priority') || '';
             out.platform = get('platform') || '';
-            out.moduleFeature = get('module') || get('feature') || get('module/feature') || '';
+            out.module = get('module') || get('feature') || get('module/feature') || '';
             out.type = get('type') || '';
             out.section = get('section hierarchy') || '';
             out.suite = get('suite') || '';
@@ -6940,7 +7272,7 @@
             var pills = [];
             if (parsed.priority) pills.push('<span class="req-tc-pill req-tc-pill-priority" title="Priority">' + escapeHtml(parsed.priority) + '</span>');
             if (parsed.type) pills.push('<span class="req-tc-pill req-tc-pill-type" title="Type">' + escapeHtml(parsed.type) + '</span>');
-            if (parsed.moduleFeature && String(parsed.moduleFeature).trim() !== String(parsed.section || '').trim()) pills.push('<span class="req-tc-pill" title="Module/Feature">' + escapeHtml(parsed.moduleFeature) + '</span>');
+            if (parsed.module && String(parsed.module).trim() !== String(parsed.section || '').trim()) pills.push('<span class="req-tc-pill" title="Module">' + escapeHtml(parsed.module) + '</span>');
             if (parsed.suite) pills.push('<span class="req-tc-pill req-tc-pill-suite" title="Suite">' + escapeHtml(parsed.suite) + '</span>');
             if (parsed.section) pills.push('<span class="req-tc-pill req-tc-pill-section" title="Section">' + escapeHtml(parsed.section) + '</span>');
             if (pills.length) body.push('<div class="req-tc-meta-group">' + pills.join('') + '</div>');
@@ -7089,6 +7421,9 @@
             } else if (tab === 'agents') {
                 if (window.qaAgents && typeof window.qaAgents.init === 'function') {
                     window.qaAgents.init();
+                }
+                if (window.qaImport && typeof window.qaImport.init === 'function') {
+                    window.qaImport.init(); // preload in background so "From TestRail" tab shows instantly
                 }
             } else {
                 document.getElementById('reqSpecText')?.focus();
@@ -10010,16 +10345,16 @@
 
             const state = {
                 initialised: false,
-                mode: 'existing',
+                mode: 'new',
                 eventSource: null,
                 activeSession: null,
-                activeFeature: null,
+                activeModule: null,
                 lastSeq: 0,
                 retryCount: 0,
                 retryTimer: null,
                 elapsedTimer: null,
                 startTs: null,
-                featureCache: {},
+                moduleCache: {},
                 terminal: false,
                 loadedContent: '',   // tracks content when a file was loaded, to detect edits
             };
@@ -10075,32 +10410,42 @@
                 }
             }
 
-            // ─ Feature files ─
-            async function loadFeatureFiles() {
-                const sel = $('qaFeatureSelect');
+            // ─ Module files ─
+            async function loadModuleFiles(preselectName) {
+                const sel = $('qaModuleSelect');
                 sel.innerHTML = '<option value="">Loading…</option>';
                 try {
                     const body = await apiFetch(AGENT_BASE + '/queue');
                     const items = (body && (body.items || body.features)) || [];
-                    state.featureCache = {};
+                    state.moduleCache = {};
                     if (!items.length) {
-                        sel.innerHTML = '<option value="">No feature files yet</option>';
-                        $('qaFeaturePreview').textContent = 'Create a feature file to get started.';
+                        sel.innerHTML = '<option value="">No module files yet</option>';
+                        $('qaModulePreview').textContent = 'Create a module file to get started.';
                         return;
                     }
                     sel.innerHTML = '<option value="">— select —</option>' +
                         items.map(function (it) {
                             const name = typeof it === 'string' ? it : it.name;
-                            state.featureCache[name] = it;
+                            state.moduleCache[name] = it;
                             return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
                         }).join('');
+                    if (preselectName) {
+                        var opts = sel.options;
+                        for (var i = 0; i < opts.length; i++) {
+                            if (opts[i].value === preselectName || opts[i].value.replace(/\.txt$/, '') === preselectName) {
+                                sel.value = opts[i].value;
+                                previewModule(sel.value);
+                                break;
+                            }
+                        }
+                    }
                 } catch (e) {
                     sel.innerHTML = '<option value="">Failed to load</option>';
-                    $('qaFeaturePreview').textContent = 'Error: ' + (e.message || 'unknown');
+                    $('qaModulePreview').textContent = 'Error: ' + (e.message || 'unknown');
                 }
             }
 
-            async function previewFeature(name) {
+            async function previewModule(name) {
                 const ta = $('qaSpecContent');
                 setModifiedHint(false);
                 if (!name) { ta.value = ''; state.loadedContent = ''; return; }
@@ -10123,8 +10468,8 @@
                 if (hint) hint.style.display = show ? 'inline' : 'none';
             }
 
-            async function saveFeatureFile() {
-                const name = $('qaNewFeatureName').value.trim();
+            async function saveModuleFile() {
+                const name = $('qaNewModuleName').value.trim();
                 const content = $('qaSpecContent').value;
                 const statusEl = $('qaSaveStatus');
                 if (!name) { statusEl.textContent = 'Name required'; statusEl.style.color = '#ef4444'; return; }
@@ -10135,8 +10480,8 @@
                     await apiFetch(AGENT_BASE + '/queue', { method: 'POST', body: JSON.stringify({ name: name, content: content }) });
                     statusEl.textContent = 'Saved ✓';
                     statusEl.style.color = '#10b981';
-                    await loadFeatureFiles();
-                    $('qaFeatureSelect').value = name;
+                    await loadModuleFiles();
+                    $('qaModuleSelect').value = name;
                     switchMode('existing');
                 } catch (e) {
                     statusEl.textContent = 'Failed: ' + (e.message || 'unknown');
@@ -10144,23 +10489,81 @@
                 }
             }
 
-            function switchMode(mode) {
+            function switchMode(mode, preselectName) {
                 state.mode = mode;
+                var isTestrail = mode === 'testrail';
+                var isNew      = mode === 'new';
+                var isExisting = mode === 'existing';
+
                 document.querySelectorAll('#tabPanelAgents .analyze-method .analyze-tab').forEach(function (btn) {
-                    btn.classList.toggle('active', btn.dataset.qaMode === mode);
+                    var isActive = btn.dataset.qaMode === mode;
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
                 });
-                var isNew = mode === 'new';
-                $('qaFeatureExisting').classList.toggle('active', !isNew);
+
+                var hints = {
+                    'new':      'Type your test steps or upload a file — the agent writes the automation code.',
+                    'existing': 'Pick a previously saved test spec, review or edit it, then run the agent.',
+                    'testrail': 'Browse your TestRail cases and import them directly into the agent.'
+                };
+                var hintEl = $('qaTabHint');
+                if (hintEl) hintEl.textContent = hints[mode] || '';
+
+                // Textarea + run button: visible in Write and Saved Drafts modes
+                var showEditor = isNew || isExisting;
+                var inputZone = $('qaInputZone');
+                var runActions = $('qaRunActions');
+                if (inputZone) inputZone.style.display = showEditor ? '' : 'none';
+                if (runActions) runActions.style.display = showEditor ? '' : 'none';
+
+                $('qaModuleExisting').classList.toggle('active', isExisting);
                 $('qaNewFields').classList.toggle('active', isNew);
                 $('qaNewNameRow').classList.toggle('active', isNew);
+
+                // File picker shown inside Write tab
+                var uploadPane = $('qaUploadPane');
+                if (uploadPane) uploadPane.style.display = isNew ? '' : 'none';
+
+                var trSec = $('qaTestrailSection');
+                if (trSec) trSec.style.display = isTestrail ? '' : 'none';
+
                 var ta = $('qaSpecContent');
                 if (isNew) {
-                    ta.placeholder = '1. Login as Admin\n2. Navigate to Payments\n3. Verify the payments table loads\n4. Click on a transaction row\n5. Confirm the detail panel opens';
+                    ta.placeholder = 'Module: payments\nType: web\n\nSteps:\n1. Navigate to customer portal using url: https://app.staging.example.com\n2. Login as Admin user using username: <username>, password: <password>\n3. Navigate to Payments\n4. Verify the payments table loads';
                     ta.value = '';
-                    $('qaNewFeature').focus();
-                } else {
-                    ta.placeholder = 'Feature: payments\nType: web\nURL: https://app.staging.example.com\n\nSteps:\n1. Login as Admin\n2. Navigate to Payments\n3. Verify the payments table loads';
+                    $('qaNewModule').value = '';
+                } else if (isExisting) {
+                    ta.placeholder = 'Module: payments\nType: web\n\nSteps:\n1. Navigate to customer portal using url: https://app.staging.example.com\n2. Login as Admin user using username: <username>, password: <password>\n3. Navigate to Payments\n4. Verify the payments table loads';
+                    loadModuleFiles(preselectName || null);
+                } else if (isTestrail) {
+                    if (window.qaImport) qaImport.init();
                 }
+            }
+
+            function handleFileUpload(input) {
+                var file = input.files && input.files[0];
+                if (!file) return;
+                var nameSpan = $('qaSpecFileName');
+                if (nameSpan) nameSpan.textContent = file.name;
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var content = (e.target.result || '').trim();
+                    var name = file.name.replace(/\.[^.]+$/, '').replace(/[_\-]+/g, ' ');
+                    $('qaNewModule').value = name;
+                    $('qaSpecContent').value = content;
+                    $('qaSpecContent').focus();
+                    input.value = ''; // allow re-uploading the same file
+                };
+                reader.readAsText(file);
+            }
+
+            function fillFromTestRail(title, type, steps) {
+                switchMode('new');
+                $('qaNewModule').value = title;
+                var typeEl = $('qaNewType');
+                if (typeEl && typeEl.querySelector('option[value="' + type + '"]')) typeEl.value = type;
+                $('qaSpecContent').value = steps;
+                $('qaSpecContent').focus();
             }
 
             function onSpecInput() {
@@ -10177,15 +10580,15 @@
                 errEl.style.display = 'none';
                 $('qaRunBtn').disabled = true;
 
-                let feature;
+                let moduleFile;
                 try {
                     if (state.mode === 'new') {
-                        const featureName = $('qaNewFeature').value.trim();
+                        const moduleName = $('qaNewModule').value.trim();
                         const type = $('qaNewType').value;
                         const steps = $('qaSpecContent').value.trim();
 
-                        if (!featureName) {
-                            errEl.textContent = 'Feature name is required.';
+                        if (!moduleName) {
+                            errEl.textContent = 'Module name is required.';
                             errEl.style.display = 'block';
                             return;
                         }
@@ -10196,12 +10599,12 @@
                         }
 
                         // Assemble file content from structured fields
-                        const content = 'Feature: ' + featureName + '\nType: ' + type + '\n\nSteps:\n' + steps;
+                        const content = 'Module: ' + moduleName + '\nType: ' + type + '\n\nSteps:\n' + steps;
 
                         // Auto-generate a queue file name if the user left it blank
-                        const rawName = $('qaNewFeatureName').value.trim();
+                        const rawName = $('qaNewModuleName').value.trim();
                         const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
-                        feature = rawName || (featureName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + ts);
+                        moduleFile = rawName || (moduleName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + ts);
 
                         // Silently save to queue before running
                         const statusEl = $('qaSaveStatus');
@@ -10209,14 +10612,14 @@
                         statusEl.style.color = 'var(--text-light)';
                         await apiFetch(AGENT_BASE + '/queue', {
                             method: 'POST',
-                            body: JSON.stringify({ name: feature, content: content })
+                            body: JSON.stringify({ name: moduleFile, content: content })
                         });
                         statusEl.textContent = 'Saved ✓';
                         statusEl.style.color = '#10b981';
                     } else {
-                        feature = $('qaFeatureSelect').value.trim();
-                        if (!feature) {
-                            errEl.textContent = 'Select a feature file first.';
+                        moduleFile = $('qaModuleSelect').value.trim();
+                        if (!moduleFile) {
+                            errEl.textContent = 'Select a module file first.';
                             errEl.style.display = 'block';
                             return;
                         }
@@ -10227,7 +10630,7 @@
                             if (statusEl) { statusEl.textContent = 'Saving edits…'; statusEl.style.color = 'var(--text-light)'; }
                             await apiFetch(AGENT_BASE + '/queue', {
                                 method: 'POST',
-                                body: JSON.stringify({ name: feature, content: currentContent })
+                                body: JSON.stringify({ name: moduleFile, content: currentContent })
                             });
                             state.loadedContent = currentContent;
                             if (statusEl) { statusEl.textContent = 'Saved ✓'; statusEl.style.color = '#10b981'; }
@@ -10237,11 +10640,11 @@
 
                     const body = await apiFetch(AGENT_BASE + '/run', {
                         method: 'POST',
-                        body: JSON.stringify({ feature: feature, auto_push: autoPush })
+                        body: JSON.stringify({ module: moduleFile, auto_push: autoPush })
                     });
                     const sessionId = body && (body.session_id || body.sessionId);
                     if (!sessionId) throw new Error('No session id returned');
-                    attachLiveRun(sessionId, feature, 0);
+                    attachLiveRun(sessionId, moduleFile, 0);
                 } catch (e) {
                     errEl.textContent = 'Run failed: ' + (e.message || 'unknown');
                     errEl.style.display = 'block';
@@ -10250,9 +10653,30 @@
                 }
             }
 
-            function attachLiveRun(sessionId, feature, offset) {
+            async function runDirect(moduleFile) {
+                const autoPush = $('qaAutoPush').checked;
+                const errEl = $('qaRunError');
+                errEl.style.display = 'none';
+                $('qaRunBtn').disabled = true;
+                try {
+                    const body = await apiFetch(AGENT_BASE + '/run', {
+                        method: 'POST',
+                        body: JSON.stringify({ module: moduleFile, auto_push: autoPush })
+                    });
+                    const sessionId = body && (body.session_id || body.sessionId);
+                    if (!sessionId) throw new Error('No session id returned');
+                    attachLiveRun(sessionId, moduleFile, 0);
+                } catch (e) {
+                    errEl.textContent = 'Run failed: ' + (e.message || 'unknown');
+                    errEl.style.display = 'block';
+                } finally {
+                    $('qaRunBtn').disabled = false;
+                }
+            }
+
+            function attachLiveRun(sessionId, moduleFile, offset) {
                 state.activeSession = sessionId;
-                state.activeFeature = feature || '—';
+                state.activeModule = moduleFile || '—';
                 state.lastSeq = offset || 0;
                 state.retryCount = 0;
                 state.terminal = false;
@@ -10262,9 +10686,10 @@
                 $('qaLiveResult').textContent = '';
                 $('qaLiveCard').style.display = '';
                 $('qaLiveSession').textContent = sessionId;
-                $('qaLiveFeature').textContent = feature || '—';
+                $('qaLiveModule').textContent = moduleFile || '—';
                 $('qaLiveStatus').textContent = 'running…';
                 $('qaCancelBtn').disabled = false;
+                $('qaCancelBtn').style.display = '';
                 startElapsed();
                 subscribe();
             }
@@ -10336,9 +10761,11 @@
                 } else if (kind === 'done') {
                     state.terminal = true;
                     stopElapsed();
+                    STEPS.forEach(function (s) { setStep(s, 'done'); });
                     const status = payload.status || 'completed';
                     $('qaLiveStatus').textContent = status;
                     $('qaCancelBtn').disabled = true;
+                    $('qaCancelBtn').style.display = 'none';
                     const prUrl = payload.pr_url;
                     const parts = [];
                     if (prUrl) parts.push('PR: <a href="' + escapeHtml(prUrl) + '" target="_blank" style="color:var(--primary);">' + escapeHtml(prUrl) + '</a>');
@@ -10406,13 +10833,13 @@
                         wrap.innerHTML = '<div class="qa-history-empty">No runs yet.</div>';
                         return;
                     }
-                    let html = '<table class="qa-history-table"><thead><tr><th>Session</th><th>Feature</th><th>Started</th><th>Status</th><th>Logs</th><th>PR</th></tr></thead><tbody>';
+                    let html = '<table class="qa-history-table"><thead><tr><th>Session</th><th>Module</th><th>Started</th><th>Status</th><th>Logs</th><th>PR</th></tr></thead><tbody>';
                     items.forEach(function (s) {
                         const sid = s.session_id || s.id || '';
                         const status = (s.status || 'unknown').toLowerCase();
                         const pr = s.pr_url ? '<a href="' + escapeHtml(s.pr_url) + '" target="_blank" onclick="event.stopPropagation();" style="color:var(--primary);">link</a>' : '—';
-                        const feat = s.feature || '';
-                        const logs = '<a href="#" class="qa-history-logs" data-session="' + escapeHtml(sid) + '" data-feature="' + escapeHtml(feat) + '" onclick="event.stopPropagation();event.preventDefault();qaAgents.viewLogs(this.dataset.session,this.dataset.feature);" style="color:var(--primary);">view</a>';
+                        const feat = s.module || '';
+                        const logs = '<a href="#" class="qa-history-logs" data-session="' + escapeHtml(sid) + '" data-module="' + escapeHtml(feat) + '" onclick="event.stopPropagation();event.preventDefault();qaAgents.viewLogs(this.dataset.session,this.dataset.module);" style="color:var(--primary);">view</a>';
                         html += '<tr data-session="' + escapeHtml(sid) + '">'
                             + '<td class="qa-session-id">' + escapeHtml(sid) + '</td>'
                             + '<td>' + escapeHtml(feat || '—') + '</td>'
@@ -10450,7 +10877,7 @@
                 const body = $('qaSessionDetail');
                 const sections = [];
                 sections.push('<div class="qa-modal-section"><h4>Summary</h4><pre>' + escapeHtml(JSON.stringify({
-                    session_id: d.session_id, feature: d.feature, status: d.status,
+                    session_id: d.session_id, module: d.module, status: d.status,
                     started_at: d.started_at, ended_at: d.ended_at, pr_url: d.pr_url,
                 }, null, 2)) + '</pre></div>');
                 const steps = d.steps || {};
@@ -10462,9 +10889,9 @@
                 body.innerHTML = sections.join('');
             }
 
-            function viewLogs(sessionId, feature) {
+            function viewLogs(sessionId, moduleFile) {
                 if (!sessionId) return;
-                attachLiveRun(sessionId, feature || '—', 0);
+                attachLiveRun(sessionId, moduleFile || '—', 0);
                 const card = $('qaLiveCard');
                 if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -10479,17 +10906,17 @@
                 if (!state.initialised) {
                     state.initialised = true;
                     $('qaHealthRefresh').addEventListener('click', checkHealth);
-                    $('qaFeatureSelect').addEventListener('change', function (ev) { previewFeature(ev.target.value); });
+                    $('qaModuleSelect').addEventListener('change', function (ev) { previewModule(ev.target.value); });
                     window.addEventListener('beforeunload', closeStream);
                 }
                 checkHealth();
-                loadFeatureFiles();
+                loadModuleFiles();
                 loadHistory();
                 // Re-attach to any active run
                 try {
                     const body = await apiFetch(AGENT_BASE + '/run/active');
                     if (body && body.active && body.session_id) {
-                        attachLiveRun(body.session_id, body.feature || '', 0);
+                        attachLiveRun(body.session_id, body.module || '', 0);
                     }
                 } catch (e) { /* ignore — no active run or network down */ }
             }
@@ -10497,15 +10924,686 @@
             return {
                 init: init,
                 checkHealth: checkHealth,
-                loadFeatureFiles: loadFeatureFiles,
-                saveFeatureFile: saveFeatureFile,
+                loadModuleFiles: loadModuleFiles,
+                saveModuleFile: saveModuleFile,
                 switchMode: switchMode,
+                handleFileUpload: handleFileUpload,
+                fillFromTestRail: fillFromTestRail,
                 onSpecInput: onSpecInput,
                 run: run,
+                runDirect: runDirect,
                 cancel: cancel,
                 loadHistory: loadHistory,
                 viewLogs: viewLogs,
                 closeSessionModal: closeSessionModal,
+            };
+        })();
+
+        // ── TestRail Import module ─────────────────────────────────────────
+        window.qaImport = (function () {
+            const CUSTOMER_BASE = '/api/customer';
+            const AGENT_QUEUE = '/api/agents/test-authoring-agent/queue';
+            var _cases = [];
+            var _improved = {};   // idx -> {title, priority, preconditions, steps, expected_result}
+            var _queued = {};     // idx -> true once added to queue
+            var _aiIdx = null;    // index of case currently open in AI modal
+            var _initialised = false;
+
+            function $(id) { return document.getElementById(id); }
+
+            async function _fetch(path, opts) {
+                opts = opts || {};
+                opts.credentials = 'same-origin';
+                opts.headers = Object.assign({'Content-Type': 'application/json'}, opts.headers || {});
+                const res = await fetch(path, opts);
+                const text = await res.text();
+                let body = null;
+                try { body = text ? JSON.parse(text) : null; } catch (e) { body = {raw: text}; }
+                if (!res.ok) {
+                    const err = new Error((body && (body.error || body.detail)) || ('HTTP ' + res.status));
+                    err.status = res.status;
+                    throw err;
+                }
+                return body;
+            }
+
+            const LS_KEY = 'qaImport_selection';
+
+            function _saveSelection() {
+                try {
+                    localStorage.setItem(LS_KEY, JSON.stringify({
+                        project: $('qaImportProject').value,
+                        suite: $('qaImportSuite').value,
+                        section: $('qaImportSection').value,
+                    }));
+                } catch (e) {}
+            }
+
+            function _loadSelection() {
+                try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
+            }
+
+            async function init() {
+                if (_initialised) return;
+                try {
+                    const data = await _fetch(CUSTOMER_BASE + '/testrail/projects');
+                    const projects = (data && data.projects) || [];
+                    if (!projects.length) { var s = document.getElementById('qaTestrailSection'); if (s) s.style.display = 'none'; return; }
+                    const sel = $('qaImportProject');
+                    while (sel.options.length > 1) sel.remove(1);
+                    projects.forEach(function (p) {
+                        const o = document.createElement('option');
+                        o.value = p.id; o.textContent = p.name;
+                        sel.appendChild(o);
+                    });
+                    _initialised = true;
+                    // Restore saved project, then cascade-load suite + section
+                    const saved = _loadSelection();
+                    if (saved.project) {
+                        sel.value = saved.project;
+                        if (sel.value) await _restoreSuites(saved);
+                    }
+                } catch (e) {
+                    var sec = document.getElementById('qaTestrailSection');
+                    if (sec) sec.style.display = 'none';
+                }
+            }
+
+            async function _restoreSuites(saved) {
+                const pid = $('qaImportProject').value;
+                if (!pid) return;
+                try {
+                    const data = await _fetch(CUSTOMER_BASE + '/testrail/projects/' + pid + '/suites');
+                    ((data && data.suites) || []).forEach(function (s) {
+                        const o = document.createElement('option');
+                        o.value = s.id; o.textContent = s.name;
+                        $('qaImportSuite').appendChild(o);
+                    });
+                    if (saved.suite) {
+                        $('qaImportSuite').value = saved.suite;
+                        if ($('qaImportSuite').value) await _restoreSections(saved);
+                    }
+                } catch (e) {}
+            }
+
+            async function _restoreSections(saved) {
+                const pid = $('qaImportProject').value;
+                const sid = $('qaImportSuite').value;
+                if (!pid) return;
+                const url = CUSTOMER_BASE + '/testrail/projects/' + pid + '/sections' + (sid ? '?suite_id=' + sid : '');
+                try {
+                    const data = await _fetch(url);
+                    ((data && data.sections) || []).forEach(function (s) {
+                        const o = document.createElement('option');
+                        o.value = s.id; o.textContent = s.name;
+                        $('qaImportSection').appendChild(o);
+                    });
+                    if (saved.section) $('qaImportSection').value = saved.section;
+                } catch (e) {}
+            }
+
+            async function onProjectChange() {
+                const pid = $('qaImportProject').value;
+                $('qaImportSuite').innerHTML = '<option value="">— Suite (optional) —</option>';
+                $('qaImportSection').innerHTML = '<option value="">— Section (optional) —</option>';
+                $('qaImportResults').style.display = 'none';
+                var ctrl = $('qaImportControls');
+                if (ctrl) ctrl.style.display = 'none';
+                _saveSelection();
+                if (!pid) return;
+                try {
+                    const data = await _fetch(CUSTOMER_BASE + '/testrail/projects/' + pid + '/suites');
+                    ((data && data.suites) || []).forEach(function (s) {
+                        const o = document.createElement('option');
+                        o.value = s.id; o.textContent = s.name;
+                        $('qaImportSuite').appendChild(o);
+                    });
+                } catch (e) {}
+            }
+
+            async function onSuiteChange() {
+                const pid = $('qaImportProject').value;
+                const sid = $('qaImportSuite').value;
+                $('qaImportSection').innerHTML = '<option value="">— Section (optional) —</option>';
+                _saveSelection();
+                if (!pid) return;
+                const url = CUSTOMER_BASE + '/testrail/projects/' + pid + '/sections' + (sid ? '?suite_id=' + sid : '');
+                try {
+                    const data = await _fetch(url);
+                    ((data && data.sections) || []).forEach(function (s) {
+                        const o = document.createElement('option');
+                        o.value = s.id; o.textContent = s.name;
+                        $('qaImportSection').appendChild(o);
+                    });
+                } catch (e) {}
+            }
+
+            async function loadCases() {
+                const pid = $('qaImportProject').value;
+                if (!pid) { alert('Please select a project.'); return; }
+                const sid = $('qaImportSuite').value;
+                if (!sid) { alert('Please select a suite.'); return; }
+                let params = 'project_id=' + pid + '&suite_id=' + sid;
+                const secId = $('qaImportSection').value;
+                if (secId) params += '&section_id=' + secId;
+
+                const btn = $('qaImportLoadBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:7px;">' +
+                    '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:qa-spin 0.8s linear infinite;flex-shrink:0;">' +
+                    '<circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="2" stroke-dasharray="22" stroke-dashoffset="10" stroke-linecap="round"/>' +
+                    '</svg>Loading…</span>';
+
+                $('qaImportResults').style.display = '';
+                $('qaImportTable').innerHTML = '';
+                $('qaImportCount').innerHTML = '';
+                $('qaImportStatus').textContent = '';
+                _cases = [];
+                _improved = {};
+                _queued = {};
+
+                try {
+                    const data = await _fetch(CUSTOMER_BASE + '/testrail/unautomated-cases?' + params);
+                    const selectedPriorities = Array.from(
+                        document.querySelectorAll('.qa-import-priority:checked')
+                    ).map(function (el) { return el.value; });
+
+                    _cases = ((data && data.cases) || []).filter(function (c) {
+                        return !selectedPriorities.length || selectedPriorities.indexOf(c.Priority) !== -1;
+                    });
+
+                    const total = data.total_in_project || 0;
+                    $('qaImportCount').innerHTML =
+                        '<div class="qa-import-count-badge">' +
+                        '<span class="qa-import-count-pending">' + _cases.length + '</span>' +
+                        '<span style="font-size:14px;color:var(--text);">tests pending automation</span>' +
+                        (total ? '<span class="qa-import-count-total">out of ' + total + ' total in project</span>' : '') +
+                        '</div>';
+                    renderTable();
+                    var ctrl = $('qaImportControls');
+                    if (ctrl) ctrl.style.display = _cases.length ? '' : 'none';
+                    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:7px;">' +
+                        '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;">' +
+                        '<path d="M2 7l3.5 3.5L12 3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        '</svg>Loaded ' + _cases.length + ' test' + (_cases.length !== 1 ? 's' : '') + '</span>';
+                    setTimeout(function () {
+                        btn.innerHTML = '🔍 Load Pending Automation';
+                        btn.disabled = false;
+                    }, 3000);
+                } catch (e) {
+                    $('qaImportCount').innerHTML = '<span style="color:#ef4444;font-size:13px;">Error: ' + escapeHtml(e.message || 'unknown') + '</span>';
+                    $('qaImportTable').innerHTML = '';
+                    btn.innerHTML = '🔍 Load Pending Automation';
+                    btn.disabled = false;
+                }
+            }
+
+            function _caseData(idx) {
+                // Return improved version if accepted, otherwise raw
+                return _improved[idx] ? Object.assign({}, _cases[idx], _improved[idx]) : _cases[idx];
+            }
+
+            function renderTable() {
+                if (!_cases.length) {
+                    $('qaImportTable').innerHTML =
+                        '<p style="font-size:13px;color:var(--text-light);padding:8px 0;">No matching tests found.</p>';
+                    return;
+                }
+                $('qaImportTable').innerHTML = _cases.map(function (c, i) {
+                    const d = _caseData(i);
+                    const isImproved = !!_improved[i];
+                    const title = d.Title || c.Title || '';
+                    const priority = d.Priority || c.Priority || '';
+                    const preconditions = d.Preconditions || c.Preconditions || '';
+                    const steps = d.Steps || c.Steps || '';
+                    const expected = d.expected_result || c.expected_result || '';
+                    const section = d.section || c.section || '';
+                    const type = d.Type || c.Type || '';
+
+                    // Header — checkbox + ID + title (clicking header toggles collapse via global listener)
+                    const noStepsHere = !steps;
+                    const checkboxHtml = (_queued[i] || noStepsHere)
+                        ? '<span data-idx="' + i + '" style="flex-shrink:0;width:16px;margin-right:6px;"></span>'
+                        : '<input type="checkbox" class="qa-import-check" data-idx="' + i + '" ' +
+                          'style="flex-shrink:0;accent-color:var(--primary);margin-right:6px;" ' +
+                          'onclick="event.stopPropagation()">';
+                    let headerHtml = '<div class="req-tc-card-header">' +
+                        checkboxHtml +
+                        '<span class="req-tc-chevron" aria-hidden="true"></span>' +
+                        '<span class="req-tc-header-main">' +
+                        '<span class="tid" style="margin-right:6px;">' + escapeHtml(c.ID) + '</span>' +
+                        escapeHtml(title) +
+                        (isImproved ? ' <span style="font-size:11px;color:var(--primary);margin-left:6px;font-weight:400;">✨ AI improved</span>' : '') +
+                        '</span>' +
+                        '</div>';
+
+                    // Body — pills + sections
+                    const autoStatuses = c.automation_statuses || [];
+                    let body = [];
+                    let pills = [];
+                    if (priority) pills.push('<span class="req-tc-pill req-tc-pill-priority">' + escapeHtml(priority) + '</span>');
+                    if (type) pills.push('<span class="req-tc-pill req-tc-pill-type">' + escapeHtml(type) + '</span>');
+                    if (section) pills.push('<span class="req-tc-pill req-tc-pill-section">' + escapeHtml(section) + '</span>');
+                    autoStatuses.forEach(function (s) {
+                        pills.push('<span class="req-tc-pill" style="background:rgba(6,182,212,0.12);color:var(--primary);border:1px solid var(--primary);" title="Automation Status">' + escapeHtml(s.label) + ': ' + escapeHtml(s.value) + '</span>');
+                    });
+                    if (pills.length) body.push('<div class="req-tc-meta-group">' + pills.join('') + '</div>');
+                    if (preconditions) body.push('<div class="req-tc-row req-tc-section"><strong>Preconditions</strong><div class="req-tc-block">' + escapeHtml(preconditions) + '</div></div>');
+                    if (steps) body.push('<div class="req-tc-row req-tc-section"><strong>Steps</strong><div class="req-tc-steps-wrap">' + formatStepsHtml(steps) + '</div></div>');
+                    if (expected) body.push('<div class="req-tc-row req-tc-section"><strong>Expected result</strong><div class="req-tc-block">' + escapeHtml(expected) + '</div></div>');
+
+                    const noSteps = noStepsHere;
+                    if (noSteps) body.push(
+                        '<div style="margin:10px 0 2px 0;padding:8px 12px;border-radius:8px;' +
+                        'background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);' +
+                        'font-size:12px;color:#ef4444;display:flex;align-items:center;gap:8px;">' +
+                        '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;">' +
+                        '<circle cx="7" cy="7" r="6" stroke="#ef4444" stroke-width="1.5"/>' +
+                        '<path d="M7 4v3.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>' +
+                        '<circle cx="7" cy="10" r="0.75" fill="#ef4444"/></svg>' +
+                        'No steps in TestRail — add them manually or use <strong style="margin:0 2px;">✨ Update Steps with AI</strong> before queuing.' +
+                        '</div>'
+                    );
+
+                    let bodyHtml = '<div class="req-tc-card-body">' + body.join('') + '</div>';
+                    if (_queued[i]) {
+                        bodyHtml += '<div class="req-tc-card-actions">' +
+                            '<span style="font-size:12px;color:var(--primary);font-weight:600;display:flex;align-items:center;gap:6px;">' +
+                            '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;"><path d="M2 7l3.5 3.5L12 3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+                            'Added in Queue/Drafts</span></div>';
+                    } else {
+                        var disabledAttr = noSteps ? ' disabled title="Add steps first using ✨ Update Steps with AI"' : '';
+                        var disabledStyle = noSteps ? 'opacity:0.45;cursor:not-allowed;' : '';
+                        bodyHtml += '<div class="req-tc-card-actions" style="gap:8px;flex-wrap:nowrap;">' +
+                            '<button type="button" class="req-update-with-ai-btn" onclick="qaImport.updateWithAI(' + i + ')">✨ Update Steps with AI</button>' +
+                            '<button type="button" class="qa-import-run-btn req-modify-push-btn" style="' + disabledStyle + '"' + disabledAttr + ' onclick="qaImport.useThis(' + i + ')">✏️ Automate now</button>' +
+                            '<button type="button" class="req-modify-push-btn" style="' + disabledStyle + '"' + disabledAttr + ' onclick="qaImport.addSingleToQueue(' + i + ')">📂 Add in Queue/Drafts</button>' +
+                            '</div>';
+                    }
+
+                    const cardStyle = noSteps ? ' style="border-color:rgba(239,68,68,0.5);"' : '';
+                    return '<div class="req-tc-card collapsed"' + cardStyle + '><div class="req-tc-card-inner">' + headerHtml + bodyHtml + '</div></div>';
+                }).join('');
+            }
+
+            function expandAll() {
+                $('qaImportTable').querySelectorAll('.req-tc-card').forEach(function (el) { el.classList.remove('collapsed'); });
+            }
+
+            function collapseAll() {
+                $('qaImportTable').querySelectorAll('.req-tc-card').forEach(function (el) { el.classList.add('collapsed'); });
+            }
+
+            function toggleSelectAll(link) {
+                const all = $('qaImportTable').querySelectorAll('.qa-import-check');
+                const checked = $('qaImportTable').querySelectorAll('.qa-import-check:checked');
+                const selectAll = checked.length < all.length;
+                all.forEach(function (el) { el.checked = selectAll; });
+                if (link) link.textContent = selectAll ? 'Select none' : 'Select all';
+            }
+
+            function toggleAll(checked) {
+                $('qaImportTable').querySelectorAll('.qa-import-check').forEach(function (el) { el.checked = checked; });
+            }
+
+            async function updateWithAI(idx) {
+                if (_queued[idx]) return;
+                const actions = _cardActionsDiv(idx);
+                const aiBtn = actions && actions.querySelector('.req-update-with-ai-btn');
+                const addBtn = actions && actions.querySelector('.req-modify-push-btn');
+                if (aiBtn) { aiBtn.disabled = true; aiBtn.textContent = 'Getting AI suggestion…'; }
+                if (addBtn) addBtn.disabled = true;
+
+                _aiIdx = idx;
+                const modal = $('qaImportAiModal');
+                const loading = $('qaImportAiLoading');
+                const form = $('qaImportAiForm');
+                const acceptBtn = $('qaImportAiAcceptBtn');
+                const queueBtn = $('qaImportAiQueueBtn');
+
+                modal.classList.add('visible');
+                loading.style.display = '';
+                form.style.display = 'none';
+                acceptBtn.style.display = 'none';
+                queueBtn.style.display = 'none';
+
+                const c = _caseData(idx);
+                try {
+                    const data = await _fetch(CUSTOMER_BASE + '/testrail/improve-for-automation', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            testrail_id: c.ID || '',
+                            title: c.Title || '',
+                            preconditions: c.Preconditions || '',
+                            steps: c.Steps || '',
+                            expected_result: c.expected_result || '',
+                        })
+                    });
+                    loading.style.display = 'none';
+                    if (data && data.success) {
+                        $('qaImportAiTitle').value = data.title || '';
+                        $('qaImportAiPriority').value = (data.priority || 'P2').toUpperCase();
+                        $('qaImportAiPreconditions').value = data.preconditions || '';
+                        $('qaImportAiSteps').value = data.steps || '';
+                        $('qaImportAiExpected').value = data.expected_result || '';
+                        form.style.display = '';
+                        acceptBtn.style.display = '';
+                        queueBtn.style.display = '';
+                    } else {
+                        if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = '✨ Update Steps with AI'; }
+                        if (addBtn) addBtn.disabled = false;
+                        closeAiModal();
+                        if (typeof showToast === 'function') showToast((data && data.error) || 'AI suggestion failed', 'warning');
+                    }
+                } catch (e) {
+                    if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = '✨ Update Steps with AI'; }
+                    if (addBtn) addBtn.disabled = false;
+                    closeAiModal();
+                    if (typeof showToast === 'function') showToast('Request failed: ' + (e.message || 'Network error'), 'warning');
+                }
+            }
+
+            function closeAiModal() {
+                $('qaImportAiModal').classList.remove('visible');
+                _aiIdx = null;
+            }
+
+            function _readAiForm() {
+                return {
+                    Title: $('qaImportAiTitle').value,
+                    Priority: $('qaImportAiPriority').value,
+                    Preconditions: $('qaImportAiPreconditions').value,
+                    Steps: $('qaImportAiSteps').value,
+                    expected_result: $('qaImportAiExpected').value,
+                };
+            }
+
+            function acceptAi() {
+                if (_aiIdx === null) return;
+                const idx = _aiIdx;
+                _improved[idx] = _readAiForm();
+                closeAiModal();
+                renderTable();
+                // Re-enable both buttons after renderTable rebuilds the card
+                // (renderTable replaces innerHTML so buttons are fresh — no re-enable needed)
+            }
+
+            async function acceptAndUpdateTestrail() {
+                if (_aiIdx === null) return;
+                const idx = _aiIdx;
+                const form = _readAiForm();
+                _improved[idx] = form;
+                const rawCase = _cases[idx] || {};
+                const testrailId = rawCase.ID || '';
+
+                if (!testrailId) {
+                    if (typeof showToast === 'function') showToast('No TestRail ID for this case.', 'warning');
+                    return;
+                }
+
+                const queueBtn = $('qaImportAiQueueBtn');
+                queueBtn.disabled = true;
+                queueBtn.textContent = 'Updating…';
+
+                const payload = {
+                    testrail_id: testrailId,
+                    title: (form.Title || '').trim(),
+                    steps: (form.Steps || '').trim() || undefined,
+                    preconditions: (form.Preconditions || '').trim() || undefined,
+                    expected_result: (form.expected_result || '').trim() || undefined,
+                    priority: form.Priority || undefined,
+                };
+
+                try {
+                    const res = await fetch('/api/requirement-analysis/update-case', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    const data = await res.json();
+                    queueBtn.disabled = false;
+                    queueBtn.textContent = 'Accept & Update in TestRail';
+                    closeAiModal();
+                    renderTable();
+                    if (data && data.success) {
+                        if (typeof showToast === 'function') showToast('Updated in TestRail: ' + (data.testrail_id || testrailId), 'success');
+                        _markQueued(idx);
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && data.error) || 'Update failed — check TestRail settings.', 'warning');
+                    }
+                } catch (e) {
+                    queueBtn.disabled = false;
+                    queueBtn.textContent = 'Accept & Update in TestRail';
+                    closeAiModal();
+                    if (typeof showToast === 'function') showToast('Request failed: ' + (e.message || 'Network error'), 'warning');
+                }
+            }
+
+            function _buildContent(c) {
+                const suiteEl = $('qaImportSuite');
+                const suiteText = (suiteEl && suiteEl.selectedIndex > 0)
+                    ? (suiteEl.options[suiteEl.selectedIndex].text || '')
+                    : '';
+                const suiteName = suiteText
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '')
+                    .substring(0, 48) || 'module';
+                const caseSlug = (c.ID || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+                const moduleName = suiteName + (caseSlug ? '_' + caseSlug : '');
+                const statuses = c.automation_statuses || [];
+                const apiStatus = statuses.find(function (s) { return s.label === 'API' && (s.value || '').toLowerCase().indexOf('pending') !== -1; });
+                const webStatus = statuses.find(function (s) { return s.label === 'Web' && (s.value || '').toLowerCase().indexOf('pending') !== -1; });
+                const platformType = apiStatus ? 'api' : (webStatus ? 'web' : 'web');
+                const lines = ['Module: ' + suiteName, 'Type: ' + platformType, '',
+                    '# TestRail: ' + (c.ID || '') + ' — ' + (c.Title || ''), ''];
+                if (c.Preconditions) { lines.push('Preconditions:', c.Preconditions, ''); }
+                lines.push('Steps:');
+                lines.push(c.Steps || '(no steps recorded in TestRail)');
+                if (c.expected_result) { lines.push('', 'Expected Result:', c.expected_result); }
+                return { moduleName, content: lines.join('\n') };
+            }
+
+            function _hasSteps(idx) {
+                const c = _caseData(idx);
+                const steps = (c.Steps || '').trim();
+                return steps.length > 0;
+            }
+
+            function _cardActionsDiv(idx) {
+                const card = _cardByIdx(idx);
+                return card ? card.querySelector('.req-tc-card-actions') : null;
+            }
+
+            function _markQueued(idx) {
+                _queued[idx] = true;
+                const cb = $('qaImportTable').querySelector('input.qa-import-check[data-idx="' + idx + '"]');
+                if (cb) {
+                    cb.checked = false;
+                    cb.style.visibility = 'hidden';
+                    cb.disabled = true;
+                }
+                const actions = _cardActionsDiv(idx);
+                if (!actions) return;
+                actions.innerHTML =
+                    '<span style="font-size:12px;color:var(--primary);font-weight:600;display:flex;align-items:center;gap:6px;">' +
+                    '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;">' +
+                    '<path d="M2 7l3.5 3.5L12 3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                    '</svg>Added in Queue/Drafts</span>';
+            }
+
+            function _cardByIdx(idx) {
+                // Works whether the card has a real checkbox or the no-steps spacer span
+                const cards = $('qaImportTable').querySelectorAll('.req-tc-card');
+                for (let n = 0; n < cards.length; n++) {
+                    const input = cards[n].querySelector('[data-idx="' + idx + '"]');
+                    if (input) return cards[n];
+                }
+                return null;
+            }
+
+            function _showCardError(idx, msg) {
+                const card = _cardByIdx(idx);
+                if (card) {
+                    card.classList.remove('collapsed');
+                    card.style.borderColor = 'rgba(239,68,68,0.8)';
+                    setTimeout(function () { card.style.borderColor = 'rgba(239,68,68,0.5)'; }, 1200);
+                    // Show inline error below the action buttons
+                    const actions = card.querySelector('.req-tc-card-actions');
+                    if (actions) {
+                        let errEl = actions.querySelector('.qa-import-card-err');
+                        if (!errEl) {
+                            errEl = document.createElement('span');
+                            errEl.className = 'qa-import-card-err';
+                            errEl.style.cssText = 'font-size:12px;color:#ef4444;display:flex;align-items:center;gap:6px;';
+                            actions.appendChild(errEl);
+                        }
+                        errEl.innerHTML =
+                            '<svg width="13" height="13" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;">' +
+                            '<circle cx="7" cy="7" r="6" stroke="#ef4444" stroke-width="1.5"/>' +
+                            '<path d="M7 4v3.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>' +
+                            '<circle cx="7" cy="10" r="0.75" fill="#ef4444"/></svg>' +
+                            escapeHtml(msg);
+                    }
+                }
+                $('qaImportStatus').innerHTML = '<span style="color:#ef4444;">' + escapeHtml(msg) + '</span>';
+            }
+
+            async function addSingleToQueue(idx) {
+                if (_queued[idx]) return;
+                if (!_hasSteps(idx)) {
+                    _showCardError(idx, (_cases[idx] && _cases[idx].ID ? _cases[idx].ID + ': ' : '') +
+                        'No steps found — add steps manually or use ✨ Update with AI first.');
+                    return;
+                }
+                const actions = _cardActionsDiv(idx);
+                const addBtn = actions && actions.querySelector('.req-modify-push-btn');
+                if (addBtn) { addBtn.disabled = true; addBtn.textContent = 'Adding…'; }
+
+                const c = _caseData(idx);
+                const { moduleName, content } = _buildContent(c);
+                try {
+                    await _fetch(AGENT_QUEUE, { method: 'POST', body: JSON.stringify({ name: moduleName, content }) });
+                    _markQueued(idx);
+                    $('qaImportStatus').textContent = (c.ID || '') + ' saved as draft.';
+                    if (window.qaAgents) {
+                        window.qaAgents.switchMode('existing', moduleName);
+                    }
+                } catch (e) {
+                    if (addBtn) { addBtn.disabled = false; addBtn.textContent = '→ Save draft'; }
+                    $('qaImportStatus').textContent = 'Failed: ' + (e.message || 'unknown');
+                }
+            }
+
+            async function addToQueue() {
+                const selected = Array.from($('qaImportTable').querySelectorAll('.qa-import-check:checked'))
+                    .map(function (el) { return parseInt(el.getAttribute('data-idx')); })
+                    .filter(function (i) { return !isNaN(i) && _cases[i]; });
+                if (!selected.length) { alert('Select at least one test case.'); return; }
+
+                // Split into actionable and blocked (no steps)
+                const noStepsIds = selected.filter(function (idx) { return !_hasSteps(idx); });
+                const actionable = selected.filter(function (idx) { return _hasSteps(idx); });
+
+                if (noStepsIds.length) {
+                    // Expand and flash each no-steps card
+                    noStepsIds.forEach(function (idx) {
+                        const cb = $('qaImportTable').querySelector('.qa-import-check[data-idx="' + idx + '"]');
+                        const card = cb ? cb.closest('.req-tc-card') : null;
+                        if (card) {
+                            card.classList.remove('collapsed');
+                            card.style.borderColor = 'rgba(239,68,68,0.8)';
+                            setTimeout(function () { card.style.borderColor = 'rgba(239,68,68,0.5)'; }, 1200);
+                        }
+                    });
+                    const ids = noStepsIds.map(function (idx) { return (_cases[idx] && _cases[idx].ID) || ('#' + idx); }).join(', ');
+                    if (!actionable.length) {
+                        $('qaImportStatus').innerHTML =
+                            '<span style="color:#ef4444;">Cannot queue — no steps found for: ' + escapeHtml(ids) +
+                            '. Add steps manually or use ✨ Update with AI first.</span>';
+                        return;
+                    }
+                    // Partial — warn but continue with the rest
+                    $('qaImportStatus').innerHTML =
+                        '<span style="color:#ef4444;">Skipped (no steps): ' + escapeHtml(ids) + '</span>';
+                }
+
+                $('qaImportAddBtn').disabled = true;
+                if (!noStepsIds.length) $('qaImportStatus').textContent = 'Creating ' + actionable.length + ' module file(s)…';
+
+                let ok = 0, fail = 0;
+                for (let i = 0; i < actionable.length; i++) {
+                    const idx = actionable[i];
+                    const c = _caseData(idx);
+                    const { moduleName, content } = _buildContent(c);
+                    try {
+                        await _fetch(AGENT_QUEUE, { method: 'POST', body: JSON.stringify({ name: moduleName, content }) });
+                        ok++;
+                        _markQueued(idx);
+                    } catch (e) { fail++; }
+                }
+
+                $('qaImportAddBtn').disabled = false;
+                if (ok > 0 && window.qaAgents) window.qaAgents.loadModuleFiles();
+                const savedDraftsLink = '<a href="#" style="color:var(--primary);font-weight:600;text-decoration:none;" onclick="qaAgents.switchMode(\'existing\');return false;">Saved Drafts →</a>';
+                if (noStepsIds.length) {
+                    $('qaImportStatus').innerHTML =
+                        '<span style="color:#10b981;font-weight:600;">✓ ' + ok + ' draft' + (ok !== 1 ? 's' : '') + ' added.</span>' +
+                        ' Go to ' + savedDraftsLink + ' to run them.' +
+                        ' &nbsp;|&nbsp; <span style="color:#ef4444;">Skipped ' + noStepsIds.length +
+                        ' with no steps — use ✨ Update Steps with AI first.</span>';
+                } else {
+                    $('qaImportStatus').innerHTML =
+                        '<span style="color:#10b981;font-weight:600;">✓ ' + ok + ' draft' + (ok !== 1 ? 's' : '') + ' added.</span>' +
+                        ' Go to ' + savedDraftsLink + ' to run them.' +
+                        (fail ? ' <span style="color:#ef4444;">' + fail + ' failed.</span>' : '');
+                }
+            }
+
+            function useThis(idx) {
+                var c = _caseData(idx);
+                var suiteEl = $('qaImportSuite');
+                var suiteName = (suiteEl && suiteEl.selectedIndex > 0)
+                    ? (suiteEl.options[suiteEl.selectedIndex].text || '')
+                    : (c.Title || '');
+                var steps = (c.Steps || '').trim();
+                var statuses = c.automation_statuses || [];
+                var apiStatus = statuses.find(function (s) { return s.label === 'API'; });
+                var type = apiStatus ? 'api' : 'web';
+                if (window.qaAgents) qaAgents.fillFromTestRail(suiteName, type, steps);
+            }
+
+            async function runDirectly(idx) {
+                if (_queued[idx]) return;
+                if (!_hasSteps(idx)) {
+                    _showCardError(idx, 'No steps — use ✨ Update with AI first.');
+                    return;
+                }
+                const actions = _cardActionsDiv(idx);
+                const runBtn = actions && actions.querySelector('.qa-import-run-btn');
+                if (runBtn) { runBtn.disabled = true; runBtn.textContent = 'Preparing…'; }
+                const c = _caseData(idx);
+                const { moduleName, content } = _buildContent(c);
+                try {
+                    await _fetch(AGENT_QUEUE, { method: 'POST', body: JSON.stringify({ name: moduleName, content }) });
+                    _markQueued(idx);
+                    if (window.qaAgents) {
+                        await window.qaAgents.loadModuleFiles(moduleName);
+                        qaAgents.switchMode('existing');
+                        qaAgents.runDirect(moduleName);
+                    }
+                } catch (e) {
+                    if (runBtn) { runBtn.disabled = false; runBtn.textContent = '▶ Run directly'; }
+                    $('qaImportStatus').textContent = 'Failed: ' + (e.message || 'unknown');
+                }
+            }
+
+            return {
+                init, onProjectChange, onSuiteChange, _saveSelection,
+                loadCases, renderTable, toggleAll, toggleSelectAll, expandAll, collapseAll,
+                updateWithAI, closeAiModal, acceptAi, acceptAndUpdateTestrail,
+                addSingleToQueue, addToQueue, useThis, runDirectly,
             };
         })();
     </script>

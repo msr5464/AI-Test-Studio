@@ -733,6 +733,179 @@ def testrail_add_section(project_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@customer_bp.route('/testrail/unautomated-cases', methods=['GET'])
+def testrail_unautomated_cases():
+    """Return TestRail cases with Execution Mode == 'Pending Automation'."""
+    project_id = request.args.get('project_id', type=int)
+    suite_id = request.args.get('suite_id', type=int)
+    section_id = request.args.get('section_id', type=int)
+
+    if not project_id:
+        return jsonify({'success': False, 'error': 'project_id required'}), 400
+
+    conn = _get_testrail_connector()
+    if not conn:
+        return jsonify({'success': False, 'error': 'TestRail not configured'}), 503
+
+    try:
+        raw_cases = conn.get_test_cases(project_id, suite_id=suite_id)
+        if not raw_cases:
+            return jsonify({'success': True, 'cases': [], 'total_in_project': 0, 'pending_count': 0})
+
+        custom_field_options = conn._build_custom_field_option_maps()
+
+        # --- Dynamic field discovery ---
+        # Field system_names differ between TestRail instances (custom_automation_type vs
+        # custom_execution_mode, etc.), so we scan ALL option maps by label value instead of
+        # assuming any particular field name.
+        #
+        # execution_mode field: the field whose options include "Automatable" AND "Manual"
+        #   (the "Manual" co-presence distinguishes it from pure automation-status fields)
+        # pending_automation fields: any field whose options include "Pending Automation"
+        exec_mode_field = None   # system_name
+        exec_mode_value = None   # numeric ID for "Automatable"
+        pending_fields  = {}     # { system_name: numeric_id_for_"Pending Automation" }
+
+        for field_name, option_map in custom_field_options.items():
+            labels_lower = {v.strip().lower() for v in option_map.values()}
+            for val_id, label in option_map.items():
+                norm = label.strip().lower()
+                if norm == 'automatable' and exec_mode_field is None:
+                    # Prefer a field that also has "manual" (typical execution-mode field)
+                    if 'manual' in labels_lower or exec_mode_field is None:
+                        exec_mode_field = field_name
+                        exec_mode_value = val_id
+                if norm == 'pending automation':
+                    pending_fields[field_name] = val_id
+
+        def _field_contains(case: dict, field_name: str, target_id) -> bool:
+            """Handle both scalar (int) and multi-select (list) custom field values."""
+            val = case.get(field_name)
+            if val is None or val == '' or val == []:
+                return False
+            if isinstance(val, list):
+                return target_id in val
+            return val == target_id
+
+        def _matches(case: dict) -> bool:
+            # execution_mode == 'Automatable' (scalar field; None/unset defaults to Automatable)
+            if exec_mode_field is not None:
+                raw = case.get(exec_mode_field)
+                is_automatable = (raw == exec_mode_value) or (raw in (None, 0, ''))
+                if not is_automatable:
+                    return False
+            # web/api/android/ios automation_status contains 'Pending Automation'
+            if not pending_fields:
+                return False
+            return any(_field_contains(case, f, vid) for f, vid in pending_fields.items())
+
+        filtered_raw = [c for c in raw_cases if _matches(c)]
+
+        df_all = conn.transform_to_csv_format(
+            raw_cases,
+            case_type_map=None,
+            custom_field_options=custom_field_options,
+            section_id_to_label={},
+        )
+        pending_df = conn.transform_to_csv_format(
+            filtered_raw,
+            case_type_map=None,
+            custom_field_options=custom_field_options,
+            section_id_to_label={},
+        ).copy() if filtered_raw else df_all.iloc[0:0].copy()
+
+        if section_id:
+            ids_in_section = {f"C{c.get('id')}" for c in raw_cases if c.get('section_id') == section_id}
+            pending_df = pending_df[pending_df['ID'].isin(ids_in_section)]
+
+        # Build a friendly label map for pending_fields: field_system_name -> human label
+        # e.g. custom_web_automation_status_m -> "Web Automation", custom_api_automation_status_m -> "API Automation"
+        _field_label_map = {
+            'custom_web_automation_status_m': 'Web',
+            'custom_api_automation_status_m': 'API',
+            'custom_android_automation_status_m': 'Android',
+            'custom_ios_automation_status_m': 'iOS',
+        }
+
+        # Build a lookup: raw case id -> dict of {display_label: resolved_value}
+        # We resolve by checking the raw case field value against the option map
+        raw_by_id = {c.get('id'): c for c in filtered_raw}
+
+        pending_df_copy = pending_df[[
+            'ID', 'Title', 'Priority', 'Type', 'Platform',
+            'Steps', 'Preconditions', 'Expected Result', 'Section Hierarchy', 'Suite',
+        ]].rename(columns={
+            'Expected Result': 'expected_result',
+            'Section Hierarchy': 'section',
+        }).copy()
+
+        def _automation_statuses(case_id_str):
+            """Return list of {label, value} for all pending_fields that have a value for this case."""
+            numeric_id = int(case_id_str.lstrip('C')) if case_id_str and case_id_str.lstrip('C').isdigit() else None
+            raw = raw_by_id.get(numeric_id, {}) if numeric_id else {}
+            result = []
+            for field_name, _pending_id in pending_fields.items():
+                raw_val = raw.get(field_name)
+                if raw_val is None or raw_val == '' or raw_val == []:
+                    continue
+                option_map = custom_field_options.get(field_name, {})
+                # Resolve label for each value (multi-select = list)
+                vals = raw_val if isinstance(raw_val, list) else [raw_val]
+                for v in vals:
+                    resolved = option_map.get(v) or option_map.get(str(v)) or str(v)
+                    display_key = _field_label_map.get(field_name) or field_name.replace('custom_', '').replace('_m', '').replace('_', ' ').title()
+                    result.append({'label': display_key, 'value': resolved})
+            return result
+
+        cases = pending_df_copy.to_dict(orient='records')
+        for c in cases:
+            c['automation_statuses'] = _automation_statuses(c.get('ID', ''))
+
+        return jsonify({
+            'success': True,
+            'cases': cases,
+            'total_in_project': len(df_all),
+            'pending_count': len(cases),
+            '_debug': {
+                'exec_mode_field': exec_mode_field,
+                'exec_mode_value': exec_mode_value,
+                'pending_fields': pending_fields,
+                'all_custom_field_keys': list(custom_field_options.keys()),
+            },
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@customer_bp.route('/testrail/improve-for-automation', methods=['POST'])
+def testrail_improve_for_automation():
+    """Use LLM to rewrite a TestRail test case to be clearer for automation."""
+    data = request.get_json() or {}
+    testrail_id = data.get('testrail_id', '')
+    title = data.get('title', '')
+    preconditions = data.get('preconditions', '')
+    steps = data.get('steps', '')
+    expected_result = data.get('expected_result', '')
+
+    if not testrail_id and not title:
+        return jsonify({'success': False, 'error': 'testrail_id or title required'}), 400
+
+    try:
+        svc = RequirementAnalysisService()
+        result, error = svc.improve_for_automation(
+            testrail_id=testrail_id,
+            title=title,
+            preconditions=preconditions,
+            steps=steps,
+            expected_result=expected_result,
+        )
+        if error:
+            return jsonify({'success': False, 'error': error}), 500
+        return jsonify({'success': True, **result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @customer_bp.route('/query', methods=['POST'])
 def query():
     """Query the RAG system."""
