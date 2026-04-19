@@ -43,6 +43,9 @@ echo ""
 echo "Activating virtual environment..."
 source venv/bin/activate
 
+# Ensure stdout encoding is set to avoid pip crash on packages with Python 2 compat files
+export PYTHONIOENCODING=utf-8
+
 # Upgrade pip
 echo "Upgrading pip..."
 python -m pip install --upgrade pip --quiet
