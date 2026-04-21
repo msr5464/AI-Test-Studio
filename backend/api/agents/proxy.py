@@ -203,6 +203,16 @@ def run_active():
     return _forward_json("GET", "/agents/test-authoring-agent/run/active")
 
 
+@agents_bp.route("/test-authoring-agent/run/queue", methods=["GET"])
+def pending_queue_list():
+    return _forward_json("GET", "/agents/test-authoring-agent/run/queue")
+
+
+@agents_bp.route("/test-authoring-agent/run/queue/<int:index>", methods=["DELETE"])
+def pending_queue_remove(index: int):
+    return _forward_json("DELETE", f"/agents/test-authoring-agent/run/queue/{index}")
+
+
 @agents_bp.route("/test-authoring-agent/run/<session_id>/cancel", methods=["POST"])
 def run_cancel(session_id: str):
     return _forward_json("POST", f"/agents/test-authoring-agent/run/{session_id}/cancel")

@@ -6127,15 +6127,13 @@
         }
 
         @keyframes qa-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.6); }
+            50%       { box-shadow: 0 0 0 6px rgba(6, 182, 212, 0); }
+        }
 
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.6);
-            }
-
-            50% {
-                box-shadow: 0 0 0 6px rgba(6, 182, 212, 0);
-            }
+        @keyframes qa-spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
         }
 
         .qa-console {
@@ -6172,24 +6170,213 @@
             font-weight: 600;
         }
 
-        .qa-run-meta {
+        /* ── Live run card redesign ── */
+        #qaLiveCard {
+            border-left: 3px solid var(--primary);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #qaLiveCard.terminal-completed  { border-left-color: #10b981; }
+        #qaLiveCard.terminal-failed     { border-left-color: #ef4444; }
+        #qaLiveCard.terminal-cancelled  { border-left-color: #94a3b8; }
+
+        .qa-live-header {
             display: flex;
-            gap: 16px;
             align-items: center;
-            font-size: 13px;
+            gap: 10px;
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .qa-live-header-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(6,182,212,0.18) 0%, rgba(8,145,178,0.18) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .qa-live-header-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.2px;
+        }
+
+        .qa-live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            background: rgba(6,182,212,0.12);
+            color: var(--primary);
+            border: 1px solid rgba(6,182,212,0.25);
+            transition: all 0.3s;
+        }
+
+        .qa-live-badge.badge-completed {
+            background: rgba(16,185,129,0.12);
+            color: #10b981;
+            border-color: rgba(16,185,129,0.3);
+        }
+
+        .qa-live-badge.badge-failed {
+            background: rgba(239,68,68,0.12);
+            color: #ef4444;
+            border-color: rgba(239,68,68,0.3);
+        }
+
+        .qa-live-badge.badge-cancelled {
+            background: rgba(148,163,184,0.12);
+            color: #94a3b8;
+            border-color: rgba(148,163,184,0.3);
+        }
+
+        .qa-live-badge.badge-running::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: qa-blink 1.2s ease-in-out infinite;
+        }
+
+        @keyframes qa-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        .qa-live-elapsed {
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
             color: var(--text-light);
-            margin-bottom: 12px;
+            margin-left: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        .qa-live-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .qa-live-meta-item {
+            padding: 10px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .qa-live-meta-item:first-child {
+            border-right: 1px solid var(--border);
+        }
+
+        .qa-live-meta-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-light);
+        }
+
+        .qa-live-meta-value {
+            font-size: 12px;
+            color: var(--text);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            word-break: break-all;
+        }
+
+        .qa-live-steps-wrap {
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .qa-live-console-wrap {
+            padding: 0 22px 16px 22px;
+        }
+
+        .qa-live-footer {
+            padding: 12px 22px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
-        .qa-run-meta .qa-run-session {
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            color: var(--text);
+        #qaLiveResult {
+            display: contents; /* let children participate in flex gap directly */
         }
 
-        .qa-run-meta .qa-run-elapsed {
-            margin-left: auto;
+        .qa-result-pr-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: rgba(6,182,212,0.1);
+            border: 1px solid rgba(6,182,212,0.3);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
         }
+
+        .qa-result-pr-btn:hover {
+            background: rgba(6,182,212,0.18);
+            transform: translateY(-1px);
+        }
+
+        .qa-result-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .qa-result-badge.approved {
+            background: rgba(16,185,129,0.12);
+            color: #10b981;
+        }
+
+        .qa-result-badge.skipped {
+            background: rgba(245,158,11,0.12);
+            color: #f59e0b;
+        }
+
+        .qa-result-badge.needs-review {
+            background: rgba(239,68,68,0.12);
+            color: #ef4444;
+        }
+
+        .qa-run-meta {
+            display: none; /* replaced by qa-live-meta */
+        }
+
+        #qaHistoryWrap {
+            max-height: 302px; /* ~7 rows at 38px + 36px header */
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        #qaHistoryWrap::-webkit-scrollbar { width: 5px; }
+        #qaHistoryWrap::-webkit-scrollbar-track { background: transparent; }
+        #qaHistoryWrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        #qaHistoryWrap::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
 
         .qa-history-table {
             width: 100%;
@@ -6210,6 +6397,10 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 1;
         }
 
         .qa-history-table tr {
@@ -6255,6 +6446,92 @@
             background: rgba(6, 182, 212, 0.15);
             color: var(--primary);
         }
+
+        .qa-status-pill.queued {
+            background: rgba(245, 158, 11, 0.12);
+            color: #f59e0b;
+        }
+
+        .qa-queue-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .qa-queue-item:last-child { border-bottom: none; }
+
+        .qa-queue-pos {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(6,182,212,0.12);
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .qa-queue-module {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .qa-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+            line-height: 1.5;
+            white-space: nowrap;
+            transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+        }
+
+        .qa-action-btn-stop {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #ef4444;
+        }
+        .qa-action-btn-stop:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.6);
+        }
+
+        .qa-action-btn-cancel {
+            background: rgba(148, 163, 184, 0.1);
+            border-color: rgba(148, 163, 184, 0.35);
+            color: var(--text-light);
+        }
+        .qa-action-btn-cancel:hover {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #ef4444;
+        }
+
+        /* legacy — queue panel remove button (small ✕ icon only) */
+        .qa-queue-remove {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1;
+            transition: color 0.15s, background 0.15s;
+        }
+        .qa-queue-remove:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
 
         .qa-history-empty {
             padding: 24px;
@@ -6740,35 +7017,68 @@
                             <label class="analyze-option">
                                 <input type="checkbox" id="qaAutoPush" checked /> Auto-push PR on success
                             </label>
-                            <button type="button" class="analyze-btn" id="qaRunBtn" onclick="qaAgents.run()">🚀 Run
-                                Agent</button>
+                            <button type="button" class="analyze-btn" id="qaRunBtn" onclick="qaAgents.run()">
+                                <span id="qaRunBtnLabel">🚀 Run Agent</span>
+                                <span id="qaRunBtnSpinner" style="display:none;vertical-align:middle;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:qa-spin 0.8s linear infinite;vertical-align:middle;">
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                    </svg>
+                                    Starting…
+                                </span>
+                            </button>
                         </div>
                         <p id="qaRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
                     </div>
 
                     <!-- Live run — appears when a run starts -->
                     <div class="qa-card" id="qaLiveCard" style="display:none;margin-top:18px;">
-                        <h3>📡 Live run <span class="qa-card-sub" id="qaLiveStatus">running…</span></h3>
-                        <div class="qa-run-meta">
-                            <span>Session: <span class="qa-run-session" id="qaLiveSession">—</span></span>
-                            <span>Module: <span id="qaLiveModule">—</span></span>
-                            <span class="qa-run-elapsed" id="qaLiveElapsed">00:00</span>
+                        <!-- Header row -->
+                        <div class="qa-live-header">
+                            <div class="qa-live-header-icon">📡</div>
+                            <span class="qa-live-header-title">Live Run</span>
+                            <span class="qa-live-badge badge-running" id="qaLiveStatus">running…</span>
+                            <span class="qa-live-elapsed" id="qaLiveElapsed">00:00</span>
                         </div>
-                        <div class="qa-progress-steps" id="qaProgressSteps">
-                            <div class="qa-step" data-step="parse"><span class="qa-step-icon">1</span>Parse</div>
-                            <div class="qa-step" data-step="validate_web"><span class="qa-step-icon">2</span>Validate
-                                Web</div>
-                            <div class="qa-step" data-step="generate"><span class="qa-step-icon">3</span>Generate</div>
-                            <div class="qa-step" data-step="run_and_fix"><span class="qa-step-icon">4</span>Run &amp;
-                                Fix</div>
-                            <div class="qa-step" data-step="ship"><span class="qa-step-icon">5</span>Ship</div>
+                        <!-- Session / Module meta -->
+                        <div class="qa-live-meta">
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Session</span>
+                                <span class="qa-live-meta-value" id="qaLiveSession">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Module</span>
+                                <span class="qa-live-meta-value" id="qaLiveModule">—</span>
+                            </div>
                         </div>
-                        <div class="qa-console" id="qaConsole"></div>
-                        <div class="qa-row-inline" style="margin-top:12px;gap:10px;">
+                        <!-- Progress steps -->
+                        <div class="qa-live-steps-wrap">
+                            <div class="qa-progress-steps" id="qaProgressSteps">
+                                <div class="qa-step" data-step="parse"><span class="qa-step-icon">1</span>Parse</div>
+                                <div class="qa-step" data-step="validate_web"><span class="qa-step-icon">2</span>Validate Web</div>
+                                <div class="qa-step" data-step="generate"><span class="qa-step-icon">3</span>Generate</div>
+                                <div class="qa-step" data-step="run_and_fix"><span class="qa-step-icon">4</span>Run &amp; Fix</div>
+                                <div class="qa-step" data-step="ship"><span class="qa-step-icon">5</span>Ship</div>
+                            </div>
+                        </div>
+                        <!-- Console output -->
+                        <div class="qa-live-console-wrap">
+                            <div class="qa-console" id="qaConsole"></div>
+                        </div>
+                        <!-- Footer: result + cancel -->
+                        <div class="qa-live-footer">
                             <button type="button" class="qa-btn qa-btn-danger" id="qaCancelBtn"
-                                onclick="qaAgents.cancel()">✕ Cancel</button>
-                            <span id="qaLiveResult" style="font-size:13px;color:var(--text-light);"></span>
+                                onclick="qaAgents.cancel()" style="padding:6px 14px;font-size:12px;">✕ Cancel</button>
+                            <span id="qaLiveResult"></span>
                         </div>
+                    </div>
+
+                    <!-- Queue — shown only when items are pending -->
+                    <div class="qa-card" id="qaQueueCard" style="display:none;margin-top:18px;border-left:3px solid var(--primary);">
+                        <h3>⏳ Pending Queue <span class="qa-live-badge badge-running" id="qaQueueCount" style="font-size:11px;">0</span></h3>
+                        <p style="font-size:12px;color:var(--text-light);margin:0 0 12px 0;">
+                            A run is currently in progress. The tasks below will start automatically one by one once the active run finishes.
+                        </p>
+                        <div id="qaQueueWrap"></div>
                     </div>
 
                     <!-- History -->
@@ -10342,6 +10652,8 @@
             const AGENT_BASE = API_BASE + '/test-authoring-agent';
             const STEPS = ['parse', 'validate_web', 'generate', 'run_and_fix', 'ship'];
             const MAX_RETRY = 5;
+            const _cancelledQueueItems = [];  // {module, cancelledAt} — kept until page reload
+            let _currentQueue = [];            // last known queue from server
 
             const state = {
                 initialised: false,
@@ -10371,6 +10683,7 @@
             async function apiFetch(path, opts) {
                 opts = opts || {};
                 opts.credentials = 'same-origin';
+                opts.cache = 'no-store';
                 opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
                 const res = await fetch(path, opts);
                 const text = await res.text();
@@ -10574,11 +10887,17 @@
             }
 
             // ─ Run + stream ─
+            function _setRunBtnLoading(loading) {
+                $('qaRunBtn').disabled = loading;
+                $('qaRunBtnLabel').style.display  = loading ? 'none' : '';
+                $('qaRunBtnSpinner').style.display = loading ? '' : 'none';
+            }
+
             async function run() {
                 const autoPush = $('qaAutoPush').checked;
                 const errEl = $('qaRunError');
                 errEl.style.display = 'none';
-                $('qaRunBtn').disabled = true;
+                _setRunBtnLoading(true);
 
                 let moduleFile;
                 try {
@@ -10642,14 +10961,27 @@
                         method: 'POST',
                         body: JSON.stringify({ module: moduleFile, auto_push: autoPush })
                     });
-                    const sessionId = body && (body.session_id || body.sessionId);
-                    if (!sessionId) throw new Error('No session id returned');
-                    attachLiveRun(sessionId, moduleFile, 0);
+                    if (body && body.queued) {
+                        // Task was enqueued — show queue panel with explanation
+                        await loadHistory();  // shows the queued entry immediately
+                        errEl.style.display = 'none';
+                        showToast(
+                            '⏳  Another run is in progress — "' + (body.module || moduleFile) +
+                            '" has been added to the queue at position ' + body.position +
+                            '. It will start automatically once the current run finishes.',
+                            'info'
+                        );
+                    } else {
+                        const sessionId = body && (body.session_id || body.sessionId);
+                        if (!sessionId) throw new Error('No session id returned');
+                        attachLiveRun(sessionId, moduleFile, 0);
+                        loadHistory();  // adds the new running entry to the history table
+                    }
                 } catch (e) {
                     errEl.textContent = 'Run failed: ' + (e.message || 'unknown');
                     errEl.style.display = 'block';
                 } finally {
-                    $('qaRunBtn').disabled = false;
+                    _setRunBtnLoading(false);
                 }
             }
 
@@ -10657,21 +10989,78 @@
                 const autoPush = $('qaAutoPush').checked;
                 const errEl = $('qaRunError');
                 errEl.style.display = 'none';
-                $('qaRunBtn').disabled = true;
+                _setRunBtnLoading(true);
                 try {
                     const body = await apiFetch(AGENT_BASE + '/run', {
                         method: 'POST',
                         body: JSON.stringify({ module: moduleFile, auto_push: autoPush })
                     });
-                    const sessionId = body && (body.session_id || body.sessionId);
-                    if (!sessionId) throw new Error('No session id returned');
-                    attachLiveRun(sessionId, moduleFile, 0);
+                    if (body && body.queued) {
+                        await loadQueue();
+                        showToast(
+                            '⏳  Another run is in progress — "' + (body.module || moduleFile) +
+                            '" has been added to the queue at position ' + body.position +
+                            '. It will start automatically once the current run finishes.',
+                            'info'
+                        );
+                    } else {
+                        const sessionId = body && (body.session_id || body.sessionId);
+                        if (!sessionId) throw new Error('No session id returned');
+                        attachLiveRun(sessionId, moduleFile, 0);
+                    }
                 } catch (e) {
                     errEl.textContent = 'Run failed: ' + (e.message || 'unknown');
                     errEl.style.display = 'block';
                 } finally {
-                    $('qaRunBtn').disabled = false;
+                    _setRunBtnLoading(false);
                 }
+            }
+
+            async function loadQueue() {
+                try {
+                    const body = await apiFetch(AGENT_BASE + '/run/queue');
+                    renderQueue(body.queue || []);
+                    loadHistory();
+                } catch (_) {}
+            }
+
+            function renderQueue(items) {
+                _currentQueue = items || [];
+                const card = $('qaQueueCard');
+                const wrap = $('qaQueueWrap');
+                if (!items.length) {
+                    card.style.display = 'none';
+                    wrap.innerHTML = '';
+                    $('qaQueueCount').textContent = '0';
+                    return;
+                }
+                card.style.display = '';
+                $('qaQueueCount').textContent = items.length;
+                wrap.innerHTML = items.map(function(item) {
+                    return '<div class="qa-queue-item">'
+                        + '<span class="qa-queue-pos">' + item.position + '</span>'
+                        + '<span class="qa-queue-module">' + escapeHtml(item.module) + '</span>'
+                        + (item.auto_push ? '<span style="font-size:11px;color:var(--text-light);">auto-push</span>' : '')
+                        + '<button class="qa-queue-remove" title="Remove from queue" '
+                        + 'onclick="qaAgents.removeFromQueue(' + (item.position - 1) + ')">✕</button>'
+                        + '</div>';
+                }).join('');
+            }
+
+            async function removeFromQueue(index) {
+                try {
+                    const item = _currentQueue[index];
+                    const body = await apiFetch(AGENT_BASE + '/run/queue/' + index, { method: 'DELETE' });
+                    if (item) {
+                        _cancelledQueueItems.unshift({
+                            module: item.module || '—',
+                            session_id: item.session_id || '',
+                            cancelledAt: new Date().toISOString(),
+                        });
+                    }
+                    renderQueue(body.queue || []);
+                    loadHistory();
+                } catch (_) {}
             }
 
             function attachLiveRun(sessionId, moduleFile, offset) {
@@ -10687,7 +11076,10 @@
                 $('qaLiveCard').style.display = '';
                 $('qaLiveSession').textContent = sessionId;
                 $('qaLiveModule').textContent = moduleFile || '—';
-                $('qaLiveStatus').textContent = 'running…';
+                const badgeEl = $('qaLiveStatus');
+                badgeEl.textContent = 'running…';
+                badgeEl.className = 'qa-live-badge badge-running';
+                $('qaLiveCard').classList.remove('terminal-completed', 'terminal-failed', 'terminal-cancelled');
                 $('qaCancelBtn').disabled = false;
                 $('qaCancelBtn').style.display = '';
                 startElapsed();
@@ -10761,23 +11153,69 @@
                 } else if (kind === 'done') {
                     state.terminal = true;
                     stopElapsed();
-                    STEPS.forEach(function (s) { setStep(s, 'done'); });
+                    // Only mark remaining (never-touched) steps as done on success.
+                    // On failure/cancel, leave step states as-is so the failed step stays red.
                     const status = payload.status || 'completed';
-                    $('qaLiveStatus').textContent = status;
+                    const isOk = status === 'completed';
+                    const isCancelled = status === 'cancelled';
+                    // Update status badge
+                    const badge = $('qaLiveStatus');
+                    badge.textContent = status;
+                    badge.className = 'qa-live-badge ' + (isOk ? 'badge-completed' : isCancelled ? 'badge-cancelled' : 'badge-failed');
+                    // Update card border accent
+                    $('qaLiveCard').classList.toggle('terminal-completed', isOk);
+                    $('qaLiveCard').classList.toggle('terminal-failed', !isOk && !isCancelled);
+                    $('qaLiveCard').classList.toggle('terminal-cancelled', isCancelled);
                     $('qaCancelBtn').disabled = true;
                     $('qaCancelBtn').style.display = 'none';
+                    // Show actual duration (replay sends duration_s; live run sends duration)
+                    const durSecs = payload.duration_s ?? payload.duration;
+                    if (durSecs != null) {
+                        const ds = Math.round(durSecs);
+                        $('qaLiveElapsed').textContent =
+                            String(Math.floor(ds / 60)).padStart(2, '0') + ':' +
+                            String(ds % 60).padStart(2, '0');
+                    }
+                    // Build result banner — single merged verdict badge
                     const prUrl = payload.pr_url;
-                    const parts = [];
-                    if (prUrl) parts.push('PR: <a href="' + escapeHtml(prUrl) + '" target="_blank" style="color:var(--primary);">' + escapeHtml(prUrl) + '</a>');
-                    if (payload.verdict) parts.push('verdict=' + escapeHtml(payload.verdict));
-                    if (payload.test_passed != null) parts.push('test_passed=' + payload.test_passed);
-                    if (payload.exit_code != null) parts.push('exit=' + payload.exit_code);
-                    $('qaLiveResult').innerHTML = parts.join(' · ');
-                    appendLine(status === 'completed' ? 'done' : 'error', '[' + status + '] ' + (payload.message || payload.verdict || ''));
+                    const verdict = payload.verdict;
+                    const testPassed = payload.test_passed;
+                    let resultHtml = '';
+                    if (prUrl) {
+                        const prNum = (prUrl.match(/\/pull\/(\d+)/) || [])[1];
+                        resultHtml += '<a href="' + escapeHtml(prUrl) + '" target="_blank" class="qa-result-pr-btn">'
+                            + '<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M7.177 3.073L9.573.677A.25.25 0 0110 .854v4.792a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM11 2.5h-1V4h1a1 1 0 011 1v5.628a2.251 2.251 0 101.5 0V5A2.5 2.5 0 0011 2.5zm1 10.25a.75.75 0 111.5 0 .75.75 0 01-1.5 0zM3.75 12a.75.75 0 100 1.5.75.75 0 000-1.5z"/></svg>'
+                            + (prNum ? 'PR #' + escapeHtml(prNum) : 'View PR') + '</a>';
+                    }
+                    // Single verdict badge with three states
+                    if (verdict === 'APPROVED' && testPassed === true) {
+                        resultHtml += '<span class="qa-result-badge approved">✓ Approved · Tests Passed</span>';
+                    } else if (verdict === 'APPROVED') {
+                        resultHtml += '<span class="qa-result-badge skipped">✓ Approved · Tests Skipped</span>';
+                    } else if (verdict) {
+                        resultHtml += '<span class="qa-result-badge needs-review">⚠ Needs Review</span>';
+                    }
+                    $('qaLiveResult').innerHTML = resultHtml;
+                    appendLine(isOk ? 'done' : 'error', '[' + status + '] ' + (payload.message || verdict || ''));
                     closeStream();
                     loadHistory();
+                    // Refresh queue — next item may have auto-started
+                    setTimeout(function() {
+                        loadQueue();
+                        // If queue started a new run, attach it and notify the user
+                        apiFetch(AGENT_BASE + '/run/active').then(function(b) {
+                            if (b && b.active && b.session_id !== state.activeSession) {
+                                attachLiveRun(b.session_id, b.module, 0);
+                                showToast('▶  Picked up next queued run: "' + (b.module || b.session_id) + '"', 'info');
+                            }
+                        }).catch(function() {});
+                    }, 1500);
+
                 } else if (kind === 'status') {
-                    $('qaLiveStatus').textContent = payload.status || '';
+                    const sb = $('qaLiveStatus');
+                    sb.textContent = payload.status || '';
+                    sb.className = 'qa-live-badge badge-running';
+                    if (payload.module) $('qaLiveModule').textContent = payload.module;
                 } else if (kind === 'error') {
                     appendLine('error', payload.message || envelope.raw || 'stream error');
                 }
@@ -10823,23 +11261,92 @@
                 }
             }
 
+            async function cancelRun(sessionId) {
+                if (!confirm('Stop run "' + sessionId + '"?')) return;
+                try {
+                    await apiFetch(AGENT_BASE + '/run/' + encodeURIComponent(sessionId) + '/cancel', { method: 'POST' });
+                    showToast('■ Stop requested for run: ' + sessionId, 'info');
+                    // Poll until the status leaves running/in_progress (process dies after SIGTERM/SIGKILL)
+                    let attempts = 0;
+                    const poll = setInterval(async function() {
+                        attempts++;
+                        await loadHistory();
+                        // Check if the session is no longer active
+                        const stillActive = await apiFetch(AGENT_BASE + '/run/active').catch(function() { return { active: false }; });
+                        if (!stillActive.active || attempts >= 10) clearInterval(poll);
+                    }, 1000);
+                } catch (e) {
+                    showToast('Failed to stop run: ' + (e.message || 'unknown'), 'warning');
+                }
+            }
+
             // ─ History ─
             async function loadHistory() {
                 const wrap = $('qaHistoryWrap');
                 try {
-                    const body = await apiFetch(AGENT_BASE + '/sessions');
-                    const items = (body && (body.items || body.sessions)) || [];
-                    if (!items.length) {
+                    const [histBody, queueBody, activeBody] = await Promise.all([
+                        apiFetch(AGENT_BASE + '/sessions'),
+                        apiFetch(AGENT_BASE + '/run/queue').catch(function() { return { queue: [] }; }),
+                        apiFetch(AGENT_BASE + '/run/active').catch(function() { return { active: false }; }),
+                    ]);
+                    const activeSessionId = (activeBody && activeBody.active) ? activeBody.session_id : null;
+                    const sessions = (histBody && (histBody.items || histBody.sessions)) || [];
+                    const queued  = (queueBody && queueBody.queue) || [];
+                    _currentQueue = queued;  // keep in sync for removeFromQueue lookups
+
+                    if (!sessions.length && !queued.length && !_cancelledQueueItems.length) {
                         wrap.innerHTML = '<div class="qa-history-empty">No runs yet.</div>';
                         return;
                     }
-                    let html = '<table class="qa-history-table"><thead><tr><th>Session</th><th>Module</th><th>Started</th><th>Status</th><th>Logs</th><th>PR</th></tr></thead><tbody>';
-                    items.forEach(function (s) {
+
+                    const hasActions = !!activeSessionId || queued.length > 0;
+                    let html = '<table class="qa-history-table"><thead><tr><th>Session</th><th>File</th><th>Started</th><th>Status</th><th>Logs</th><th>PR</th>'
+                        + (hasActions ? '<th>Action</th>' : '<th></th>')
+                        + '</tr></thead><tbody>';
+
+                    // Pending queue rows — shown at the top
+                    queued.forEach(function(q, i) {
+                        const sid = q.session_id || '';
+                        const cancelBtn = '<button class="qa-action-btn qa-action-btn-cancel" title="Remove from queue" '
+                            + 'onclick="event.stopPropagation();qaAgents.removeFromQueue(' + i + ')">✕ Cancel</button>';
+                        html += '<tr style="opacity:0.8;">'
+                            + '<td class="qa-session-id">' + escapeHtml(sid || '—') + '</td>'
+                            + '<td>' + escapeHtml(q.module || '—') + '</td>'
+                            + '<td style="color:var(--text-light);">—</td>'
+                            + '<td><span class="qa-status-pill queued">⏳ To be started</span></td>'
+                            + '<td>—</td>'
+                            + '<td>—</td>'
+                            + '<td>' + cancelBtn + '</td>'
+                            + '</tr>';
+                    });
+
+                    // Cancelled queue items (client-side memory, cleared on page reload)
+                    _cancelledQueueItems.forEach(function(c) {
+                        html += '<tr style="opacity:0.6;">'
+                            + '<td class="qa-session-id">' + escapeHtml(c.session_id || '—') + '</td>'
+                            + '<td>' + escapeHtml(c.module || '—') + '</td>'
+                            + '<td style="color:var(--text-light);">—</td>'
+                            + '<td><span class="qa-status-pill cancelled">✕ Cancelled</span></td>'
+                            + '<td>—</td>'
+                            + '<td>—</td>'
+                            + '<td></td>'
+                            + '</tr>';
+                    });
+
+                    // Completed / running session rows
+                    sessions.forEach(function (s) {
                         const sid = s.session_id || s.id || '';
-                        const status = (s.status || 'unknown').toLowerCase();
+                        // If this is the actively running session, always show "running"
+                        // regardless of what disk-derived status says (avoids "unknown" race at startup)
+                        const rawStatus = (s.status || 'unknown').toLowerCase();
+                        const status = (sid === activeSessionId && rawStatus === 'unknown') ? 'running' : rawStatus;
                         const pr = s.pr_url ? '<a href="' + escapeHtml(s.pr_url) + '" target="_blank" onclick="event.stopPropagation();" style="color:var(--primary);">link</a>' : '—';
                         const feat = s.module || '';
                         const logs = '<a href="#" class="qa-history-logs" data-session="' + escapeHtml(sid) + '" data-module="' + escapeHtml(feat) + '" onclick="event.stopPropagation();event.preventDefault();qaAgents.viewLogs(this.dataset.session,this.dataset.module);" style="color:var(--primary);">view</a>';
+                        const actionBtn = (sid === activeSessionId)
+                            ? '<button class="qa-action-btn qa-action-btn-stop" title="Stop run" '
+                              + 'onclick="event.stopPropagation();qaAgents.cancelRun(\'' + escapeHtml(sid) + '\')">■ Stop</button>'
+                            : '';
                         html += '<tr data-session="' + escapeHtml(sid) + '">'
                             + '<td class="qa-session-id">' + escapeHtml(sid) + '</td>'
                             + '<td>' + escapeHtml(feat || '—') + '</td>'
@@ -10847,11 +11354,13 @@
                             + '<td><span class="qa-status-pill ' + escapeHtml(status) + '">' + escapeHtml(status) + '</span></td>'
                             + '<td>' + logs + '</td>'
                             + '<td>' + pr + '</td>'
+                            + '<td>' + actionBtn + '</td>'
                             + '</tr>';
                     });
+
                     html += '</tbody></table>';
                     wrap.innerHTML = html;
-                    wrap.querySelectorAll('tbody tr').forEach(function (tr) {
+                    wrap.querySelectorAll('tbody tr[data-session]').forEach(function (tr) {
                         tr.addEventListener('click', function () { openSessionModal(tr.dataset.session); });
                     });
                 } catch (e) {
@@ -10933,8 +11442,11 @@
                 run: run,
                 runDirect: runDirect,
                 cancel: cancel,
+                cancelRun: cancelRun,
                 loadHistory: loadHistory,
                 viewLogs: viewLogs,
+                loadQueue: loadQueue,
+                removeFromQueue: removeFromQueue,
                 closeSessionModal: closeSessionModal,
             };
         })();
