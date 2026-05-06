@@ -7,6 +7,19 @@
 
 ---
 
+**📖 Detailed write-ups and feature deep-dives on the portfolio site:**
+
+| Page | Link |
+|------|------|
+| Full system overview | [msr5464.github.io/ai-agent-network](https://msr5464.github.io/ai-agent-network.html) |
+| 01 · Test Generation | [feature-test-generation](https://msr5464.github.io/feature-test-generation.html) |
+| 02 · Test Authoring Agent | [feature-test-authoring](https://msr5464.github.io/feature-test-authoring.html) |
+| 03 · Test Triaging Agent | [feature-test-triaging](https://msr5464.github.io/feature-test-triaging.html) |
+| 04 · Test Healing Agent | [feature-test-healing](https://msr5464.github.io/feature-test-healing.html) |
+| 05 · Talk to Tests | [feature-rag-chat](https://msr5464.github.io/feature-rag-chat.html) |
+
+---
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -83,35 +96,61 @@ Three independent agents power the automation features:
 
 ## Screenshots
 
-### Customer portal
+### Customer portal — AI Test Generator
 
-**AI Test Generator** — Input (paste / file / URL) and results (existing tests, new tests, E2E).
+| Requirements → Tests tab |
+|--------------------------|
+| ![AI Test Generator tab](docs/images/customer-tab-analyze.png) |
 
-| Generate tests – input (paste / file / URL) |
-|---------------------------------------------|
-| ![Generate tests – home](docs/customer-generate-tests-home.png) |
+Three input modes (paste text / upload file / Confluence URL), generates new tests only for uncovered requirements, pushes to TestRail.
 
-| Generate tests – results (existing tests, new tests, E2E) |
-|-----------------------------------------------------------|
-| ![Generate tests – response](docs/customer-generate-tests-response.png) |
+| Analysis streaming — existing TestRail tests surfaced |
+|-------------------------------------------------------|
+| ![Existing tests surfaced](docs/images/test-generation-3.png) |
 
-**Talk to Tests** — Ask a question and see the answer.
+| Newly generated tests for coverage gaps |
+|-----------------------------------------|
+| ![Generated tests](docs/images/test-generation-4.png) |
 
-| Chat – ask a question |
-|-----------------------|
-| ![Chat – home](docs/customer-chat-home.png) |
+---
 
-| Chat – with answer |
-|--------------------|
-| ![Chat – response](docs/customer-chat-response.png) |
+### Customer portal — Tests → Automation
+
+| Test Authoring Agent interface |
+|-------------------------------|
+| ![Test Authoring Agent](docs/images/customer-tab-agents.png) |
+
+Plain-English steps → Java code → Maven run → GitHub PR, streamed live.
+
+| Live pipeline console and final PR output |
+|-------------------------------------------|
+| ![Authoring agent console](docs/images/test-authoring-2.png) |
+
+---
+
+### Customer portal — Talk to Tests
+
+| Chat interface |
+|----------------|
+| ![Talk to Tests](docs/images/customer-talk-clean.png) |
+
+| Answer grounded in TestRail + Confluence knowledge base |
+|---------------------------------------------------------|
+| ![Talk to Tests response](docs/images/talk-to-tests-result.png) |
+
+---
 
 ### Admin portal
 
-| Dashboard |
-|-----------|
-| ![Admin Dashboard](docs/admin-dashboard.png) |
+| Knowledge base stats (ChromaDB) |
+|---------------------------------|
+| ![Admin stats](docs/images/admin-stats-clean.png) |
 
-Admin: user management, document upload, TestRail sync, Confluence sync, ChromaDB browse/reset, stats.
+| TestRail sync streaming in real time |
+|--------------------------------------|
+| ![TestRail sync](docs/images/admin-testrail-row.png) |
+
+User management, document upload, TestRail/Confluence sync, ChromaDB browse/reset, runtime LLM settings.
 
 ---
 
@@ -245,6 +284,7 @@ AI-Test-Studio/
 
 | Doc | Description |
 |-----|-------------|
+| [docs/ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) | How AI-Test-Studio, QA-Agent-Network, and Jarvis work together — full multi-repo architecture |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Installation, configuration, production, scripts, troubleshooting |
 | [docs/API.md](docs/API.md) | REST API: auth, admin, customer (query, requirement analysis, TestRail), agents proxy |
 | [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md) | Architecture, request flows, directory layout |

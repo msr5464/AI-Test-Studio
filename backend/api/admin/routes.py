@@ -348,6 +348,17 @@ def get_sync_status():
         }), 500
 
 
+@admin_bp.route('/settings/public', methods=['GET'])
+def get_public_settings():
+    """Return non-sensitive public settings (e.g. default theme). No auth required."""
+    try:
+        svc = current_app.config.get('SETTINGS_SERVICE')
+        theme = svc.get('default_theme', 'dark') if svc else 'dark'
+        return jsonify({'success': True, 'default_theme': theme}), 200
+    except Exception as e:
+        return jsonify({'success': True, 'default_theme': 'dark'}), 200
+
+
 @admin_bp.route('/settings', methods=['GET'])
 @require_auth(admin_only=True)
 def get_settings():

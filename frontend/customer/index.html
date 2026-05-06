@@ -6668,10 +6668,6 @@
                 <button class="nav-item disabled">🔍 Analyse Failures <span class="nav-soon">soon</span></button>
                 <button class="nav-item disabled">🔧 Fix Broken Tests <span class="nav-soon">soon</span></button>
             </div>
-            <div class="nav-divider"></div>
-            <div class="nav-group">
-                <button class="nav-item disabled">⚙ Settings <span class="nav-soon">soon</span></button>
-            </div>
             <div class="nav-spacer"></div>
             <!-- Agent network status — sidebar footer -->
             <div class="nav-health">
@@ -7653,12 +7649,22 @@
             });
         }
 
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
             const toggle = document.getElementById('themeToggle');
-            if (toggle) {
-                toggle.checked = savedTheme === 'light';
+            if (toggle) toggle.checked = (theme === 'light');
+        }
+
+        function loadTheme() {
+            const userPref = localStorage.getItem('theme');
+            if (userPref) {
+                applyTheme(userPref);
+            } else {
+                // No personal preference — fetch server default (works in incognito too)
+                fetch('/api/admin/settings/public')
+                    .then(r => r.json())
+                    .then(d => applyTheme(d.default_theme || 'dark'))
+                    .catch(() => applyTheme('dark'));
             }
         }
 

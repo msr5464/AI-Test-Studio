@@ -1300,6 +1300,7 @@
                 <button class="settings-tab-btn" onclick="showSettingsTab('chat', this)">💬 Chat</button>
                 <button class="settings-tab-btn" onclick="showSettingsTab('requirements', this)">📋
                     Requirements</button>
+                <button class="settings-tab-btn" onclick="showSettingsTab('appearance', this)">🎨 Appearance</button>
             </div>
             <div id="settingsTabContent">
                 <p style="color: var(--text-muted); padding: 24px 0; text-align: center;">⏳ Loading settings...</p>
@@ -1528,11 +1529,21 @@
 
     <script>
         (function () {
-            var saved = localStorage.getItem('admin-portal-theme');
-            if (saved === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
+            function applyTheme(theme) {
+                var html = document.documentElement;
+                html.setAttribute('data-theme', theme);
                 var cb = document.getElementById('themeToggle');
-                if (cb) cb.checked = true;
+                if (cb) cb.checked = (theme === 'light');
+            }
+            var userPref = localStorage.getItem('admin-portal-theme');
+            if (userPref) {
+                applyTheme(userPref);
+            } else {
+                // No personal preference — fetch server default (works in incognito too)
+                fetch('/api/admin/settings/public')
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { applyTheme(d.default_theme || 'dark'); })
+                    .catch(function() { applyTheme('dark'); });
             }
             var themeToggle = document.getElementById('themeToggle');
             if (themeToggle) {
@@ -2721,6 +2732,7 @@
             if (e.key === 'Escape') closeSettingsModal();
         });
 
+
         async function loadSettings() {
             try {
                 const response = await fetch(`${API_BASE}/settings`, { credentials: 'include' });
@@ -2765,8 +2777,8 @@
         }
 
         function renderSettingsTabs(schema, values) {
-            const categories = ['testrail', 'confluence', 'llm', 'chat', 'requirements'];
-            const categoryLabels = { testrail: 'TestRail', confluence: 'Confluence', llm: 'LLM & RAG', chat: 'Chat Specifics', requirements: 'Requirements Specifics' };
+            const categories = ['testrail', 'confluence', 'llm', 'chat', 'requirements', 'appearance'];
+            const categoryLabels = { testrail: 'TestRail', confluence: 'Confluence', llm: 'LLM & RAG', chat: 'Chat Specifics', requirements: 'Requirements Specifics', appearance: 'Appearance' };
             const ragNote = `<div class="settings-section-note">ℹ️ RAG &amp; Retrieval changes are saved immediately but take full effect after an app restart.</div>`;
 
             // Fix: restore whichever tab was last open, defaulting to testrail
