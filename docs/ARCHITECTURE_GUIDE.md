@@ -413,7 +413,7 @@ Step 2: Pastes requirement text  OR  uploads file (PDF/DOCX/XLSX/PPTX)
         OR  provides Confluence URL
         │
         ▼
-Step 3: POST /api/customer/analyze-requirements
+Step 3: POST /api/customer/requirement-analysis/stream
         │  SSE stream begins — LLM analyses requirements in real time
         │
         ▼
@@ -426,7 +426,7 @@ Step 4: LLM output streamed to browser:
 Step 5: Engineer reviews, selects test cases in the UI
         │
         ▼
-Step 6: "Push to TestRail" button → POST /api/customer/testrail/push
+Step 6: "Push to TestRail" button → POST /api/customer/requirement-analysis/push
         │  TestRail connector creates test cases via API
         │
         ▼

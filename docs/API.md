@@ -547,7 +547,216 @@ curl -X POST http://localhost:5001/api/admin/chromadb/reset \
 
 ---
 
+### Trigger TestRail Sync
+
+Start a background sync that pulls all TestRail test cases into the vector store.
+
+**Endpoint:** `POST /api/admin/sync/testrail`
+
+**Authentication:** Requires admin session
+
+**Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "message": "TestRail sync started in background",
+  "status": "started"
+}
+```
+
+**Returns 409** if a sync is already in progress.
+
+**Example:**
+```bash
+curl -X POST http://localhost:5001/api/admin/sync/testrail \
+  -b cookies.txt
+```
+
+---
+
+### Trigger Confluence Sync
+
+Start a background sync that pulls Confluence pages (via CQL) into the vector store.
+
+**Endpoint:** `POST /api/admin/sync/confluence`
+
+**Authentication:** Requires admin session
+
+**Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "message": "Confluence sync started in background (CQL)",
+  "status": "started"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5001/api/admin/sync/confluence \
+  -b cookies.txt
+```
+
+---
+
+### Get Sync Status
+
+Get the current sync status for both TestRail and Confluence.
+
+**Endpoint:** `GET /api/admin/sync/status`
+
+**Authentication:** Requires admin session
+
+**Response:**
+```json
+{
+  "success": true,
+  "status": {
+    "is_syncing": false,
+    "last_sync": "2024-01-01T12:00:00",
+    "last_sync_count": 42,
+    "confluence": {
+      "is_syncing": false,
+      "last_sync": "2024-01-01T11:00:00",
+      "last_sync_count": 10
+    }
+  }
+}
+```
+
+**Example:**
+```bash
+curl -X GET http://localhost:5001/api/admin/sync/status \
+  -b cookies.txt
+```
+
+---
+
+### Get Sync Schedule
+
+Get next scheduled run times for automatic TestRail and Confluence syncs.
+
+**Endpoint:** `GET /api/admin/sync/schedule`
+
+**Authentication:** Requires admin session
+
+**Example:**
+```bash
+curl -X GET http://localhost:5001/api/admin/sync/schedule \
+  -b cookies.txt
+```
+
+---
+
+### Confluence Diagnose
+
+Run a connectivity diagnostic to troubleshoot Confluence configuration (credentials, API path, CQL query).
+
+**Endpoint:** `GET /api/admin/confluence-diagnose`
+
+**Authentication:** Requires admin session
+
+**Example:**
+```bash
+curl -X GET http://localhost:5001/api/admin/confluence-diagnose \
+  -b cookies.txt
+```
+
+---
+
+### Get Settings (Public)
+
+Return non-sensitive public settings (e.g. default theme). No authentication required.
+
+**Endpoint:** `GET /api/admin/settings/public`
+
+**Response:**
+```json
+{
+  "success": true,
+  "default_theme": "dark"
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:5001/api/admin/settings/public
+```
+
+---
+
+### Get Settings
+
+Return full settings schema with current values. Sensitive values are masked as `****`.
+
+**Endpoint:** `GET /api/admin/settings`
+
+**Authentication:** Requires admin session
+
+**Example:**
+```bash
+curl -X GET http://localhost:5001/api/admin/settings \
+  -b cookies.txt
+```
+
+---
+
+### Update Settings
+
+Save one or more settings. Sensitive fields submitted as `****` are not overwritten.
+
+**Endpoint:** `PUT /api/admin/settings`
+
+**Authentication:** Requires admin session
+
+**Body:** Key-value map of settings to update.
+```json
+{
+  "default_theme": "light",
+  "CHAT_RETRIEVAL_K": 10
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Settings saved and applied successfully"
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:5001/api/admin/settings \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{"default_theme": "light"}'
+```
+
+---
+
 ## Customer Endpoints
+
+### Customer Config
+
+Get public customer configuration (e.g. TestRail push enabled, available features).
+
+**Endpoint:** `GET /api/customer/config`
+
+**Response:**
+```json
+{
+  "success": true,
+  "testrail_push_enabled": true
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:5001/api/customer/config
+```
+
+---
 
 ### Query the System
 
@@ -684,6 +893,117 @@ curl -X POST http://localhost:5001/api/customer/requirement-analysis \
 ```
 
 **Note:** Confluence URL requires CONFLUENCE_URL, CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN in .env.
+
+---
+
+### Requirement Analysis (Streaming)
+
+Same as `requirement-analysis` but streams progress events as Server-Sent Events (SSE). Used by the UI to show a live progress bar.
+
+**Endpoint:** `POST /api/customer/requirement-analysis/stream`
+
+**Request:** Identical to `requirement-analysis`.
+
+**Response:** `text/event-stream` — emits JSON events with fields `stage`, `message`, `progress` (0–100), and per-requirement results as they complete.
+
+**Example:**
+```bash
+curl -X POST http://localhost:5001/api/customer/requirement-analysis/stream \
+  -H "Content-Type: application/json" \
+  -d '{"requirement_spec": "REQ-001: ...", "generate_new_tests": true}'
+```
+
+---
+
+### Requirement Analysis — Push to TestRail
+
+Push already-generated tests (from a prior analysis) to TestRail. Used when the user clicks "Push to TestRail" after reviewing results.
+
+**Endpoint:** `POST /api/customer/requirement-analysis/push`
+
+**Body:**
+```json
+{
+  "generated_tests": {
+    "REQ-001": [
+      {"title": "...", "priority": "P1", "steps": "...", "expected_result": "..."}
+    ]
+  },
+  "target_section_id": 123,
+  "use_section_of_related": false
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5001/api/customer/requirement-analysis/push \
+  -H "Content-Type: application/json" \
+  -d '{"generated_tests": {...}, "target_section_id": 123}'
+```
+
+---
+
+### Requirement Analysis — Suggest Case Update
+
+Given a requirement and an existing TestRail case, get an AI suggestion for how to update the case to match the requirement.
+
+**Endpoint:** `POST /api/customer/requirement-analysis/suggest-case-update`
+
+---
+
+### Requirement Analysis — Update Case
+
+Apply an AI-suggested update to an existing TestRail case.
+
+**Endpoint:** `POST /api/customer/requirement-analysis/update-case`
+
+---
+
+### Requirement Analysis — Create Case
+
+Create a new TestRail case from a generated test object.
+
+**Endpoint:** `POST /api/customer/requirement-analysis/create-case`
+
+---
+
+### List Unautomated TestRail Cases
+
+Fetch TestRail cases that are not yet automated (automation_type ≠ automated). Used by the automation improvement workflow.
+
+**Endpoint:** `GET /api/customer/testrail/unautomated-cases`
+
+**Query params:** `project_id` (required), `suite_id` (optional), `section_id` (optional)
+
+**Example:**
+```bash
+curl "http://localhost:5001/api/customer/testrail/unautomated-cases?project_id=1"
+```
+
+---
+
+### Improve Case for Automation
+
+Given a manual TestRail test case, return an AI-rewritten version that is more suitable for automation (explicit steps, deterministic assertions, etc.).
+
+**Endpoint:** `POST /api/customer/testrail/improve-for-automation`
+
+**Body:**
+```json
+{
+  "case_id": "C123",
+  "title": "Login test",
+  "steps": "1. Go to login page\n2. Enter credentials",
+  "expected_result": "User is logged in"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5001/api/customer/testrail/improve-for-automation \
+  -H "Content-Type: application/json" \
+  -d '{"case_id": "C123", "title": "Login test", "steps": "...", "expected_result": "..."}'
+```
 
 ---
 
