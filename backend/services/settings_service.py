@@ -447,6 +447,21 @@ SETTINGS_SCHEMA: List[Dict[str, Any]] = [
         "default": True,
         "sensitive": False,
     },
+    # ── Appearance ────────────────────────────────────────────────────────────
+    {
+        "key": "default_theme",
+        "env_var": "DEFAULT_THEME",
+        "label": "Default Theme",
+        "description": "Theme shown to first-time visitors who have not set a personal preference. Users can always override this themselves.",
+        "type": "select",
+        "category": "appearance",
+        "default": "dark",
+        "sensitive": False,
+        "options": [
+            {"value": "dark",  "label": "🌙 Dark"},
+            {"value": "light", "label": "☀️ Light"},
+        ],
+    },
 ]
 
 # Build a lookup dict for quick access by key

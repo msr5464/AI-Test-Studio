@@ -459,11 +459,19 @@
 
     <script>
         (function () {
-            var saved = localStorage.getItem('admin-portal-theme');
-            if (saved === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
+            function applyTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
                 var cb = document.getElementById('themeToggle');
-                if (cb) cb.checked = true;
+                if (cb) cb.checked = (theme === 'light');
+            }
+            var userPref = localStorage.getItem('admin-portal-theme');
+            if (userPref) {
+                applyTheme(userPref);
+            } else {
+                fetch('/api/admin/settings/public')
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { applyTheme(d.default_theme || 'dark'); })
+                    .catch(function() { applyTheme('dark'); });
             }
             document.getElementById('themeToggle').addEventListener('change', function () {
                 var isLight = this.checked;

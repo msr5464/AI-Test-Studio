@@ -27,12 +27,12 @@ This project adheres to a code of conduct that all contributors are expected to 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/your-username/my-rag.git
-   cd my-rag
+   git clone https://github.com/your-username/AI-Test-Studio.git
+   cd AI-Test-Studio
    ```
 3. **Add the upstream repository**:
    ```bash
-   git remote add upstream https://github.com/original-owner/my-rag.git
+   git remote add upstream https://github.com/original-owner/AI-Test-Studio.git
    ```
 
 ---
@@ -206,29 +206,28 @@ def process_document(file_path: str) -> dict:
 Understanding the project structure helps you contribute effectively:
 
 ```
-my-rag/
+AI-Test-Studio/
 ├── backend/              # Backend API server
-│   ├── api/             # API routes (admin, customer)
-│   ├── services/        # Business logic
+│   ├── api/             # API routes (admin, customer, auth, agents)
+│   ├── services/        # Business logic (RAG, sync, settings, etc.)
+│   ├── rag/             # RAG classes (base, multi-format, ChromaDB, caching)
+│   ├── connectors/      # External integrations (TestRail, Confluence)
+│   ├── extractors/      # Requirement extraction logic
 │   └── app.py          # Main Flask application
-├── core/                 # Core RAG functionality
-│   ├── base_rag.py     # Base RAG class
-│   ├── multi_format_rag.py  # Multi-format support
-│   ├── settings.py     # Configuration management
-│   └── ...             # Helpers, caching, ChromaDB
 ├── frontend/             # Frontend interfaces
 │   ├── admin/           # Admin UI
 │   └── customer/        # Customer UI
-├── config/              # Configuration files
-├── docs/        # Documentation
+├── config/              # Configuration files (env.example)
+├── docs/                # Documentation
 ├── scripts/             # Deployment scripts
-└── storage/             # Data storage (gitignored)
+├── tests/               # Automated tests
+└── storage/             # Data storage (gitignored at runtime)
 ```
 
 ### Where to Make Changes
 
 - **New API endpoints**: `backend/api/`
-- **RAG functionality**: `core/`
+- **RAG functionality**: `backend/rag/`
 - **Frontend UI**: `frontend/`
 - **Configuration**: `config/env.example`
 - **Documentation**: `docs/`

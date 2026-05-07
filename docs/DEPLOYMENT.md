@@ -39,7 +39,7 @@ Complete guide for deploying AI Test Studio on Windows, macOS, and Linux.
 **Option 1: PowerShell (Recommended)**
 ```powershell
 # Navigate to deployment folder
-cd C:\path\to\rag_deploy
+cd C:\path\to\AI-Test-Studio
 
 # Run installation script
 .\scripts\install.ps1
@@ -47,7 +47,7 @@ cd C:\path\to\rag_deploy
 
 **Option 2: Command Prompt**
 ```cmd
-cd C:\path\to\rag_deploy
+cd C:\path\to\AI-Test-Studio
 scripts\install.bat
 ```
 
@@ -104,7 +104,7 @@ REM Edit config\.env with your settings
 
 ```bash
 # Navigate to deployment folder
-cd /path/to/rag_deploy
+cd /path/to/AI-Test-Studio
 
 # Make scripts executable (if needed)
 chmod +x scripts/*.sh
@@ -182,7 +182,7 @@ sudo apt-get update
 sudo apt-get install python3 python3-pip python3-venv
 
 # Navigate to deployment folder
-cd /path/to/rag_deploy
+cd /path/to/AI-Test-Studio
 
 # Make scripts executable
 chmod +x scripts/*.sh
@@ -199,7 +199,7 @@ sudo yum install python3 python3-pip
 sudo dnf install python3 python3-pip
 
 # Navigate to deployment folder
-cd /path/to/rag_deploy
+cd /path/to/AI-Test-Studio
 
 # Make scripts executable
 chmod +x scripts/*.sh
@@ -303,23 +303,67 @@ CHROMA_DB_DIR=storage/chroma_db
 EMBEDDING_CACHE_DIR=storage/embedding_cache
 ```
 
-#### RAG Settings
+#### RAG Base Settings
 ```bash
 COLLECTION_NAME=rag_collection
 CHUNK_SIZE=1000
 CHUNK_OVERLAP=200
-RETRIEVAL_K=3
-MIN_SIMILARITY_THRESHOLD=15.0
 ```
 
-#### Advanced Features
+#### Chat Retrieval Settings
 ```bash
-USE_HYBRID_SEARCH=False
-USE_RERANKING=False
-USE_QUERY_EXPANSION=False
+CHAT_RETRIEVAL_K=10
+CHAT_MIN_SIMILARITY_THRESHOLD=55.0
+CHAT_USE_HYBRID_SEARCH=True
+CHAT_USE_RERANKING=True
+CHAT_USE_QUERY_EXPANSION=False
+```
+
+#### Caching
+```bash
 ENABLE_QUERY_CACHE=True
 QUERY_CACHE_SIZE=1000
 ENABLE_EMBEDDING_CACHE=True
+```
+
+#### TestRail Integration (optional)
+```bash
+TESTRAIL_URL=https://yourcompany.testrail.io
+TESTRAIL_EMAIL=your-email@company.com
+TESTRAIL_API_KEY=your-api-key
+TESTRAIL_PROJECT_IDS=1,2,3         # comma-separated project IDs to sync
+TESTRAIL_DELTA_DAYS=0              # 0 = full sync; N = only cases updated in last N days
+TESTRAIL_PUSH_ENABLED=false        # allow pushing generated tests to TestRail
+TESTRAIL_SCHEDULE_ENABLED=False    # enable automatic scheduled sync
+TESTRAIL_SCHEDULE_TIME=02:00       # time of day for scheduled sync (HH:MM)
+```
+
+#### Confluence Integration (optional)
+```bash
+CONFLUENCE_URL=https://yourcompany.atlassian.net/wiki
+CONFLUENCE_EMAIL=your-email@company.com
+CONFLUENCE_API_TOKEN=your-atlassian-api-token
+CONFLUENCE_CQL=type=page           # CQL to filter pages; empty = all pages
+CONFLUENCE_DELTA_DAYS=0            # 0 = full sync; N = only pages updated in last N days
+```
+
+#### Requirement Analysis Settings (optional)
+```bash
+REQUIREMENT_TESTS_SIMILARITY_THRESHOLD=60.0   # min similarity % to consider a test "related"
+REQUIREMENT_RETRIEVAL_K=10                     # max related tests to retrieve per requirement
+REQUIREMENT_USE_HYBRID_SEARCH=True            # combine semantic + BM25 retrieval
+REQUIREMENT_USE_RERANKING=False               # re-rank results with CrossEncoder (slower)
+REQUIREMENT_MIN_TESTS_PER_PRIORITY=3          # don't generate tests for a priority if this many already exist
+REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY=70  # min similarity for a test to count toward coverage cap
+REQUIREMENT_ENRICH_WITH_CONTEXT=true          # enrich requirement titles with LLM context
+REQUIREMENT_PARALLEL_PROCESSING=true          # process requirements in parallel
+```
+
+#### QA Agent Network (optional)
+```bash
+# URL of the QA-Agent-Network server (see QA-Agent-Network repo)
+# QA_AGENT_NETWORK_URL=http://localhost:8765
+# QA_AGENT_NETWORK_TIMEOUT=30
 ```
 
 ---
@@ -373,8 +417,8 @@ python backend/app.py
 1. Download NSSM from https://nssm.cc/
 2. Extract and run:
 ```cmd
-nssm install RAGSystem "C:\path\to\python.exe" "C:\path\to\rag_deploy\backend\app.py"
-nssm set RAGSystem AppDirectory "C:\path\to\rag_deploy"
+nssm install RAGSystem "C:\path\to\python.exe" "C:\path\to\AI-Test-Studio\backend\app.py"
+nssm set RAGSystem AppDirectory "C:\path\to\AI-Test-Studio"
 nssm start RAGSystem
 ```
 
@@ -417,11 +461,11 @@ Create `~/Library/LaunchAgents/com.ragsystem.plist`:
     <string>com.ragsystem</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/path/to/rag_deploy/venv/bin/python</string>
-        <string>/path/to/rag_deploy/backend/app.py</string>
+        <string>/path/to/AI-Test-Studio/venv/bin/python</string>
+        <string>/path/to/AI-Test-Studio/backend/app.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/path/to/rag_deploy</string>
+    <string>/path/to/AI-Test-Studio</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -454,9 +498,9 @@ After=network.target
 [Service]
 Type=simple
 User=your-user
-WorkingDirectory=/path/to/rag_deploy
-Environment="PATH=/path/to/rag_deploy/venv/bin"
-ExecStart=/path/to/rag_deploy/venv/bin/python backend/app.py
+WorkingDirectory=/path/to/AI-Test-Studio
+Environment="PATH=/path/to/AI-Test-Studio/venv/bin"
+ExecStart=/path/to/AI-Test-Studio/venv/bin/python backend/app.py
 Restart=always
 
 [Install]
@@ -597,38 +641,41 @@ Platform-specific scripts live in `scripts/`:
 ### Directory Layout
 
 ```
-rag_deploy/
+AI-Test-Studio/
 │
 ├── backend/                    # Backend API server
 │   ├── app.py                 # Main Flask application
 │   ├── api/                   # API routes
-│   │   ├── admin/             # Admin endpoints
-│   │   │   ├── __init__.py
-│   │   │   └── routes.py      # Document upload, management
-│   │   └── customer/          # Customer endpoints
-│   │       ├── __init__.py
-│   │       └── routes.py      # Query endpoints
-│   ├── services/              # Business logic
-│   │   ├── __init__.py
-│   │   └── rag_service.py     # RAG service layer
-│   └── models/                # Data models
-│       └── __init__.py
-│
-├── core/                      # Core RAG functionality
-│   ├── __init__.py
+│   │   ├── admin/             # Admin endpoints (upload, sync, settings)
+│   │   │   └── routes.py
+│   │   ├── customer/          # Customer endpoints (chat, generate tests)
+│   │   │   └── routes.py
+│   │   ├── auth/              # Authentication endpoints
+│   │   │   └── routes.py
+│   │   └── agents/            # Agent proxy endpoints
+│   │       └── proxy.py
 │   ├── rag/                   # RAG classes
-│   │   ├── __init__.py
 │   │   ├── base_rag.py        # Base RAG class
-│   │   ├── text_based_rag.py  # Text processing
-│   │   ├── pdf_based_rag.py   # PDF processing
-│   │   ├── csv_excel_based_rag.py  # CSV/Excel processing
-│   │   ├── multi_format_rag.py    # Unified RAG
-│   │   ├── rag_config.py      # Configuration
+│   │   ├── multi_format_rag.py    # Unified multi-format RAG
+│   │   ├── settings.py        # RAG configuration
 │   │   ├── rag_helpers.py     # Helper functions
 │   │   ├── chromadb_helper.py # ChromaDB utilities
-│   │   ├── caching.py         # Caching implementation
-│   │   └── imports.py         # Centralized imports
-│   └── utils/                 # General utilities
+│   │   └── caching.py         # Query + embedding caching
+│   ├── services/              # Business logic
+│   │   ├── rag_service.py     # RAG service layer
+│   │   ├── auth_service.py    # Authentication
+│   │   ├── settings_service.py    # Settings management
+│   │   ├── sync_service.py    # Document sync
+│   │   ├── confluence_sync_service.py
+│   │   ├── requirement_analysis_service.py
+│   │   └── scheduler_service.py
+│   ├── connectors/            # External integrations
+│   │   ├── testrail_connector.py
+│   │   └── confluence_connector.py
+│   ├── extractors/            # Requirement extraction
+│   │   └── requirement_extractor.py
+│   └── models/                # Data models
+│       └── user.py
 │
 ├── frontend/                  # Frontend interfaces
 │   ├── admin/                 # Admin UI
@@ -970,7 +1017,7 @@ source ~/.zshrc
 
 **Permission Issues:**
 ```bash
-sudo chown -R $(whoami) /path/to/rag_deploy
+sudo chown -R $(whoami) /path/to/AI-Test-Studio
 ```
 
 #### Linux
