@@ -197,7 +197,7 @@ def reset_chromadb():
 def sync_testrail():
     """Trigger TestRail sync in background."""
     try:
-        from backend.services.sync_service import TestRailSyncService
+        from backend.services.testrail_sync_service import TestRailSyncService
         import threading
         
         sync_service = TestRailSyncService()
@@ -296,7 +296,7 @@ def confluence_diagnose():
     """
     try:
         from backend.connectors.confluence_connector import ConfluenceConnector
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
 
         config = get_config()
         url = getattr(config, "confluence_url", None) or os.getenv("CONFLUENCE_URL", "")
@@ -323,7 +323,7 @@ def confluence_diagnose():
 def get_sync_status():
     """Get sync status. Returns TestRail status (backward compat); Confluence status nested."""
     try:
-        from backend.services.sync_service import TestRailSyncService
+        from backend.services.testrail_sync_service import TestRailSyncService
         from backend.services.confluence_sync_service import ConfluenceSyncService
 
         testrail_svc = TestRailSyncService()

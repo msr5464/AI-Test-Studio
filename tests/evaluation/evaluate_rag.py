@@ -12,8 +12,8 @@ from tqdm import tqdm
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 
-from backend.rag.multi_format_rag import MultiFormatRAG
-from backend.rag.settings import get_config
+from backend.rag.rag_document_loader import MultiFormatRAG
+from backend.rag.rag_settings import get_config
 
 # Import evaluation specific dependencies
 from datasets import Dataset

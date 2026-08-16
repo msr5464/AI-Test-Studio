@@ -22,7 +22,7 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_ROOT))
 
 from backend.connectors.testrail_connector import TestRailConnector
-from backend.rag.settings import get_config
+from backend.rag.rag_settings import get_config
 
 
 def _load_env_for_sync():

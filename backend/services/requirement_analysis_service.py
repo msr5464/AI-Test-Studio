@@ -378,7 +378,7 @@ def _extract_text_from_file(file_path: Path) -> str:
 
 def _fetch_confluence_page(page_url: str) -> str:
     """Fetch Confluence page content from URL."""
-    from backend.rag.settings import get_config
+    from backend.rag.rag_settings import get_config
     _load_env()
     config = get_config()
     url = getattr(config, "confluence_url", None) or os.getenv("CONFLUENCE_URL", "")
@@ -523,7 +523,7 @@ class RequirementAnalysisService:
                 except Exception:
                     pass
 
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         config = get_config()
         report(1, "Analysing requirements", 0.05)
 
@@ -1983,7 +1983,7 @@ JSON array ({count} test cases):"""),
         default_section_id: int,
     ) -> Dict[str, int]:
         """Resolve section_id per requirement from first related test's case (get_case). Fallback to default_section_id."""
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         config = get_config()
         url = getattr(config, "testrail_url", None) or os.getenv("TESTRAIL_URL", "")
         email = getattr(config, "testrail_email", None) or os.getenv("TESTRAIL_EMAIL", "")
@@ -2019,7 +2019,7 @@ JSON array ({count} test cases):"""),
         section_id_or_map: Any,
     ) -> List[Dict]:
         """Push generated tests to TestRail via add_case. section_id_or_map: int (same section for all) or Dict[str,int] (req_id -> section_id). Returns list of {requirement_id, testrail_id, success, error?}."""
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         config = get_config()
         url = getattr(config, "testrail_url", None) or os.getenv("TESTRAIL_URL", "")
         email = getattr(config, "testrail_email", None) or os.getenv("TESTRAIL_EMAIL", "")
@@ -2112,7 +2112,7 @@ JSON array ({count} test cases):"""),
         default_section = target_section_id or 0
         push_enabled = False
         try:
-            from backend.rag.settings import get_config
+            from backend.rag.rag_settings import get_config
             config = get_config()
             push_enabled = getattr(config, "testrail_push_enabled", False) or os.getenv("TESTRAIL_PUSH_ENABLED", "").lower() == "true"
         except Exception:
@@ -2309,7 +2309,7 @@ Do not fabricate product details; use only the requirement and prior specs."""),
         content = current_content
         if content is None or content == "":
             try:
-                from backend.rag.settings import get_config
+                from backend.rag.rag_settings import get_config
                 config = get_config()
                 url = getattr(config, "testrail_url", None) or os.getenv("TESTRAIL_URL", "")
                 email = getattr(config, "testrail_email", None) or os.getenv("TESTRAIL_EMAIL", "")
@@ -2495,7 +2495,7 @@ RULES:
             return {"success": False, "testrail_id": testrail_id, "error": "Invalid testrail_id"}
         case_id = int(case_id_str)
         try:
-            from backend.rag.settings import get_config
+            from backend.rag.rag_settings import get_config
             config = get_config()
             url = getattr(config, "testrail_url", None) or os.getenv("TESTRAIL_URL", "")
             email = getattr(config, "testrail_email", None) or os.getenv("TESTRAIL_EMAIL", "")
@@ -2545,7 +2545,7 @@ RULES:
         if not section_id or not title or not title.strip():
             return {"success": False, "testrail_id": None, "error": "section_id and title are required"}
         try:
-            from backend.rag.settings import get_config
+            from backend.rag.rag_settings import get_config
             config = get_config()
             url = getattr(config, "testrail_url", None) or os.getenv("TESTRAIL_URL", "")
             email = getattr(config, "testrail_email", None) or os.getenv("TESTRAIL_EMAIL", "")
@@ -2611,7 +2611,7 @@ RULES:
         safe_id = re.sub(r"[^\w\-]", "_", str(testrail_id).strip())[:50]
         file_name = f"testrail_pushed_{safe_id}.csv"
         try:
-            # One row matching sync_service / testrail_connector CSV structure (RAG expects these headers)
+            # One row matching testrail_sync_service / testrail_connector CSV structure (RAG expects these headers)
             row = {
                 "ID": str(testrail_id).strip(),
                 "Title": (title or "").strip() or "Test case",

@@ -19,7 +19,7 @@ Automated tests ensure the Sync button and sync process work end-to-end.
 
 ```bash
 # From project root, with venv activated
-python3 -m pytest tests/test_sync_service.py -v
+python3 -m pytest tests/test_testrail_sync_service.py -v
 ```
 
 ### Run requirement-analysis tests
@@ -32,7 +32,7 @@ python3 -m pytest tests/test_requirement_analysis.py -v
 python3 -m pytest tests/test_requirement_analysis.py -v -m integration
 ```
 
-See **docs/SELF_TESTING_REQUIREMENT_ANALYSIS.md** for what to set in `config/.env` for self-testing.
+For self-testing, set the LLM (`LLM_PROVIDER`, API keys) and ChromaDB values in `config/.env` (copy from `config/env.example`).
 
 ### Requirement analysis e2e flow (Confluence + TestRail context)
 

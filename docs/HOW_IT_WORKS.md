@@ -41,7 +41,7 @@ A full-stack **RAG (Retrieval-Augmented Generation)** system that turns document
                │
                ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  MultiFormatRAG (backend/rag/multi_format_rag.py) extends BaseRAG             │
+│  MultiFormatRAG (backend/rag/rag_document_loader.py) extends BaseRAG          │
 │  - Loads PDF, CSV, Excel, Word, PowerPoint, text                            │
 │  - Validates testcase files (required columns), chunks, adds to vectorstore   │
 │  - add_files() → load by type → split → embed → ChromaDB                     │
@@ -50,7 +50,7 @@ A full-stack **RAG (Retrieval-Augmented Generation)** system that turns document
                │
                ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  BaseRAG (backend/rag/base_rag.py)                                            │
+│  BaseRAG (backend/rag/rag_engine.py)                                          │
 │  - Embeddings (HuggingFace or OpenAI), LLM (Ollama or OpenAI)               │
 │  - Text splitter, ChromaDB vectorstore, retriever, optional hybrid/rerank   │
 │  - Query cache, embedding cache, _query_impl() with similarity threshold     │
@@ -76,12 +76,11 @@ A full-stack **RAG (Retrieval-Augmented Generation)** system that turns document
 | **backend/services/auth_service.py** | Login/logout, session, user CRUD, default admin; uses `UserStorage` |
 | **backend/models/user.py** | User model and file-based `UserStorage` (e.g. `storage/users.json`) |
 | **backend/rag/** | RAG core (no Flask) |
-| **backend/rag/settings.py** | `RAGConfig` (Pydantic) loaded from `config/.env`; used by RAG layer |
-| **backend/rag/base_rag.py** | Embeddings, LLM, splitter, vectorstore, retriever, caching, `query()` / `_query_impl()` |
-| **backend/rag/multi_format_rag.py** | Format-specific loaders, `add_files()`, testcase validation; subclasses `BaseRAG` |
-| **backend/rag/chromadb_helper.py** | ChromaDB helpers: check/delete by file path, get_or_create vectorstore |
-| **backend/rag/rag_helpers.py** | Similarity, dedup, hashing, prompts, query expansion, rerank, citation parsing |
-| **backend/rag/caching.py** | Query cache and embedding cache for faster repeated requests |
+| **backend/rag/rag_settings.py** | `RAGConfig` (Pydantic) loaded from `config/.env`; used by RAG layer |
+| **backend/rag/rag_engine.py** | Embeddings, LLM, splitter, vectorstore, retriever, caching, `query()` / `_query_impl()` |
+| **backend/rag/rag_document_loader.py** | Format-specific loaders, `add_files()`, testcase validation; subclasses `BaseRAG` |
+| **backend/rag/rag_helper.py** | Similarity, dedup, hashing, prompts, query expansion, rerank, citation parsing, ChromaDB helpers |
+| **backend/rag/rag_caching.py** | Query cache and embedding cache for faster repeated requests |
 | **config/** | `env.example` template; copy to `config/.env` (created by install or run scripts) |
 | **frontend/** | Static HTML/JS/CSS: `admin/` (login, dashboard), `customer/` (chat UI) |
 | **scripts/** | `install.sh` (venv, deps, Ollama, storage, `.env`), `run.sh` (venv, optional Ollama check, start Flask) |
@@ -146,7 +145,7 @@ A full-stack **RAG (Retrieval-Augmented Generation)** system that turns document
 - **Embeddings**: Typically follow LLM provider (e.g. local HuggingFace when using Ollama; can use OpenAI embeddings when using OpenAI).
 - **Features**: `USE_HYBRID_SEARCH`, `USE_RERANKING`, `USE_QUERY_EXPANSION`, `ENABLE_QUERY_CACHE`, `ENABLE_EMBEDDING_CACHE`, etc.
 
-Settings are loaded in `backend/rag/settings.py` (RAGConfig) and from env in `backend/app.py` for Flask. Install script copies `config/env.example` → `config/.env` if missing.
+Settings are loaded in `backend/rag/rag_settings.py` (RAGConfig) and from env in `backend/app.py` for Flask. Install script copies `config/env.example` → `config/.env` if missing.
 
 ---
 
@@ -189,11 +188,11 @@ Settings are loaded in `backend/rag/settings.py` (RAGConfig) and from env in `ba
 | HTTP and routing | `backend/app.py`, `backend/api/*/routes.py` |
 | Document upload and lifecycle | `RAGService.upload_document`, `MultiFormatRAG.add_files` |
 | Document validation (testcase) | `RAGService._validate_testcase_file`, column checks in MultiFormatRAG |
-| Chunking and embedding | `BaseRAG` (splitter, embeddings), ChromaDB in `chromadb_helper` |
-| Retrieval and optional rerank/expansion | `BaseRAG._query_impl`, `rag_helpers` |
-| LLM call and answer formatting | `BaseRAG._query_impl`, `rag_helpers` (prompt, extract answer) |
-| Caching | `BaseRAG` + `backend/rag/caching.py` (query + embedding cache) |
-| Configuration | `config/.env`, `backend/rag/settings.py` (RAGConfig) |
+| Chunking and embedding | `BaseRAG` (splitter, embeddings), ChromaDB in `rag_helper` |
+| Retrieval and optional rerank/expansion | `BaseRAG._query_impl`, `rag_helper` |
+| LLM call and answer formatting | `BaseRAG._query_impl`, `rag_helper` (prompt, extract answer) |
+| Caching | `BaseRAG` + `backend/rag/rag_caching.py` (query + embedding cache) |
+| Configuration | `config/.env`, `backend/rag/rag_settings.py` (RAGConfig) |
 | Auth and users | `backend/services/auth_service.py`, `backend/models/user.py`, auth routes |
 
 End-to-end: **Upload** → files and metadata on disk, chunks in ChromaDB. **Query** → retrieve chunks → optional rerank/filter → LLM with context → answer and sources. **Auth** → session + role for admin-only operations.

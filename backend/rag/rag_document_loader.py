@@ -22,12 +22,12 @@ from typing import List, Union, Optional
 
 # Handle both relative and absolute imports
 try:
-    from .base_rag import BaseRAG
-    from .rag_helpers import calculate_file_hash, add_file_metadata_to_documents
+    from .rag_engine import BaseRAG
+    from .rag_helper import calculate_file_hash, add_file_metadata_to_documents
     from langchain_core.documents import Document
 except ImportError:
-    from backend.rag.base_rag import BaseRAG
-    from backend.rag.rag_helpers import calculate_file_hash, add_file_metadata_to_documents
+    from backend.rag.rag_engine import BaseRAG
+    from backend.rag.rag_helper import calculate_file_hash, add_file_metadata_to_documents
     from langchain_core.documents import Document
 
 # PDF loader
@@ -119,10 +119,10 @@ class MultiFormatRAG(BaseRAG):
             try:
                 # Try relative import first (when used as module)
                 try:
-                    from .settings import RAGConfig
+                    from .rag_settings import RAGConfig
                 except ImportError:
                     # Fallback to absolute import (when run as script)
-                    from settings import RAGConfig
+                    from backend.rag.rag_settings import RAGConfig
                 if isinstance(config, RAGConfig):
                     # Use to_dict() which excludes CSV/Excel specific settings
                     kwargs.update(config.to_dict(exclude_testrail=True))
@@ -1324,13 +1324,13 @@ def main():
     print("=" * 60)
     
     print("\n1. Initializing...")
-    # Use config file for all settings - modify settings.py to change settings
+    # Use config file for all settings - modify rag_settings.py to change settings
     try:
-        from rag.settings import get_config
+        from backend.rag.rag_settings import get_config
     except ImportError:
         # Fallback for direct script execution
         sys.path.insert(0, str(Path(__file__).parent))
-        from settings import get_config
+        from rag_settings import get_config
     config = get_config()
     rag = MultiFormatRAG(config=config)
     

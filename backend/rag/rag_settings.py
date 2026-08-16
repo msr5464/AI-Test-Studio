@@ -327,9 +327,9 @@ def reset_config() -> None:
     immediately for services that call get_config() at instantiation time (e.g. sync services).
 
     Note: modules that imported `settings` directly at module level (e.g.
-    `from backend.rag.settings import settings`) hold a stale reference and will not
+    `from backend.rag.rag_settings import settings`) hold a stale reference and will not
     see the update until restarted. Services that call get_config() freshly on each
-    request (TestRailSyncService, ConfluenceSyncService) are unaffected by this limitation.
+    request (TestRailSyncService from testrail_sync_service, ConfluenceSyncService) are unaffected by this limitation.
     """
     global _settings
     _settings = None

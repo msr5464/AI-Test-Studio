@@ -667,7 +667,7 @@ class SettingsService:
     def _reset_config() -> None:
         """Reset the RAGConfig singleton so the next get_config() call re-reads os.environ."""
         try:
-            from backend.rag.settings import reset_config
+            from backend.rag.rag_settings import reset_config
             reset_config()
         except Exception:
             pass

@@ -40,7 +40,7 @@ class SchedulerService:
     def _run_testrail_sync(self) -> None:
         logger.info("Scheduled TestRail sync: starting")
         try:
-            from backend.services.sync_service import TestRailSyncService
+            from backend.services.testrail_sync_service import TestRailSyncService
             rag_service = self._app.config.get('RAG_SERVICE') if self._app else None
 
             def _job():

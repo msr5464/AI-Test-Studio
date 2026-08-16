@@ -253,7 +253,7 @@ AI-Test-Studio/
 │   │   ├── customer/              # Requirement analysis, RAG query, TestRail push, automatable-case fetch
 │   │   └── agents/proxy.py        # Thin proxy: /api/agents/* → QA Agent Network server
 │   ├── services/                  # RAG, auth, sync, requirement analysis, Confluence sync, settings, scheduler
-│   ├── rag/                       # RAG core: base_rag, multi_format_rag, settings, caching, chromadb_helper
+│   ├── rag/                       # RAG core: rag_engine, rag_document_loader, rag_settings, rag_caching, rag_helper
 │   ├── connectors/                # TestRail, Confluence
 │   ├── extractors/                # Requirement extractor
 │   └── models/                    # User model and storage
@@ -292,8 +292,6 @@ AI-Test-Studio/
 | [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md) | Architecture, request flows, directory layout |
 | [docs/AI_INSTRUCTIONS.md](docs/AI_INSTRUCTIONS.md) | Instructions for AI assistants (self-test before marking tasks complete) |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Contribution guidelines |
-| [docs/REQUIREMENT_SPEC_PLAN.md](docs/REQUIREMENT_SPEC_PLAN.md) | Requirement analysis spec, current state, roadmap |
-| [docs/SELF_TESTING_REQUIREMENT_ANALYSIS.md](docs/SELF_TESTING_REQUIREMENT_ANALYSIS.md) | Config and checklist for testing requirement analysis |
 | [QA-Agent-Network/README.md](QA-Agent-Network/README.md) | QA Agent Network: setup, agent details, Makefile commands |
 | [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
 | [CHANGELOG.md](CHANGELOG.md) | Version history and release notes |
@@ -317,7 +315,7 @@ AI-Test-Studio/
 | Port in use | Set `PORT` in `config/.env` (e.g. 5002). |
 | Ollama not responding | Start Ollama (`ollama serve` or use install script); or set `LLM_PROVIDER=openai` (or `gemini`) and provide API keys. |
 | No documents in RAG | Upload via admin or run TestRail/Confluence sync; ensure ChromaDB path and collection exist. |
-| Requirement analysis / Generate Tests fails | Ensure LLM and ChromaDB are configured; see [docs/SELF_TESTING_REQUIREMENT_ANALYSIS.md](docs/SELF_TESTING_REQUIREMENT_ANALYSIS.md). |
+| Requirement analysis / Generate Tests fails | Ensure LLM and ChromaDB are configured in `config/.env` and that TestRail/Confluence sync has populated the vectorstore. |
 | Tests → Automation tab shows connection error | Start the QA Agent Network server: `cd QA-Agent-Network && bash scripts/run-server.sh`. Ensure `QA_AGENT_NETWORK_URL` in `config/.env` points to it (default `http://localhost:8765`). |
 | Test authoring agent fails / Maven errors | Ensure Java 11+, Maven 3.8+, and Node.js 18+ are installed. Check `QA-Agent-Network/config/.env` for a valid `ANTHROPIC_API_KEY` and GitHub credentials. |
 | TestRail "From TestRail" tab shows no cases | Verify TestRail credentials in `config/.env` and that the selected suite has cases with your configured "Pending Automation" status field values. |

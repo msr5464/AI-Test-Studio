@@ -132,7 +132,7 @@ def _trim_requirement_result_for_stream(data):
 
 def _get_testrail_connector():
     """Build TestRail connector from config/env. Returns None if not configured."""
-    from backend.rag.settings import get_config
+    from backend.rag.rag_settings import get_config
     config = get_config()
     url = getattr(config, "testrail_url", None) or os.getenv("TESTRAIL_URL", "")
     email = getattr(config, "testrail_email", None) or os.getenv("TESTRAIL_EMAIL", "")
@@ -146,7 +146,7 @@ def _get_testrail_connector():
 @customer_bp.route('/config', methods=['GET'])
 def customer_config():
     """Return public config for the frontend (e.g. TestRail base URL for case links)."""
-    from backend.rag.settings import get_config
+    from backend.rag.rag_settings import get_config
     config = get_config()
     testrail_url = (getattr(config, "testrail_url", None) or os.getenv("TESTRAIL_URL", "") or "").rstrip("/")
     return jsonify({"testrail_url": testrail_url}), 200

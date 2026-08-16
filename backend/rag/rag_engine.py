@@ -1,8 +1,9 @@
 """
-Base RAG Class
-==============
+RAG Engine
+==========
 
-Common RAG functionality shared across different document types.
+Core RAG engine: base class with embeddings, LLM, retrieval, and query
+functionality shared across different document types.
 """
 
 import hashlib
@@ -14,31 +15,76 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Import all dependencies from centralized imports module
+# ===== CENTRALIZED IMPORT HANDLING WITH FALLBACKS =====
+# (Merged from rag_imports.py for better organization)
 try:
-    from .imports import (
-        RecursiveCharacterTextSplitter, Chroma, OpenAIEmbeddings, ChatOpenAI,
-        Document, ChatPromptTemplate, BM25Retriever, CrossEncoder,
-        LANGCHAIN_AVAILABLE, BM25_AVAILABLE, ENSEMBLE_AVAILABLE,
-        RERANKER_AVAILABLE, OLLAMA_AVAILABLE, USE_NEW_OLLAMA
-    )
-except ImportError:
-    from backend.rag.imports import (
-        RecursiveCharacterTextSplitter, Chroma, OpenAIEmbeddings, ChatOpenAI,
-        Document, ChatPromptTemplate, BM25Retriever, CrossEncoder,
-        LANGCHAIN_AVAILABLE, BM25_AVAILABLE, ENSEMBLE_AVAILABLE,
-        RERANKER_AVAILABLE, OLLAMA_AVAILABLE, USE_NEW_OLLAMA
-    )
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+    from langchain_core.documents import Document
+    from langchain_core.prompts import ChatPromptTemplate
+    
+    # ChromaDB import with fallback
+    try:
+        from langchain_chroma import Chroma
+    except ImportError:
+        from langchain_community.vectorstores import Chroma
+        import warnings
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module="langchain_community")
+    
+    # BM25 and Ensemble retrievers
+    try:
+        from langchain_community.retrievers import BM25Retriever
+        BM25_AVAILABLE = True
+        try:
+            from langchain.retrievers import EnsembleRetriever
+            ENSEMBLE_AVAILABLE = True
+        except ImportError:
+            ENSEMBLE_AVAILABLE = False
+    except ImportError:
+        BM25_AVAILABLE = False
+        ENSEMBLE_AVAILABLE = False
+    
+    # CrossEncoder for re-ranking
+    try:
+        from sentence_transformers import CrossEncoder
+        RERANKER_AVAILABLE = True
+    except ImportError:
+        RERANKER_AVAILABLE = False
+        CrossEncoder = None  # Make it available even if import fails
+    
+    # Ollama support
+    try:
+        from langchain_ollama import ChatOllama
+        OLLAMA_AVAILABLE = True
+        USE_NEW_OLLAMA = True
+    except ImportError:
+        try:
+            from langchain_community.chat_models import ChatOllama
+            OLLAMA_AVAILABLE = True
+            USE_NEW_OLLAMA = False
+        except ImportError:
+            OLLAMA_AVAILABLE = False
+            USE_NEW_OLLAMA = False
+    
+    LANGCHAIN_AVAILABLE = True
+except ImportError as e:
+    LANGCHAIN_AVAILABLE = False
+    OLLAMA_AVAILABLE = False
+    BM25_AVAILABLE = False
+    ENSEMBLE_AVAILABLE = False
+    RERANKER_AVAILABLE = False
+    USE_NEW_OLLAMA = False
+    print(f"⚠️  Import error: {e}")
 
 try:
-    from .rag_helpers import (
+    from .rag_helper import (
         import_chromadb_helper, SimpleMemory, calculate_similarity, deduplicate_documents,
         sanitize_documents, calculate_file_hash, calculate_content_hash, add_file_metadata_to_documents,
         debug_log, RAG_SYSTEM_MESSAGE, extract_answer_from_llm_result, expand_query, extract_cited_sources,
         rerank_documents
     )
 except ImportError:
-    from backend.rag.rag_helpers import (
+    from backend.rag.rag_helper import (
         import_chromadb_helper, SimpleMemory, calculate_similarity, deduplicate_documents,
         sanitize_documents, calculate_file_hash, calculate_content_hash, add_file_metadata_to_documents,
         debug_log, RAG_SYSTEM_MESSAGE, extract_answer_from_llm_result, expand_query, extract_cited_sources,
@@ -47,10 +93,10 @@ except ImportError:
 
 # Try to import caching modules
 try:
-    from .caching import QueryCache, EmbeddingCache, CachedEmbeddings
+    from .rag_caching import QueryCache, EmbeddingCache, CachedEmbeddings
     CACHING_AVAILABLE = True
 except ImportError:
-    from backend.rag.caching import QueryCache, EmbeddingCache, CachedEmbeddings
+    from backend.rag.rag_caching import QueryCache, EmbeddingCache, CachedEmbeddings
     CACHING_AVAILABLE = True
 
 
@@ -103,10 +149,10 @@ class BaseRAG:
             try:
                 # Try relative import first (when used as module)
                 try:
-                    from .settings import RAGConfig
+                    from .rag_settings import RAGConfig
                 except ImportError:
                     # Fallback to absolute import (when run as script)
-                    from settings import RAGConfig
+                    from backend.rag.rag_settings import RAGConfig
                 if isinstance(config, RAGConfig):
                     config_dict = config.to_dict()
                     use_local_embeddings = config_dict.get('use_local_embeddings', use_local_embeddings)

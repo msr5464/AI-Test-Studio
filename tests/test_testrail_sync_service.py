@@ -51,12 +51,12 @@ def temp_storage(tmp_path):
 class TestSyncServiceUnit:
     """Unit tests for TestRailSyncService."""
 
-    @patch("backend.services.sync_service.get_config", _mock_config)
+    @patch("backend.services.testrail_sync_service.get_config", _mock_config)
     @patch.dict(os.environ, {}, clear=False)
     def test_is_syncing_cleared_on_validation_failure(self, temp_storage):
         """is_syncing must be False after sync returns due to validation failure."""
         os.environ["STORAGE_DIR"] = str(temp_storage)
-        from backend.services.sync_service import TestRailSyncService
+        from backend.services.testrail_sync_service import TestRailSyncService
 
         with patch.object(TestRailSyncService, "__init__", lambda self: None):
             svc = TestRailSyncService()
@@ -76,12 +76,12 @@ class TestSyncServiceUnit:
         status = svc.get_sync_status()
         assert status.get("is_syncing") is False
 
-    @patch("backend.services.sync_service.get_config", _mock_config)
+    @patch("backend.services.testrail_sync_service.get_config", _mock_config)
     @patch.dict(os.environ, {}, clear=False)
     def test_is_syncing_cleared_on_connector_exception(self, temp_storage):
         """is_syncing must be False after connector raises."""
         os.environ["STORAGE_DIR"] = str(temp_storage)
-        from backend.services.sync_service import TestRailSyncService
+        from backend.services.testrail_sync_service import TestRailSyncService
 
         with patch.object(TestRailSyncService, "__init__", lambda self: None):
             svc = TestRailSyncService()
@@ -96,12 +96,12 @@ class TestSyncServiceUnit:
         status = svc.get_sync_status()
         assert status.get("is_syncing") is False
 
-    @patch("backend.services.sync_service.get_config", _mock_config)
+    @patch("backend.services.testrail_sync_service.get_config", _mock_config)
     @patch.dict(os.environ, {}, clear=False)
     def test_progress_callback_invoked_and_status_has_current_sync(self, temp_storage):
         """Progress callback should be called and get_sync_status should return current_sync while syncing."""
         os.environ["STORAGE_DIR"] = str(temp_storage)
-        from backend.services.sync_service import TestRailSyncService
+        from backend.services.testrail_sync_service import TestRailSyncService
         import threading
 
         progress_calls = []
@@ -116,7 +116,7 @@ class TestSyncServiceUnit:
                 progress_callback(1, 1, 3, "Done")
             return df_valid
 
-        with patch("backend.services.sync_service.TestRailConnector") as ConnMock:
+        with patch("backend.services.testrail_sync_service.TestRailConnector") as ConnMock:
             conn = ConnMock.return_value
             conn.fetch_and_transform.side_effect = do_fetch
 
@@ -140,12 +140,12 @@ class TestSyncServiceUnit:
         assert status["latest_sync_record"].get("projects_count") == 1
         assert status["latest_sync_record"].get("test_cases_fetched") == 3
 
-    @patch("backend.services.sync_service.get_config", _mock_config)
+    @patch("backend.services.testrail_sync_service.get_config", _mock_config)
     @patch.dict(os.environ, {}, clear=False)
     def test_get_sync_status_returns_current_sync_structure(self, temp_storage):
         """get_sync_status returns last_sync, is_syncing, current_sync, latest_sync_record, configured_projects."""
         os.environ["STORAGE_DIR"] = str(temp_storage)
-        from backend.services.sync_service import TestRailSyncService
+        from backend.services.testrail_sync_service import TestRailSyncService
 
         svc = TestRailSyncService()
         svc.storage_dir = temp_storage
@@ -171,7 +171,7 @@ class TestSyncAPI:
     def client(self, app):
         return app.test_client()
 
-    @patch("backend.services.sync_service.TestRailSyncService")
+    @patch("backend.services.testrail_sync_service.TestRailSyncService")
     def test_sync_status_returns_200_and_structure(self, mock_sync_service, client):
         """GET /api/admin/sync/status returns 200 and status object when auth is bypassed."""
         mock_sync_service.return_value.get_sync_status.return_value = {
@@ -196,7 +196,7 @@ class TestSyncAPI:
         assert isinstance(data["status"]["sync_log"], list)
         assert len(data["status"]["sync_log"]) >= 1
 
-    @patch("backend.services.sync_service.TestRailSyncService")
+    @patch("backend.services.testrail_sync_service.TestRailSyncService")
     def test_sync_testrail_returns_202_when_started(self, mock_sync_service, client):
         """POST /api/admin/sync/testrail returns 202 when sync is started."""
         mock_svc = MagicMock()
@@ -210,7 +210,7 @@ class TestSyncAPI:
         assert data.get("success") is True
         assert "started" in data.get("status", "").lower() or "started" in data.get("message", "").lower()
 
-    @patch("backend.services.sync_service.TestRailSyncService")
+    @patch("backend.services.testrail_sync_service.TestRailSyncService")
     def test_sync_testrail_returns_409_when_already_syncing(self, mock_sync_service, client):
         """POST /api/admin/sync/testrail returns 409 when sync already in progress."""
         mock_svc = MagicMock()
@@ -228,13 +228,13 @@ class TestSyncAPI:
 class TestStaleSyncRecovery:
     """Stale sync (is_syncing True for > 30 min) is cleared so user can start a new sync."""
 
-    @patch("backend.services.sync_service.get_config", _mock_config)
+    @patch("backend.services.testrail_sync_service.get_config", _mock_config)
     @patch.dict(os.environ, {}, clear=False)
     def test_get_sync_status_clears_stale_sync(self, temp_storage):
         """When sync_started_at is older than 30 min, get_sync_status clears is_syncing."""
         os.environ["STORAGE_DIR"] = str(temp_storage)
         from datetime import datetime, timedelta
-        from backend.services.sync_service import TestRailSyncService, STALE_SYNC_MINUTES
+        from backend.services.testrail_sync_service import TestRailSyncService, STALE_SYNC_MINUTES
 
         metadata_file = temp_storage / "sync_metadata.json"
         old_time = (datetime.now() - timedelta(minutes=STALE_SYNC_MINUTES + 1)).isoformat()
@@ -252,13 +252,13 @@ class TestStaleSyncRecovery:
             saved = json.load(f)
         assert saved.get("is_syncing") is False
 
-    @patch("backend.services.sync_service.get_config", _mock_config)
+    @patch("backend.services.testrail_sync_service.get_config", _mock_config)
     @patch.dict(os.environ, {}, clear=False)
     def test_post_sync_after_stale_returns_202(self, temp_storage, app):
         """When metadata has stale is_syncing, POST /sync/testrail clears it and returns 202."""
         os.environ["STORAGE_DIR"] = str(temp_storage)
         from datetime import datetime, timedelta
-        from backend.services.sync_service import STALE_SYNC_MINUTES
+        from backend.services.testrail_sync_service import STALE_SYNC_MINUTES
         import json
 
         metadata_file = temp_storage / "sync_metadata.json"

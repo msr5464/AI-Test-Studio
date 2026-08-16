@@ -655,17 +655,16 @@ AI-Test-Studio/
 │   │   └── agents/            # Agent proxy endpoints
 │   │       └── proxy.py
 │   ├── rag/                   # RAG classes
-│   │   ├── base_rag.py        # Base RAG class
-│   │   ├── multi_format_rag.py    # Unified multi-format RAG
-│   │   ├── settings.py        # RAG configuration
-│   │   ├── rag_helpers.py     # Helper functions
-│   │   ├── chromadb_helper.py # ChromaDB utilities
-│   │   └── caching.py         # Query + embedding caching
+│   │   ├── rag_engine.py      # Core RAG engine (base class: embeddings, LLM, retrieval, query)
+│   │   ├── rag_document_loader.py  # Multi-format document loading (PDF, CSV, Excel, Word, PPT)
+│   │   ├── rag_settings.py    # RAG configuration
+│   │   ├── rag_helper.py      # Helper functions + ChromaDB utilities
+│   │   └── rag_caching.py     # Query + embedding caching
 │   ├── services/              # Business logic
 │   │   ├── rag_service.py     # RAG service layer
 │   │   ├── auth_service.py    # Authentication
 │   │   ├── settings_service.py    # Settings management
-│   │   ├── sync_service.py    # Document sync
+│   │   ├── testrail_sync_service.py    # TestRail sync
 │   │   ├── confluence_sync_service.py
 │   │   ├── requirement_analysis_service.py
 │   │   └── scheduler_service.py
@@ -720,10 +719,10 @@ AI-Test-Studio/
 - **Services** (`services/`): Business logic for RAG operations
 
 **RAG core (`backend/rag/`)**:
-- **Base RAG** (`base_rag.py`): Common functionality
+- **RAG Engine** (`rag_engine.py`): Core engine — embeddings, LLM, retrieval, query
 - **Format-Specific RAG**: Text, PDF, CSV/Excel processors
-- **Multi-Format RAG** (`multi_format_rag.py`): Unified interface
-- **Supporting Files**: Configuration, helpers, caching, ChromaDB utilities
+- **Document Loader RAG** (`rag_document_loader.py`): Unified multi-format interface
+- **Supporting Files**: Configuration (`rag_settings.py`), helpers (`rag_helper.py`), caching (`rag_caching.py`)
 
 **Frontend (`frontend/`)**:
 - **Admin Interface**: Document upload, management, ChromaDB viewing

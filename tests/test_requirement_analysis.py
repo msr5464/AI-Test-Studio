@@ -611,7 +611,7 @@ class TestRequirementAnalysisConfig:
 
     def test_config_has_requirement_retrieval_similarity_threshold(self):
         """REQUIREMENT_RETRIEVAL_SIMILARITY_THRESHOLD loads as requirement_retrieval_similarity_threshold."""
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         config = get_config()
         assert hasattr(config, "requirement_retrieval_similarity_threshold")
         val = config.requirement_retrieval_similarity_threshold
@@ -620,7 +620,7 @@ class TestRequirementAnalysisConfig:
 
     def test_config_has_requirement_needs_update_confidence_threshold(self):
         """REQUIREMENT_NEEDS_UPDATE_CONFIDENCE_THRESHOLD loads as requirement_needs_update_confidence_threshold."""
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         config = get_config()
         assert hasattr(config, "requirement_needs_update_confidence_threshold")
         val = config.requirement_needs_update_confidence_threshold
@@ -871,7 +871,7 @@ class TestSuggestCaseUpdateAndUpdateInTestrail:
             testrail_api_key="k",
             testrail_push_enabled=True,
         )
-        with patch("backend.rag.settings.get_config", return_value=mock_config):
+        with patch("backend.rag.rag_settings.get_config", return_value=mock_config):
             with patch("backend.connectors.testrail_connector.TestRailConnector") as mock_conn_class:
                 mock_conn = MagicMock()
                 mock_conn_class.return_value = mock_conn
@@ -899,7 +899,7 @@ class TestSuggestCaseUpdateAndUpdateInTestrail:
             testrail_api_key="k",
             testrail_push_enabled=False,
         )
-        with patch("backend.rag.settings.get_config", return_value=mock_config):
+        with patch("backend.rag.rag_settings.get_config", return_value=mock_config):
             result = svc.update_case_in_testrail(testrail_id="C99", title="Title")
         assert result.get("success") is False
         assert "error" in result
@@ -1138,7 +1138,7 @@ class TestRequirementAnalysisIntegration:
         )
         # Allow 200 (success) or 500 if RAG/LLM not configured
         if resp.status_code != 200:
-            pytest.skip(f"Requirement analysis returned {resp.status_code}; ensure LLM and ChromaDB are configured (see docs/SELF_TESTING_REQUIREMENT_ANALYSIS.md)")
+            pytest.skip(f"Requirement analysis returned {resp.status_code}; ensure LLM and ChromaDB are configured in config/.env")
         data = resp.get_json()
         assert data.get("success") is True
         assert "requirements_analyzed" in data

@@ -45,7 +45,7 @@ class TestConfigDefaults:
     """Verify the updated .env values are loaded by RAGConfig."""
 
     def test_chat_similarity_threshold_is_55(self):
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         cfg = get_config()
         assert cfg.chat_min_similarity_threshold == 55.0, (
             f"Expected 55.0, got {cfg.chat_min_similarity_threshold}. "
@@ -53,21 +53,21 @@ class TestConfigDefaults:
         )
 
     def test_chat_hybrid_search_enabled(self):
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         cfg = get_config()
         assert cfg.chat_use_hybrid_search is True, (
             "CHAT_USE_HYBRID_SEARCH should be True in config/.env"
         )
 
     def test_chat_reranking_enabled(self):
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         cfg = get_config()
         assert cfg.chat_use_reranking is True, (
             "CHAT_USE_RERANKING should be True in config/.env"
         )
 
     def test_requirement_threshold_is_60(self):
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         cfg = get_config()
         assert cfg.requirement_retrieval_similarity_threshold == 60.0, (
             f"Expected 60.0, got {cfg.requirement_retrieval_similarity_threshold}"
@@ -75,7 +75,7 @@ class TestConfigDefaults:
 
     def test_needs_update_ceiling_above_retrieval_floor(self):
         """Ceiling must be > floor so the 'Need Update' band is non-empty."""
-        from backend.rag.settings import get_config
+        from backend.rag.rag_settings import get_config
         cfg = get_config()
         raw = cfg.requirement_needs_update_confidence_threshold
         # settings.py normalises 0-100 → 0-1; un-normalise for readability
@@ -387,23 +387,23 @@ class TestQueryExpansion:
     """expand_query() uses LLM when available and falls back gracefully."""
 
     def test_disabled_returns_only_original(self):
-        from backend.rag.rag_helpers import expand_query
+        from backend.rag.rag_helper import expand_query
         result = expand_query("find login tests", use_query_expansion=False)
         assert result == ["find login tests"]
 
     def test_enabled_no_llm_strips_question_mark(self):
-        from backend.rag.rag_helpers import expand_query
+        from backend.rag.rag_helper import expand_query
         result = expand_query("what are login tests?", use_query_expansion=True, llm=None)
         assert "what are login tests?" in result
         assert "what are login tests" in result
 
     def test_enabled_no_llm_no_question_mark_returns_original_only(self):
-        from backend.rag.rag_helpers import expand_query
+        from backend.rag.rag_helper import expand_query
         result = expand_query("find login tests", use_query_expansion=True, llm=None)
         assert result == ["find login tests"]
 
     def test_enabled_with_llm_returns_variants(self):
-        from backend.rag.rag_helpers import expand_query
+        from backend.rag.rag_helper import expand_query
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = _llm_response(
             "What test cases cover the login feature?\nFind authentication-related tests"
@@ -415,7 +415,7 @@ class TestQueryExpansion:
         assert "Find authentication-related tests" in result
 
     def test_enabled_with_llm_fallback_on_error(self):
-        from backend.rag.rag_helpers import expand_query
+        from backend.rag.rag_helper import expand_query
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = RuntimeError("LLM unavailable")
         # Should not raise; falls back to basic expansion
@@ -423,7 +423,7 @@ class TestQueryExpansion:
         assert "what are login tests?" in result
 
     def test_llm_called_with_query_in_prompt(self):
-        from backend.rag.rag_helpers import expand_query
+        from backend.rag.rag_helper import expand_query
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = _llm_response("variant 1\nvariant 2")
         expand_query("specific query text", use_query_expansion=True, llm=mock_llm)
@@ -431,11 +431,11 @@ class TestQueryExpansion:
         assert "specific query text" in prompt_used
 
     def test_base_rag_passes_llm_to_expand_query(self):
-        """expand_query in base_rag._query_impl must receive llm=self.llm."""
-        with patch("backend.rag.base_rag.expand_query") as mock_expand:
+        """expand_query in rag_engine._query_impl must receive llm=self.llm."""
+        with patch("backend.rag.rag_engine.expand_query") as mock_expand:
             mock_expand.return_value = ["test query"]
 
-            from backend.rag.base_rag import BaseRAG
+            from backend.rag.rag_engine import BaseRAG
             rag = BaseRAG.__new__(BaseRAG)
             rag.llm = MagicMock(name="test_llm")
             rag.use_query_expansion = True
