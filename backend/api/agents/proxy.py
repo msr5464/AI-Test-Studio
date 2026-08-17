@@ -233,3 +233,8 @@ def sessions_list():
 @agents_bp.route("/test-authoring-agent/sessions/<session_id>", methods=["GET"])
 def sessions_get(session_id: str):
     return _forward_json("GET", f"/agents/test-authoring-agent/sessions/{session_id}")
+
+
+@agents_bp.route("/test-authoring-agent/sessions/<session_id>/retry", methods=["POST"])
+def sessions_retry(session_id: str):
+    return _forward_json("POST", f"/agents/test-authoring-agent/sessions/{session_id}/retry")

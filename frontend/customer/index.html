@@ -6317,6 +6317,34 @@
             display: contents; /* let children participate in flex gap directly */
         }
 
+        .qa-step-retry-btn {
+            margin-left: auto;
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid currentColor;
+            background: transparent;
+            color: inherit;
+            opacity: 0.75;
+            font-size: 11px;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.15s, background 0.15s;
+        }
+        /* A background/border color-swap on hover would need to invert against
+           currentColor, but currentColor is dynamic — changing `color` for the
+           swap would also silently repaint the (currentColor) border and make
+           the glyph unreadable. Simpler and safe: just brighten + a neutral
+           tint, independent of the step's own state color. */
+        .qa-step-retry-btn:hover {
+            opacity: 1;
+            background: rgba(148, 163, 184, 0.2);
+        }
+
         .qa-result-pr-btn {
             display: inline-flex;
             align-items: center;
@@ -6517,6 +6545,20 @@
             background: rgba(239, 68, 68, 0.08);
             border-color: rgba(239, 68, 68, 0.35);
             color: #ef4444;
+        }
+
+        .qa-action-btn-retry {
+            background: rgba(79, 70, 229, 0.1);
+            border-color: rgba(79, 70, 229, 0.35);
+            color: var(--primary);
+            /* sits inside an uppercase <h4> — keep the button's own case/weight */
+            text-transform: none;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .qa-action-btn-retry:hover {
+            background: rgba(79, 70, 229, 0.2);
+            border-color: rgba(79, 70, 229, 0.6);
         }
 
         /* legacy — queue panel remove button (small ✕ icon only) */
@@ -7050,10 +7092,10 @@
                         <div class="qa-live-steps-wrap">
                             <div class="qa-progress-steps" id="qaProgressSteps">
                                 <div class="qa-step" data-step="parse"><span class="qa-step-icon">1</span>Parse</div>
-                                <div class="qa-step" data-step="validate_web"><span class="qa-step-icon">2</span>Validate Web</div>
-                                <div class="qa-step" data-step="generate"><span class="qa-step-icon">3</span>Generate</div>
-                                <div class="qa-step" data-step="run_and_fix"><span class="qa-step-icon">4</span>Run &amp; Fix</div>
-                                <div class="qa-step" data-step="ship"><span class="qa-step-icon">5</span>Ship</div>
+                                <div class="qa-step" data-step="validate_web"><span class="qa-step-icon">2</span>Validate Web<button type="button" class="qa-step-retry-btn" data-retry-step="2" style="display:none;" title="Retry from Validate Web">↻</button></div>
+                                <div class="qa-step" data-step="generate"><span class="qa-step-icon">3</span>Generate<button type="button" class="qa-step-retry-btn" data-retry-step="3" style="display:none;" title="Retry from Generate">↻</button></div>
+                                <div class="qa-step" data-step="run_and_fix"><span class="qa-step-icon">4</span>Run &amp; Fix<button type="button" class="qa-step-retry-btn" data-retry-step="4" style="display:none;" title="Retry from Run &amp; Fix">↻</button></div>
+                                <div class="qa-step" data-step="ship"><span class="qa-step-icon">5</span>Ship<button type="button" class="qa-step-retry-btn" data-retry-step="5" style="display:none;" title="Retry from Ship">↻</button></div>
                             </div>
                         </div>
                         <!-- Console output -->
@@ -11079,6 +11121,7 @@
                 resetStepUI();
                 $('qaConsole').innerHTML = '';
                 $('qaLiveResult').textContent = '';
+                hideStepRetryButtons();
                 $('qaLiveCard').style.display = '';
                 $('qaLiveSession').textContent = sessionId;
                 $('qaLiveModule').textContent = moduleFile || '—';
@@ -11203,6 +11246,9 @@
                     }
                     $('qaLiveResult').innerHTML = resultHtml;
                     appendLine(isOk ? 'done' : 'error', '[' + status + '] ' + (payload.message || verdict || ''));
+                    if (!isOk) {
+                        showStepRetryButtons(state.activeSession);
+                    }
                     closeStream();
                     loadHistory();
                     // Refresh queue — next item may have auto-started
@@ -11388,6 +11434,15 @@
                 }
             }
 
+            const STEP_LABELS = { parse: 'Parse', validate_web: 'Validate Web', generate: 'Generate', run_and_fix: 'Run & Fix', ship: 'Ship' };
+
+            // One button's markup for "resume this session from step `stepNum`" —
+            // used inline in the session-detail modal, next to each step's header.
+            function retryButtonHtml(sessionId, stepNum, label) {
+                return '<button class="qa-action-btn qa-action-btn-retry" title="Re-run from ' + escapeHtml(label) + ', reusing everything before it" '
+                    + 'onclick="qaAgents.retrySession(\'' + escapeHtml(sessionId) + '\',' + stepNum + ')">↻ Retry from here</button>';
+            }
+
             function renderSessionDetail(d) {
                 const body = $('qaSessionDetail');
                 const sections = [];
@@ -11396,12 +11451,88 @@
                     started_at: d.started_at, ended_at: d.ended_at, pr_url: d.pr_url,
                 }, null, 2)) + '</pre></div>');
                 const steps = d.steps || {};
-                STEPS.forEach(function (key) {
-                    if (steps[key]) {
-                        sections.push('<div class="qa-modal-section"><h4>' + escapeHtml(key) + '</h4><pre>' + escapeHtml(JSON.stringify(steps[key], null, 2)) + '</pre></div>');
+                // Retrying resumes a session in place — only offer it once the session
+                // is no longer actively running (nothing to resume into otherwise), and
+                // never for step 1 (Parse): "from step 1" isn't a resume, it's a fresh
+                // run, which already exists as the main Run action.
+                const canRetry = d.status !== 'running' && d.status !== 'in_progress';
+                const sessionId = d.session_id;
+                STEPS.forEach(function (key, idx) {
+                    if (!steps[key]) return;
+                    const stepNum = idx + 1;
+                    const label = STEP_LABELS[key] || key;
+                    let header = '<h4>' + escapeHtml(label) + '</h4>';
+                    if (canRetry && stepNum >= 2) {
+                        header = '<h4>' + escapeHtml(label) + ' ' + retryButtonHtml(sessionId, stepNum, label) + '</h4>';
                     }
+                    sections.push('<div class="qa-modal-section">' + header + '<pre>' + escapeHtml(JSON.stringify(steps[key], null, 2)) + '</pre></div>');
                 });
                 body.innerHTML = sections.join('');
+            }
+
+            function hideStepRetryButtons() {
+                document.querySelectorAll('#qaProgressSteps .qa-step-retry-btn').forEach(function (btn) {
+                    btn.style.display = 'none';
+                    btn.onclick = null;
+                });
+            }
+
+            // Reveals a ↻ button directly on each eligible step badge once a run
+            // ends non-completed — this Live Run card (progress badges + console)
+            // is the FIRST place a user sees a failure, so retry needs to live
+            // right there, not only in the separate History modal.
+            async function showStepRetryButtons(sessionId) {
+                if (!sessionId) return;
+                try {
+                    const d = await apiFetch(AGENT_BASE + '/sessions/' + encodeURIComponent(sessionId));
+                    const steps = (d && d.steps) || {};
+                    STEPS.forEach(function (key, idx) {
+                        const stepNum = idx + 1;
+                        if (stepNum < 2) return;
+                        const btn = document.querySelector('.qa-step-retry-btn[data-retry-step="' + stepNum + '"]');
+                        if (!btn) return;
+                        if (steps[key]) {
+                            btn.style.display = '';
+                            btn.onclick = function (ev) {
+                                ev.stopPropagation();
+                                retrySession(sessionId, stepNum);
+                            };
+                        } else {
+                            btn.style.display = 'none';
+                            btn.onclick = null;
+                        }
+                    });
+                } catch (e) {
+                    // Non-critical — the modal (via the History table) still offers retry.
+                }
+            }
+
+            async function retrySession(sessionId, fromStep) {
+                if (!sessionId || !fromStep) return;
+                const label = STEP_LABELS[STEPS[fromStep - 1]] || ('step ' + fromStep);
+                if (!confirm('Retry "' + sessionId + '" starting from ' + label + '?\n\n'
+                    + 'Steps before this are reused as-is. Any previous output for this '
+                    + 'step onward will be discarded and regenerated.')) return;
+                try {
+                    const resBody = await apiFetch(AGENT_BASE + '/sessions/' + encodeURIComponent(sessionId) + '/retry', {
+                        method: 'POST',
+                        body: JSON.stringify({ from_step: fromStep }),
+                    });
+                    closeSessionModal();
+                    if (resBody && resBody.queued) {
+                        await loadHistory();
+                        showToast('⏳  Another run is in progress — retry of "' + sessionId
+                            + '" queued at position ' + resBody.position + '.', 'info');
+                        return;
+                    }
+                    showToast('↻ Resuming "' + sessionId + '" from ' + label, 'info');
+                    attachLiveRun(sessionId, (resBody && resBody.module) || '—', 0);
+                    loadHistory();
+                    const card = $('qaLiveCard');
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } catch (e) {
+                    showToast('Retry failed: ' + (e.message || 'unknown'), 'warning');
+                }
             }
 
             function viewLogs(sessionId, moduleFile) {
@@ -11454,6 +11585,7 @@
                 loadQueue: loadQueue,
                 removeFromQueue: removeFromQueue,
                 closeSessionModal: closeSessionModal,
+                retrySession: retrySession,
             };
         })();
 
