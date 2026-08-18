@@ -6956,9 +6956,10 @@
                                 </div>
                                 <div class="qa-form-row" style="margin-bottom:0;">
                                     <label for="qaNewType">Platform Type </label>
-                                    <select id="qaNewType" class="qa-select">
+                                    <select id="qaNewType" class="qa-select"
+                                        onchange="if(window.qaAgents && qaAgents.onNewTypeChange) qaAgents.onNewTypeChange()">
                                         <option value="web">🌐 Web</option>
-                                        <option value="mobile">📱 Mobile</option>
+                                        <option value="mobile" disabled title="Mobile automation isn't supported yet">📱 Mobile (coming soon)</option>
                                         <option value="api">🔌 API</option>
                                     </select>
                                 </div>
@@ -7053,7 +7054,7 @@
                         <!-- Options + run button -->
                         <div class="analyze-actions" id="qaRunActions">
                             <label class="analyze-option">
-                                <input type="checkbox" id="qaAutoPush" checked /> Auto-push PR on success
+                                <input type="checkbox" id="qaAutoPush" /> Auto-push PR on success
                             </label>
                             <button type="button" class="analyze-btn" id="qaRunBtn" onclick="qaAgents.run()">
                                 <span id="qaRunBtnLabel">🚀 Run Agent</span>
@@ -7092,7 +7093,7 @@
                         <div class="qa-live-steps-wrap">
                             <div class="qa-progress-steps" id="qaProgressSteps">
                                 <div class="qa-step" data-step="parse"><span class="qa-step-icon">1</span>Parse</div>
-                                <div class="qa-step" data-step="validate_web"><span class="qa-step-icon">2</span>Validate Web<button type="button" class="qa-step-retry-btn" data-retry-step="2" style="display:none;" title="Retry from Validate Web">↻</button></div>
+                                <div class="qa-step" data-step="validate_web"><span class="qa-step-icon">2</span>Validate<button type="button" class="qa-step-retry-btn" data-retry-step="2" style="display:none;" title="Retry from Validate">↻</button></div>
                                 <div class="qa-step" data-step="generate"><span class="qa-step-icon">3</span>Generate<button type="button" class="qa-step-retry-btn" data-retry-step="3" style="display:none;" title="Retry from Generate">↻</button></div>
                                 <div class="qa-step" data-step="run_and_fix"><span class="qa-step-icon">4</span>Run &amp; Fix<button type="button" class="qa-step-retry-btn" data-retry-step="4" style="display:none;" title="Retry from Run &amp; Fix">↻</button></div>
                                 <div class="qa-step" data-step="ship"><span class="qa-step-icon">5</span>Ship<button type="button" class="qa-step-retry-btn" data-retry-step="5" style="display:none;" title="Retry from Ship">↻</button></div>
@@ -10850,6 +10851,23 @@
                 }
             }
 
+            // Example text in the "Write" tab's textarea — steps for a web (browser-driven)
+            // test and an API (HTTP request/response) test look nothing alike, so the
+            // placeholder should match whatever Platform Type is currently selected
+            // instead of always showing a web-flavored example.
+            const SPEC_PLACEHOLDERS = {
+                web: 'Module: payments\nType: web\n\nSteps:\n1. Navigate to customer portal using url: https://app.staging.example.com\n2. Login as Admin user using username: <username>, password: <password>\n3. Navigate to Payments\n4. Verify the payments table loads',
+                api: 'Module: payments\nType: api\n\nSteps:\n1. Authenticate using url: https://api.staging.example.com/v1/auth/login with username: <username>, password: <password>\n2. Send a POST request to /v1/payments to create a payment of 100 SGD to recipient ABC\n3. Verify the response status is 201 and a payment ID is returned\n4. Send a GET request to /v1/payments/{id} and verify the status is PENDING',
+            };
+            function specPlaceholderFor(type) {
+                return SPEC_PLACEHOLDERS[type] || SPEC_PLACEHOLDERS.web;
+            }
+            function onNewTypeChange() {
+                const ta = $('qaSpecContent');
+                const typeEl = $('qaNewType');
+                if (ta && typeEl) ta.placeholder = specPlaceholderFor(typeEl.value);
+            }
+
             function switchMode(mode, preselectName) {
                 state.mode = mode;
                 var isTestrail = mode === 'testrail';
@@ -10890,11 +10908,11 @@
 
                 var ta = $('qaSpecContent');
                 if (isNew) {
-                    ta.placeholder = 'Module: payments\nType: web\n\nSteps:\n1. Navigate to customer portal using url: https://app.staging.example.com\n2. Login as Admin user using username: <username>, password: <password>\n3. Navigate to Payments\n4. Verify the payments table loads';
+                    ta.placeholder = specPlaceholderFor($('qaNewType') ? $('qaNewType').value : 'web');
                     ta.value = '';
                     $('qaNewModule').value = '';
                 } else if (isExisting) {
-                    ta.placeholder = 'Module: payments\nType: web\n\nSteps:\n1. Navigate to customer portal using url: https://app.staging.example.com\n2. Login as Admin user using username: <username>, password: <password>\n3. Navigate to Payments\n4. Verify the payments table loads';
+                    ta.placeholder = specPlaceholderFor('web');
                     loadModuleFiles(preselectName || null);
                 } else if (isTestrail) {
                     if (window.qaImport) qaImport.init();
@@ -11169,7 +11187,13 @@
                     }
                     const delay = Math.min(8000, 500 * Math.pow(2, state.retryCount));
                     state.retryCount += 1;
-                    appendLine('error', '[stream] disconnected — retrying in ' + delay + 'ms');
+                    // Neutral styling, not 'error' — a run that already
+                    // finished can still see its connection drop right
+                    // before the final event is delivered (network/buffering
+                    // timing, not a real problem); the reconnect recovers it
+                    // from the server's buffered event log. Genuine failure
+                    // (retries exhausted, above) still uses 'error' styling.
+                    appendLine('stdout', '[stream] reconnecting (attempt ' + state.retryCount + ')...');
                     state.retryTimer = setTimeout(subscribe, delay);
                 };
             }
@@ -11191,12 +11215,26 @@
                             const idx = STEPS.indexOf(key);
                             if (idx >= 0) STEPS.slice(0, idx).forEach(function (s) { setStep(s, 'done'); });
                             appendLine('step', '✓ ' + (payload.display || key));
+                            // A step that just succeeded doesn't need its retry button
+                            // anymore — clear it explicitly rather than relying only on
+                            // attachLiveRun's one-time reset at the start of the run, so
+                            // a stale button from an earlier failed attempt (e.g. after
+                            // retrying that same step and it passing this time) can never
+                            // linger past this point regardless of exactly how we got here.
+                            clearStepRetryButton(key);
                         } else if (status === 'running') {
                             setStep(key, 'running');
                             appendLine('step', '⟳ ' + (payload.display || key));
+                            clearStepRetryButton(key);
                         } else if (status === 'failed') {
                             setStep(key, 'failed');
                             appendLine('error', '✗ ' + (payload.display || key));
+                            // Reveal this step's own retry button right now — don't
+                            // wait for the whole run to finish. run.sh keeps going
+                            // past a failed step (e.g. Ship still runs after Run &
+                            // Fix fails), so waiting for the terminal event could be
+                            // a while.
+                            showStepRetryButton(key);
                         }
                     }
                 } else if (kind === 'done') {
@@ -11229,6 +11267,7 @@
                     const prUrl = payload.pr_url;
                     const verdict = payload.verdict;
                     const testPassed = payload.test_passed;
+                    const shipDetail = payload.ship_detail;
                     let resultHtml = '';
                     if (prUrl) {
                         const prNum = (prUrl.match(/\/pull\/(\d+)/) || [])[1];
@@ -11246,6 +11285,12 @@
                     }
                     $('qaLiveResult').innerHTML = resultHtml;
                     appendLine(isOk ? 'done' : 'error', '[' + status + '] ' + (payload.message || verdict || ''));
+                    // Ship failures (push/PR creation) print here just like any other
+                    // step's error — consistent with the rest of the console, no
+                    // separate badge/tooltip.
+                    if (shipDetail) {
+                        appendLine('error', 'Ship failed: ' + shipDetail);
+                    }
                     if (!isOk) {
                         showStepRetryButtons(state.activeSession);
                     }
@@ -11269,7 +11314,17 @@
                     sb.className = 'qa-live-badge badge-running';
                     if (payload.module) $('qaLiveModule').textContent = payload.module;
                 } else if (kind === 'error') {
-                    appendLine('error', payload.message || envelope.raw || 'stream error');
+                    // A native EventSource connection drop fires this SAME
+                    // 'error' event type with no ev.data at all — there is no
+                    // way to tell that apart from a real named 'error' SSE
+                    // event via listener registration alone. es.onerror
+                    // (below) is the sole handler for the connection-drop
+                    // case (retry/terminal logic); only show something here
+                    // for a genuine server-sent error, which always carries
+                    // real JSON data.
+                    if (ev.data) {
+                        appendLine('error', payload.message || envelope.raw || 'stream error');
+                    }
                 }
             }
 
@@ -11434,7 +11489,7 @@
                 }
             }
 
-            const STEP_LABELS = { parse: 'Parse', validate_web: 'Validate Web', generate: 'Generate', run_and_fix: 'Run & Fix', ship: 'Ship' };
+            const STEP_LABELS = { parse: 'Parse', validate_web: 'Validate', generate: 'Generate', run_and_fix: 'Run & Fix', ship: 'Ship' };
 
             // One button's markup for "resume this session from step `stepNum`" —
             // used inline in the session-detail modal, next to each step's header.
@@ -11466,6 +11521,11 @@
                         header = '<h4>' + escapeHtml(label) + ' ' + retryButtonHtml(sessionId, stepNum, label) + '</h4>';
                     }
                     sections.push('<div class="qa-modal-section">' + header + '<pre>' + escapeHtml(JSON.stringify(steps[key], null, 2)) + '</pre></div>');
+                    // validate_api runs alongside validate_web in the SAME step-2 slot in
+                    // run.sh (not its own numbered step) — surface it right after, if present.
+                    if (key === 'validate_web' && steps.validate_api) {
+                        sections.push('<div class="qa-modal-section"><h4>Validate API</h4><pre>' + escapeHtml(JSON.stringify(steps.validate_api, null, 2)) + '</pre></div>');
+                    }
                 });
                 body.innerHTML = sections.join('');
             }
@@ -11475,6 +11535,30 @@
                     btn.style.display = 'none';
                     btn.onclick = null;
                 });
+            }
+
+            // Never offered for step 1 (Parse) — "from step 1" isn't a resume,
+            // it's just a fresh run, which already exists as the main Run action.
+            function showStepRetryButton(key) {
+                const stepIdx = STEPS.indexOf(key);
+                if (stepIdx < 1) return;
+                const stepNum = stepIdx + 1;
+                const btn = document.querySelector('.qa-step-retry-btn[data-retry-step="' + stepNum + '"]');
+                if (!btn) return;
+                btn.style.display = '';
+                btn.onclick = function (ev) {
+                    ev.stopPropagation();
+                    retrySession(state.activeSession, stepNum);
+                };
+            }
+
+            function clearStepRetryButton(key) {
+                const stepIdx = STEPS.indexOf(key);
+                if (stepIdx < 1) return;
+                const btn = document.querySelector('.qa-step-retry-btn[data-retry-step="' + (stepIdx + 1) + '"]');
+                if (!btn) return;
+                btn.style.display = 'none';
+                btn.onclick = null;
             }
 
             // Reveals a ↻ button directly on each eligible step badge once a run
@@ -11514,9 +11598,14 @@
                     + 'Steps before this are reused as-is. Any previous output for this '
                     + 'step onward will be discarded and regenerated.')) return;
                 try {
+                    // The backend defaults auto_push to false when this is omitted —
+                    // every retry silently ran as a dry-run regardless of the original
+                    // run's setting. Read the CURRENT checkbox (same source run()/
+                    // runDirect() use) so retry respects what's actually on screen now.
+                    const autoPush = $('qaAutoPush') ? $('qaAutoPush').checked : false;
                     const resBody = await apiFetch(AGENT_BASE + '/sessions/' + encodeURIComponent(sessionId) + '/retry', {
                         method: 'POST',
-                        body: JSON.stringify({ from_step: fromStep }),
+                        body: JSON.stringify({ from_step: fromStep, auto_push: autoPush }),
                     });
                     closeSessionModal();
                     if (resBody && resBody.queued) {
@@ -11573,6 +11662,7 @@
                 loadModuleFiles: loadModuleFiles,
                 saveModuleFile: saveModuleFile,
                 switchMode: switchMode,
+                onNewTypeChange: onNewTypeChange,
                 handleFileUpload: handleFileUpload,
                 fillFromTestRail: fillFromTestRail,
                 onSpecInput: onSpecInput,
