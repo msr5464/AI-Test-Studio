@@ -6145,7 +6145,7 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
             font-size: 12px;
             line-height: 1.5;
-            max-height: 340px;
+            max-height: 400px;
             overflow-y: auto;
             white-space: pre-wrap;
             word-break: break-word;
@@ -6301,7 +6301,39 @@
         }
 
         .qa-live-console-wrap {
+            position: relative;
             padding: 0 22px 16px 22px;
+        }
+
+        .qa-console-copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 42px;
+            z-index: 2;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #10b981;
+            border-radius: 6px;
+            color: #10b981;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .qa-console-copy-btn:hover {
+            background: rgba(15, 23, 42, 1);
+            color: #34d399;
+            border-color: #34d399;
+        }
+
+        .qa-console-copy-btn.qa-copied {
+            color: #10b981;
+            border-color: #10b981;
         }
 
         .qa-live-footer {
@@ -7101,6 +7133,8 @@
                         </div>
                         <!-- Console output -->
                         <div class="qa-live-console-wrap">
+                            <button type="button" class="qa-console-copy-btn" id="qaConsoleCopyBtn"
+                                title="Copy logs" onclick="qaAgents.copyLogs()">⧉</button>
                             <div class="qa-console" id="qaConsole"></div>
                         </div>
                         <!-- Footer: result + cancel -->
@@ -11337,6 +11371,23 @@
                 con.scrollTop = con.scrollHeight;
             }
 
+            function copyLogs() {
+                const con = $('qaConsole');
+                const btn = $('qaConsoleCopyBtn');
+                const text = Array.from(con.children).map(function (el) { return el.textContent; }).join('\n');
+                navigator.clipboard.writeText(text).then(function () {
+                    btn.textContent = '✓';
+                    btn.classList.add('qa-copied');
+                    setTimeout(function () {
+                        btn.textContent = '⧉';
+                        btn.classList.remove('qa-copied');
+                    }, 1500);
+                }).catch(function () {
+                    btn.textContent = '✕';
+                    setTimeout(function () { btn.textContent = '⧉'; }, 1500);
+                });
+            }
+
             function closeStream() {
                 if (state.eventSource) { try { state.eventSource.close(); } catch (e) { } state.eventSource = null; }
                 if (state.retryTimer) { clearTimeout(state.retryTimer); state.retryTimer = null; }
@@ -11676,6 +11727,7 @@
                 removeFromQueue: removeFromQueue,
                 closeSessionModal: closeSessionModal,
                 retrySession: retrySession,
+                copyLogs: copyLogs,
             };
         })();
 
