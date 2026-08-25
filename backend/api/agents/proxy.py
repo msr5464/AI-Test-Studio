@@ -163,6 +163,12 @@ def _forward_stream(path: str) -> Response:
             # behind it — measured at a flat ~20s stall right after a run
             # completed. "close" tears the socket down when the stream ends.
             "Connection": "close",
+            # Forwarded deliberately: the artefact endpoint marks a captured DOM
+            # snapshot as an attachment so it downloads instead of rendering in
+            # the dashboard's own origin, where its scripts would run. Dropping
+            # this header would quietly undo that.
+            **({"Content-Disposition": upstream.headers["Content-Disposition"]}
+               if upstream.headers.get("Content-Disposition") else {}),
         },
     )
 
@@ -307,6 +313,18 @@ def healing_run_start():
 @agents_bp.route("/test-healing-agent/run/active", methods=["GET"])
 def healing_run_active():
     return _forward_json("GET", f"{_HEALING}/run/active")
+
+
+# Artefact files (screenshot / DOM / trace / video). Binary, so it cannot go
+# through _forward_json — stream the bytes and keep the upstream content type.
+@agents_bp.route("/test-healing-agent/artifact", methods=["GET"])
+def healing_artifact():
+    return _forward_stream(f"{_HEALING}/artifact")
+
+
+@agents_bp.route("/test-authoring-agent/artifact", methods=["GET"])
+def authoring_artifact():
+    return _forward_stream("/agents/test-authoring-agent/artifact")
 
 
 @agents_bp.route("/test-healing-agent/sessions/<session_id>/events", methods=["GET"])

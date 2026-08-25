@@ -6218,6 +6218,41 @@
             overflow: hidden;
         }
 
+        .qa-artefact-link {
+            color: var(--primary, #06b6d4);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .qa-artefact-link:hover { filter: brightness(1.25); }
+        .qa-trace-fold { border-left-color: #f59e0b; }
+
+        /* Collapsed build output inside the live console. */
+        .qa-build-fold {
+            margin: 4px 0;
+            border-left: 2px solid var(--primary, #06b6d4);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+        }
+        .qa-build-fold.build-failed { border-left-color: #ef4444; }
+        .qa-build-fold > summary {
+            cursor: pointer;
+            padding: 4px 8px;
+            list-style: none;
+            color: var(--text-light, #94a3b8);
+            font-size: 12px;
+            user-select: none;
+        }
+        .qa-build-fold > summary::-webkit-details-marker { display: none; }
+        .qa-build-fold > summary::before { content: '▸ '; }
+        .qa-build-fold[open] > summary::before { content: '▾ '; }
+        .qa-build-fold > summary:hover { color: var(--text, #e2e8f0); }
+        .qa-build-body {
+            padding: 2px 8px 6px 18px;
+            max-height: 320px;
+            overflow: auto;
+            opacity: 0.85;
+        }
+
         #qaLiveCard.terminal-completed,
         #healLiveCard.terminal-completed  { border-left-color: #10b981; }
         #qaLiveCard.terminal-failed,
@@ -7496,6 +7531,7 @@
                     <textarea id="qaImportAiExpected" placeholder="Expected result" rows="3"></textarea>
                 </div>
             </div>
+            <p id="qaImportAiError" style="font-size:12px;color:#ef4444;margin:0 24px;display:none;"></p>
             <div class="req-case-edit-actions">
                 <button type="button" class="req-tr-btn" onclick="qaImport.closeAiModal()">Cancel</button>
                 <button type="button" class="req-tr-btn" id="qaImportAiAcceptBtn" style="display:none;" onclick="qaImport.acceptAi()">Accept &amp; Update locally</button>
@@ -7558,6 +7594,7 @@
                     </div>
                 </div>
             </div>
+            <p id="reqCaseEditError" style="font-size:12px;color:#ef4444;margin:0 24px;display:none;"></p>
             <div class="req-case-edit-actions">
                 <button type="button" class="req-tr-btn" id="reqCaseEditCancel">Cancel</button>
                 <button type="button" class="req-tr-btn" id="reqCaseEditUpdateBtn" style="display: none;">Update
@@ -7770,9 +7807,11 @@
         const API_BASE = '/api/customer';
         // Wrap fetch to detect session expiry (401/403)
         const _origFetch = window.fetch;
+        let _sessionExpiredShown = false;
         window.fetch = function () {
             return _origFetch.apply(this, arguments).then(function (resp) {
-                if (resp.status === 401 || resp.status === 403) {
+                if ((resp.status === 401 || resp.status === 403) && !_sessionExpiredShown) {
+                    _sessionExpiredShown = true;
                     showToast('Session expired — please refresh the page.', 'warning');
                 }
                 return resp;
@@ -8208,7 +8247,7 @@
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (data.success) {
-                        showToast('Suite created', 'info');
+                        // The Suite select below repopulates auto-selected to this name.
                         document.getElementById('reqPushModalNewSuiteRow').style.display = 'none';
                         reqPushModalLoadSuites(reqPushModalProjectId);
                         document.getElementById('reqPushModalSuite').value = data.suite.id;
@@ -8216,7 +8255,7 @@
                         reqPushModalLoadSections(reqPushModalProjectId, reqPushModalSuiteId);
                     } else showToast(data.error || 'Failed', 'warning');
                 })
-                .catch(function (e) { showToast('Request failed: ' + (e.message || ''), 'warning'); });
+                .catch(function (e) { showToast('Request failed: ' + (e.message || 'Network error'), 'warning'); });
         });
         document.getElementById('reqPushModalNewSectionBtn').addEventListener('click', function () {
             document.getElementById('reqPushModalNewSectionRow').style.display = 'flex';
@@ -8233,13 +8272,13 @@
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (data.success) {
-                        showToast('Section created', 'info');
+                        // The Section select below repopulates auto-selected to this name.
                         document.getElementById('reqPushModalNewSectionRow').style.display = 'none';
                         reqPushModalLoadSections(reqPushModalProjectId, reqPushModalSuiteId);
                         document.getElementById('reqPushModalSection').value = data.section.id;
                     } else showToast(data.error || 'Failed', 'warning');
                 })
-                .catch(function (e) { showToast('Request failed: ' + (e.message || ''), 'warning'); });
+                .catch(function (e) { showToast('Request failed: ' + (e.message || 'Network error'), 'warning'); });
         });
 
         function updateFileLabel() {
@@ -8262,7 +8301,6 @@
                 if (!fileList || !fileList.length) { showToast('Select at least one file to upload.', 'info'); return; }
             } else if (pane === 'url') {
                 var rawUrls = document.getElementById('reqSpecUrl').value.trim();
-                if (!rawUrls) { showToast('Enter at least one Confluence page URL.', 'info'); return; }
                 confluenceUrls = rawUrls.split('\n').map(function (u) { return u.trim(); }).filter(Boolean);
                 if (!confluenceUrls.length) { showToast('Enter at least one Confluence page URL.', 'info'); return; }
             }
@@ -8352,6 +8390,19 @@
                 progressEl.style.display = 'none';
                 progressCounter.style.display = 'none';
                 if (timeoutId) clearTimeout(timeoutId);
+            }
+            // A failed analysis used to leave all three panes spinning forever.
+            function failed(msg) {
+                done();
+                var panes = document.querySelectorAll('.req-tab-loading-msg');
+                for (var i = 0; i < panes.length; i++) panes[i].remove();
+                var summary = document.getElementById('reqResultsSummary');
+                if (summary) {
+                    summary.innerHTML = '<div class="req-summary-block">' +
+                        '<p class="req-summary-headline" style="color:#ef4444;">' +
+                        escapeHtml(msg) + '</p></div>';
+                }
+                showToast(msg, 'warning');
             }
             var fetchOpts = { method: 'POST', body: body, headers: headers };
             if (abortController) fetchOpts.signal = abortController.signal;
@@ -8757,7 +8808,7 @@
                                     document.body.classList.remove('layout-initial');
                                     document.getElementById('reqResults').scrollIntoView({ behavior: 'smooth' });
                                 } else {
-                                    showToast(data.error || 'Analysis failed', 'warning');
+                                    failed(data.error || 'Analysis failed');
                                 }
                                 return true;
                             }
@@ -8772,7 +8823,7 @@
                                     if (trimmed.indexOf('data: ') === 0 && tryProcessData(trimmed)) {
                                         // Processed remaining buffer
                                     } else {
-                                        showToast('Incomplete response', 'warning');
+                                        failed('Incomplete response from the server — the analysis did not finish.');
                                     }
                                 } else if (!gotResult) {
                                     // Stream ended without result
@@ -8800,9 +8851,10 @@
                 .catch(function (e) {
                     done();
                     if (e.name === 'AbortError') {
-                        showToast('Request timed out (6 min). Long specs can take several minutes. Try a shorter doc or try again.', 'warning');
+                        failed('The server went quiet for 5 minutes, so the request was stopped. ' +
+                               'Long specs can take several minutes — try a shorter doc or run it again.');
                     } else {
-                        showToast('Request failed: ' + (e.message || 'Network error'), 'warning');
+                        failed('Request failed: ' + (e.message || 'Network error'));
                     }
                 });
         }
@@ -8917,9 +8969,9 @@
             }
         }
         function pushSelectedE2eToTestrail() {
-            if (!lastReqResult || !lastReqResult.e2e_workflow_tests) { showToast('No E2E tests found.', 'info'); return; }
+            if (!lastReqResult || !lastReqResult.e2e_workflow_tests) return;
             var pane = document.getElementById('reqResultPaneE2eflows');
-            if (!pane) { showToast('E2E pane not found.', 'info'); return; }
+            if (!pane) return;
             var pushBtn = document.getElementById('reqPushSelectedE2eBtn');
             var origBtnText = pushBtn ? pushBtn.textContent : '';
             if (pushBtn) { pushBtn.disabled = true; pushBtn.textContent = 'Loading…'; }
@@ -8937,7 +8989,6 @@
             var subset = selected.map(function (idx) { return { index: idx, test: e2eTests[idx] }; }).filter(function (s) { return s.test; });
             if (subset.length === 0) {
                 if (pushBtn) { pushBtn.disabled = false; pushBtn.textContent = origBtnText; }
-                showToast('No valid E2E tests selected.', 'warning');
                 return;
             }
             reqE2ePushSubset = subset;
@@ -8980,7 +9031,7 @@
                     if (targetSectionId) saveReqTestrailSelection(reqPushModalProjectId, reqPushModalSuiteId, targetSectionId);
                     reqE2ePushSubset = null;
                     reqPushModalMode = null;
-                    showToast('Pushed ' + okCount + ' of ' + flat.length + ' to TestRail.', okCount === flat.length ? 'success' : 'info');
+                    showToast('Pushed ' + okCount + ' of ' + flat.length + ' to TestRail.', 'info');
                     return;
                 }
                 var item = flat[i];
@@ -9421,6 +9472,7 @@
             var formEl = document.getElementById('reqCaseEditForm');
             var updateBtn = document.getElementById('reqCaseEditUpdateBtn');
             var insertBtn = document.getElementById('reqCaseEditInsertNewBtn');
+            setReqCaseEditError('');
             overlay.classList.add('visible');
             loadingEl.style.display = 'block';
             formEl.style.display = 'none';
@@ -9473,6 +9525,7 @@
         document.getElementById('reqResultPaneGenerated').addEventListener('click', handleUpdateWithAI);
         document.getElementById('reqResultPaneE2eflows').addEventListener('click', handleUpdateWithAI);
         document.getElementById('reqCaseEditCancel').addEventListener('click', function () {
+            setReqCaseEditError('');
             document.getElementById('reqCaseEditModalOverlay').classList.remove('visible');
             reqCaseEditTestrailId = null;
             reqCaseEditSourceCard = null;
@@ -9543,7 +9596,7 @@
                         }
                         reqCreateCaseSourceCard = null;
                     } else {
-                        showToast('Test case created in TestRail: ' + (newTid ? 'C' + String(newTid).replace(/^C/i, '') : ''), 'success');
+                        showToast('Test case created in TestRail: ' + (newTid ? 'C' + String(newTid).replace(/^C/i, '') : ''), 'info');
                     }
                 } else {
                     showToast(data && data.error ? data.error : 'Create failed', 'warning');
@@ -9600,7 +9653,10 @@
                     saveReqTestrailSelection(reqGenEditProjectId, reqGenEditSuiteId, sectionId);
                     document.getElementById('reqGenEditModalOverlay').classList.remove('visible');
                     var newTid = data.testrail_id || '';
-                    showToast('Test created in TestRail: ' + (newTid ? 'C' + newTid : ''), 'success');
+                    if (!(reqGenEditSourceRow && newTid)) {
+                        // Nothing on screen to mark — this is the only confirmation.
+                        showToast('Test created in TestRail: ' + (newTid ? 'C' + newTid : ''), 'info');
+                    }
                     // Update the UI to show it was pushed
                     if (reqGenEditSourceRow && newTid) {
                         var row = reqGenEditSourceRow;
@@ -9728,6 +9784,12 @@
                 reqCaseEditSourceCard = null;
             }
         });
+        function setReqCaseEditError(msg) {
+            var el = document.getElementById('reqCaseEditError');
+            if (!el) { showToast(msg, 'warning'); return; }
+            el.textContent = msg || '';
+            el.style.display = msg ? 'block' : 'none';
+        }
         document.getElementById('reqCaseEditUpdateBtn').addEventListener('click', function () {
             if (!reqCaseEditTestrailId) return;
             var title = (document.getElementById('reqCaseEditTitle').value || '').trim();
@@ -9750,12 +9812,14 @@
                 body: JSON.stringify(payload)
             }).then(function (r) { return r.json(); }).then(function (data) {
                 updateBtn.disabled = false;
-                document.getElementById('reqCaseEditModalOverlay').classList.remove('visible');
-                var tid = reqCaseEditTestrailId;
-                reqCaseEditTestrailId = null;
-                reqCaseEditSourceCard = null;
                 if (data && data.success) {
-                    showToast('Test case updated in TestRail: ' + (data.testrail_id || ''), 'success');
+                    // Dismiss only once it worked. Closing first threw away every
+                    // edit the user had typed whenever the request failed.
+                    document.getElementById('reqCaseEditModalOverlay').classList.remove('visible');
+                    var tid = reqCaseEditTestrailId;
+                    reqCaseEditTestrailId = null;
+                    reqCaseEditSourceCard = null;
+                    // No toast: the card gets a green "Updated in TestRail: C###" line.
                     if (card && tid) {
                         var updateBtnInCard = card.querySelector('.req-update-with-ai-btn');
                         if (updateBtnInCard) updateBtnInCard.style.display = 'none';
@@ -9775,11 +9839,11 @@
                         }
                     }
                 } else {
-                    showToast(data && data.error ? data.error : 'Update failed', 'warning');
+                    setReqCaseEditError(data && data.error ? data.error : 'Update failed');
                 }
             }).catch(function (err) {
                 updateBtn.disabled = false;
-                showToast('Request failed: ' + (err.message || 'Network error'), 'warning');
+                setReqCaseEditError('Request failed: ' + (err.message || 'Network error'));
             });
         });
         document.getElementById('reqCaseEditInsertNewBtn').addEventListener('click', function () {
@@ -9809,13 +9873,14 @@
             }).then(function (r) { return r.json(); }).then(function (data) {
                 insertBtn.disabled = false;
                 insertBtn.textContent = btnText;
-                document.getElementById('reqCaseEditModalOverlay').classList.remove('visible');
-                reqCaseEditTestrailId = null;
-                reqCaseEditSourceCard = null;
                 if (data && data.success) {
+                    // Dismiss only once it worked — see the update handler above.
+                    document.getElementById('reqCaseEditModalOverlay').classList.remove('visible');
+                    reqCaseEditTestrailId = null;
+                    reqCaseEditSourceCard = null;
                     saveReqTestrailSelection(reqCaseEditProjectId, reqCaseEditSuiteId, sectionId);
                     var newTid = data.testrail_id || '';
-                    showToast('Test case created in TestRail: ' + (newTid ? 'C' + String(newTid).replace(/^C/i, '') : ''), 'success');
+                    // No toast: the card gets a green "Created in TestRail: C###" line.
                     if (card && newTid) {
                         var headerMain = card.querySelector('.req-tc-card-header .req-tc-header-main');
                         if (headerMain) {
@@ -9835,12 +9900,12 @@
                         }
                     }
                 } else {
-                    showToast(data && data.error ? data.error : 'Create failed', 'warning');
+                    setReqCaseEditError(data && data.error ? data.error : 'Create failed');
                 }
             }).catch(function (err) {
                 insertBtn.disabled = false;
                 insertBtn.textContent = btnText;
-                showToast('Request failed: ' + (err.message || 'Network error'), 'warning');
+                setReqCaseEditError('Request failed: ' + (err.message || 'Network error'));
             });
         });
         function renderReqResults(data) {
@@ -10115,9 +10180,9 @@
         }
 
         function pushSelectedToTestrail() {
-            if (!lastReqResult || !lastReqResult.generated_tests) { showToast('No analysis result. Run analysis first.', 'info'); return; }
+            if (!lastReqResult || !lastReqResult.generated_tests) return;
             var pane = document.getElementById('reqResultPaneGenerated');
-            if (!pane) { showToast('Generated tests pane not found.', 'info'); return; }
+            if (!pane) return;
             var pushBtn = document.getElementById('reqPushSelectedBtn');
             var origBtnText = pushBtn ? pushBtn.textContent : '';
             if (pushBtn) {
@@ -10147,7 +10212,6 @@
             });
             if (Object.keys(subset).length === 0) {
                 if (pushBtn) { pushBtn.disabled = false; pushBtn.textContent = origBtnText; }
-                showToast('No valid selection.', 'warning');
                 return;
             }
             reqPushModalSubset = subset;
@@ -10178,7 +10242,7 @@
                     flat.push({ reqId: reqId, index: index, test: test });
                 });
             });
-            if (flat.length === 0) { showToast('No tests to push.', 'info'); return; }
+            if (flat.length === 0) return;
             var btn = document.getElementById('reqPushModalPush');
             var cancelBtn = document.getElementById('reqPushModalCancel');
             var progressEl = document.getElementById('reqPushModalProgress');
@@ -10232,7 +10296,7 @@
                         var sumEl = document.getElementById('reqResultsSummary');
                         if (sumEl) sumEl.innerHTML = buildReqSummaryHtml(lastReqResult);
                     }
-                    showToast('Pushed ' + okCount + ' of ' + flat.length + ' to TestRail.', okCount === flat.length ? 'success' : 'info');
+                    showToast('Pushed ' + okCount + ' of ' + flat.length + ' to TestRail.', 'info');
                     return;
                 }
                 var item = flat[i];
@@ -10311,7 +10375,7 @@
             const question = questionInput.value.trim();
 
             if (!question) {
-                showToast('🔍 Question missing? Please type your question to continue!', 'info');
+                questionInput.focus();
                 return;
             }
 
@@ -10996,6 +11060,202 @@
             unverified: 'unverified', not_a_locator: 'not a locator', skipped: 'skipped',
         };
 
+        // A session id is '<YYYYMMDD>-<HHMMSS>-<verb>-<target>' — i.e. the Started
+        // and Test columns concatenated, which is why printing it in full cost the
+        // history table almost half its width for no information. The history rows
+        // show the time ordinal alone (enough to name a run out loud and to find
+        // its audit folder next to the date); the full id lives in the row's
+        // data-session and in the session-detail meta, where it can be copied.
+        window.QA_RUN_REF = function (sessionId) {
+            const m = /^\d{8}-(\d{6})-/.exec(sessionId || '');
+            return m ? m[1] : (sessionId || '—');
+        };
+
+        // '2026-08-25T23:17:33' → 'Aug 25 23:17:33'. Parsed by hand rather than
+        // through Date: the backend sends a bare local timestamp with no zone, and
+        // Date would re-interpret it, shifting the wall clock the console printed.
+        const QA_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        window.QA_FMT_STARTED = function (iso) {
+            const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2}:\d{2})/.exec(iso || '');
+            if (!m) return iso || '—';
+            const month = QA_MONTHS[parseInt(m[2], 10) - 1];
+            if (!month) return iso;
+            return month + ' ' + parseInt(m[3], 10) + ' ' + m[4];
+        };
+
+        // Build output is long, always present, and rarely what you are looking
+        // for — but removing it was not an option either (you need it when a
+        // build misbehaves). The agents bracket each build with [build:start] /
+        // [build:end], so it goes into a collapsed <details> instead: one line
+        // by default, the whole log one click away.
+        //
+        // Returns the element new lines should be appended to.
+        // The framework logs artefacts as raw HTML:
+        //   <a href='/…/screenshots/x.png' target='_blank' …>&#128247; View Screenshot</a>
+        // which the console showed as literal markup. Turn it into a real link —
+        // but build DOM NODES, never innerHTML: this text comes from a subprocess,
+        // so treating its bytes as markup would be an injection hole. Anything we
+        // do not recognise falls through as plain text.
+        const QA_ANCHOR_RE = /<a\s+href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/i;
+        const QA_BOLD_RE   = /<b[^>]*>([\s\S]*?)<\/b>/i;
+
+        function _decodeEntities(text) {
+            // &#128247; and friends — decode via the DOM's own parser on a text
+            // sink, which never executes anything.
+            const ta = document.createElement('textarea');
+            ta.innerHTML = String(text).replace(/</g, '&lt;');
+            return ta.value;
+        }
+
+        // Only paths the artefact endpoint will actually serve become links.
+        function _artefactUrl(path, agentBase) {
+            if (!/^\/|^[A-Za-z]:\\/.test(path)) return null;   // absolute paths only
+            if (!/\.(png|jpe?g|gif|webm|mp4|html?|json|zip|txt|log|md)$/i.test(path)) return null;
+            return agentBase + '/artifact?path=' + encodeURIComponent(path);
+        }
+
+        // Returns an array of DOM nodes for one log line.
+        window.qaRenderLine = function (line, agentBase) {
+            const a = QA_ANCHOR_RE.exec(line);
+            if (a) {
+                const nodes = [];
+                const before = line.slice(0, a.index);
+                if (before) nodes.push(document.createTextNode(before));
+                const url = _artefactUrl(a[1], agentBase);
+                const label = _decodeEntities(a[2]).trim() || 'artefact';
+                if (url) {
+                    const el = document.createElement('a');
+                    el.href = url;
+                    el.target = '_blank';
+                    el.rel = 'noopener noreferrer';
+                    el.className = 'qa-artefact-link';
+                    el.textContent = label;
+                    el.title = a[1];
+                    nodes.push(el);
+                } else {
+                    nodes.push(document.createTextNode(label + ' — ' + a[1]));
+                }
+                const after = line.slice(a.index + a[0].length);
+                if (after) nodes.push(document.createTextNode(after));
+                return nodes;
+            }
+            const b = QA_BOLD_RE.exec(line);
+            if (b) {
+                const el = document.createElement('strong');
+                el.textContent = _decodeEntities(b[1]);
+                return [document.createTextNode(line.slice(0, b.index)), el,
+                        document.createTextNode(line.slice(b.index + b[0].length))];
+            }
+            return [document.createTextNode(line)];
+        };
+
+        // Strip the agent's own "[HH:MM:SS] [step] " prefix so the patterns below
+        // see the line as the underlying process actually emitted it.
+        function _bare(line) {
+            return String(line).replace(/^\[\d\d:\d\d:\d\d\]\s*(\[[\w-]+\]\s*)?/, '');
+        }
+
+        // What the TEST printed, as opposed to what MAVEN printed. Everything not
+        // matching this folds: [INFO], [WARNING], SLF4J, the lombok/JDK deprecation
+        // warnings, and the "[Help 1]" trailer. Deliberately NOT the agent-side
+        // _keep_for_capture filter — that one is tuned for what the model should
+        // see and leaves the JVM warnings visible (39% folded vs 82% with this).
+        const QA_TEST_OUTPUT = new RegExp(
+            '^\\[\\d\\d:\\d\\d:\\d\\d\\]'      // framework's own logger
+            + '|^Test Suite (Started|Finished)'
+            + '|^(Running|Finished) test - '
+            + '|Tests run:'
+            + '|<<< (FAILURE|ERROR)!'
+            + '|^java\\.lang\\.|^com\\.microsoft\\.'
+            + '|^\\s+at automation\\.'
+        );
+
+        window.qaBuildFold = function (consoleEl, line, state) {
+            const start = line.match(/\[build:start\]\s*(.*)$/);
+            if (start) {
+                const det = document.createElement('details');
+                det.className = 'qa-build-fold';
+                const sum = document.createElement('summary');
+                sum.textContent = '⚙  build running…  ' + (start[1] || '');
+                det.appendChild(sum);
+                const body = document.createElement('div');
+                body.className = 'qa-build-body';
+                det.appendChild(body);
+                consoleEl.appendChild(det);
+                state.buildEl = body;
+                state.buildSummary = sum;
+                state.buildCmd = start[1] || '';
+                state.buildLines = 0;
+                return null;            // the marker itself is not shown
+            }
+            const end = line.match(/\[build:end\]\s*(.*)$/);
+            if (end && state.buildSummary) {
+                const verdict = end[1] || 'finished';
+                const icon = /passed/.test(verdict) ? '✅'
+                           : /timed out/.test(verdict) ? '⏱' : '❌';
+                state.buildSummary.textContent =
+                    icon + '  build ' + verdict + '  ·  ' + state.buildLines +
+                    ' lines  ·  ' + state.buildCmd;
+                state.buildSummary.parentElement.classList.toggle(
+                    'build-failed', !/passed/.test(verdict));
+                state.buildEl = null;
+                state.buildSummary = null;
+                return null;
+            }
+            // Inside a build, only maven/JVM machinery folds. Bracketing the whole
+            // subprocess also swallowed what the TEST printed — the STEP/ACTION
+            // narrative and, worst of all, "Failed to load Element Locator@…",
+            // which is the single line you open the log for.
+            if (state.buildEl) {
+                state.buildLines += 1;
+                const t = QA_TEST_OUTPUT.test(_bare(line)) ? consoleEl : state.buildEl;
+                return _traceFold(t, line, state);
+            }
+            return _traceFold(consoleEl, line, state);
+        };
+
+        // Stack frames fold too, wherever they appear. The Playwright "Could not
+        // stop tracing" block is 12 lines and fires three times per healing run,
+        // and it survives the build rule because the framework's logger prints it.
+        // The header line always stays visible — only the frames below it fold.
+        const QA_STACK_FRAME = new RegExp(
+            '^\\s*at [\\w.$/<]'                    // java + js frames
+            + '|^\\s*(message|name|stack)=' // playwright error dump (prefix strips the indent)
+            + '|^\\s*\\}\\s*$'                  // its closing brace
+            + '|^\\s*\\.\\.\\. \\d+ more'
+        );
+
+        function _traceFold(target, line, state) {
+            const bare = _bare(line);
+            if (!QA_STACK_FRAME.test(bare)) {
+                state.traceEl = null;            // any normal line ends the run
+                state.traceLast = target;
+                state.traceHeader = bare;
+                return target;
+            }
+            if (!state.traceEl) {
+                // First frame: open a fold next to the header we just printed.
+                const det = document.createElement('details');
+                det.className = 'qa-build-fold qa-trace-fold';
+                const sum = document.createElement('summary');
+                det.appendChild(sum);
+                const body = document.createElement('div');
+                body.className = 'qa-build-body';
+                det.appendChild(body);
+                (state.traceLast || target).appendChild(det);
+                state.traceEl = body;
+                state.traceSummary = sum;
+                state.traceFrames = 0;
+            }
+            state.traceFrames += 1;
+            state.traceSummary.textContent =
+                '⚠  ' + (state.traceHeader || 'stack trace').slice(0, 90) +
+                '   ·  ' + state.traceFrames + ' frame' +
+                (state.traceFrames === 1 ? '' : 's');
+            return state.traceEl;
+        }
+
         function showToast(text, type = 'info') {
             const toast = document.getElementById('toastMessage');
             if (!toast) {
@@ -11069,7 +11329,7 @@
                 initialised: false, defaultsApplied: false,
                 eventSource: null, session: null, catalog: [],
                 target: null, lastSeq: 0, startTs: null, elapsedTimer: null,
-                terminal: false, logs: [], sawOutput: false, replay: false,
+                terminal: false, logs: [], sawOutput: false,
             };
 
             let _currentQueue = [];              // last /run/queue snapshot
@@ -11096,13 +11356,16 @@
 
             function appendLog(line) {
                 state.sawOutput = true;
-                state.logs.push(line);
+                state.logs.push(line);          // copyLogs still yields everything
                 const el = $('healConsole');
                 if (!el) return;
                 const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-                const div = document.createElement('div');
-                div.textContent = line;
-                el.appendChild(div);
+                const target = window.qaBuildFold(el, line, state);
+                if (target) {
+                    const div = document.createElement('div');
+                    window.qaRenderLine(line, BASE).forEach(function (n) { div.appendChild(n); });
+                    target.appendChild(div);
+                }
                 if (atBottom) el.scrollTop = el.scrollHeight;
             }
 
@@ -11146,7 +11409,7 @@
                 }).then(function (res) {
                     setRunBtnLoading(false);
                     if (!res.ok) {
-                        showToast((res.body && res.body.error) || 'Failed to start.', 'warning');
+                        setError((res.body && res.body.error) || 'Failed to start.');
                         return;
                     }
                     if (res.body.queued) {
@@ -11157,7 +11420,6 @@
                         loadHistory();
                         return;
                     }
-                    showToast('🔧  Diagnosing ' + payload.test, 'info');
                     openRun(res.body.session_id, payload.test);
                 }).catch(function (e) {
                     setRunBtnLoading(false);
@@ -11181,9 +11443,6 @@
                 state.lastSeq = 0;
                 state.terminal = false;
                 state.logs = [];
-                // Replaying history is not an event — only a run that finishes
-                // while you are watching it deserves a toast.
-                state.replay = !!isReplay;
 
                 const card = $('healLiveCard');
                 if (card) {
@@ -11193,6 +11452,7 @@
                 if ($('healConsole')) $('healConsole').innerHTML = '';
                 if ($('healLiveElapsed')) $('healLiveElapsed').textContent = '00:00';
                 state.sawOutput = false;
+                state.buildEl = null; state.buildSummary = null; state.buildLines = 0;
                 if ($('healLiveSession')) $('healLiveSession').textContent = sessionId;
                 if ($('healLiveTarget')) $('healLiveTarget').textContent = target || '—';
                 if ($('healLiveResult')) $('healLiveResult').innerHTML = '';
@@ -11319,7 +11579,7 @@
             // history pill shows. A live run's `done` carries the runner's PROCESS
             // status ("completed"), while a replayed one carries the healing status
             // ("nothing_to_fix"), so deciding here from whichever arrived made the
-            // same session look green in history and grey-with-a-warning-toast live.
+            // same session look green in history and grey-with-a-warning-badge live.
             function applyVerdict(status) {
                 const key = (status || 'finished').toLowerCase();
                 const pill = PILL_CLASS[key] || 'queued';
@@ -11337,9 +11597,6 @@
                     card.classList.toggle('terminal-completed', ok);
                     card.classList.toggle('terminal-failed', pill === 'failed');
                     card.classList.toggle('terminal-cancelled', pill === 'cancelled');
-                }
-                if (!state.replay) {
-                    showToast((ok ? '✅  ' : '⚠️  ') + label, ok ? 'success' : 'warning');
                 }
             }
 
@@ -11424,7 +11681,14 @@
                     }),
                 }).then(function (res) {
                     if (!res.ok) {
-                        showToast((res.body && res.body.error) || 'Failed to start.', 'warning');
+                        const el = $('healLiveResult');
+                        const msg = (res.body && res.body.error) || 'Failed to start.';
+                        if (el) {
+                            el.innerHTML = '<span style="font-size:12px;color:#ef4444;">' +
+                                           esc(msg) + '</span>';
+                        } else {
+                            setError(msg);
+                        }
                         return;
                     }
                     if (res.body.queued) {
@@ -11432,7 +11696,6 @@
                         loadHistory();
                         return;
                     }
-                    showToast('⚠️  Forcing a fix on a non-locator failure', 'warning');
                     openRun(res.body.session_id, state.target);
                 });
             }
@@ -11608,7 +11871,7 @@
                     body: JSON.stringify({ build_tag: buildTag, auto_push: !!($('healAutoPush') || {}).checked }),
                 }).then(function (res) {
                     if (!res.ok) {
-                        showToast((res.body && res.body.error) || 'Failed to start.', 'warning');
+                        setError((res.body && res.body.error) || 'Failed to start.');
                         return;
                     }
                     if (res.body.queued) {
@@ -11664,7 +11927,7 @@
 
                     const hasActions = !!activeSid || queued.length > 0;
                     let html = '<table class="qa-history-table"><thead><tr>' +
-                        '<th>Session</th><th>Test</th><th>Started</th>' +
+                        '<th>Run</th><th>Test</th><th>Started</th>' +
                         '<th>Status</th><th>Result</th><th>Logs</th><th>PR</th>' +
                         (hasActions ? '<th>Action</th>' : '<th></th>') +
                         '</tr></thead><tbody>';
@@ -11674,7 +11937,7 @@
                             'title="Remove from queue" onclick="event.stopPropagation();' +
                             'qaHealing.removeFromQueue(' + q.index + ')">✕ Cancel</button>';
                         html += '<tr style="opacity:0.8;">' +
-                            '<td class="qa-session-id">' + esc(q.session_id || '—') + '</td>' +
+                            '<td class="qa-session-id">' + esc(QA_RUN_REF(q.session_id)) + '</td>' +
                             '<td>' + esc(q.module || '—') + '</td>' +
                             '<td style="color:var(--text-light);">—</td>' +
                             '<td><span class="qa-status-pill queued">⏳ To be started</span></td>' +
@@ -11683,7 +11946,7 @@
 
                     _cancelledHealItems.forEach(function (c) {
                         html += '<tr style="opacity:0.6;">' +
-                            '<td class="qa-session-id">' + esc(c.session_id || '—') + '</td>' +
+                            '<td class="qa-session-id">' + esc(QA_RUN_REF(c.session_id)) + '</td>' +
                             '<td>' + esc(c.module || '—') + '</td>' +
                             '<td style="color:var(--text-light);">—</td>' +
                             '<td><span class="qa-status-pill cancelled">✕ Cancelled</span></td>' +
@@ -11708,9 +11971,9 @@
                               'onclick="event.stopPropagation();qaHealing.cancelSession(\'' + esc(sid) + '\')">■ Stop</button>'
                             : '';
                         html += '<tr data-session="' + esc(sid) + '">' +
-                            '<td class="qa-session-id">' + esc(sid) + '</td>' +
+                            '<td class="qa-session-id">' + esc(QA_RUN_REF(sid)) + '</td>' +
                             '<td>' + esc(s.test_name || s.build_tag || '—') + '</td>' +
-                            '<td>' + esc(s.started_at || '—') + '</td>' +
+                            '<td>' + esc(QA_FMT_STARTED(s.started_at)) + '</td>' +
                             '<td><span class="qa-status-pill ' + pill + '">' + esc(label) + '</span></td>' +
                             '<td>' + resultSummary(s) + '</td>' +
                             '<td>' + logs + '</td>' +
@@ -11755,9 +12018,10 @@
                             session_id: item.session_id || '',
                         });
                     }
-                    showToast(res.ok ? '✕ Removed from queue'
-                                     : 'Could not remove: ' + ((res.body && res.body.error) || ''),
-                              res.ok ? 'info' : 'warning');
+                    // No success toast: loadHistory() repaints the row as "✕ Cancelled".
+                    if (!res.ok) {
+                        showToast('Could not remove: ' + ((res.body && res.body.error) || 'unknown'), 'warning');
+                    }
                     loadHistory();
                 });
             }
@@ -11780,6 +12044,10 @@
                     };
                     const meta =
                         '<div class="qa-live-meta">' +
+                        // The history row shows only the time ordinal, so this is the
+                        // one place the audit folder name can be read in full.
+                        '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Session</span>' +
+                        '<span class="qa-live-meta-value">' + esc(sessionId) + '</span></div>' +
                         '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Test</span>' +
                         '<span class="qa-live-meta-value">' + esc(d.test_name || d.build_tag || '—') + '</span></div>' +
                         '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Mode</span>' +
@@ -12153,15 +12421,10 @@
                         body: JSON.stringify({ module: moduleFile, auto_push: autoPush })
                     });
                     if (body && body.queued) {
-                        // Task was enqueued — show queue panel with explanation
-                        await loadHistory();  // shows the queued entry immediately
+                        // The queue card explains the wait and shows the position;
+                        // history shows the queued row. Nothing left to announce.
+                        await Promise.all([loadHistory(), loadQueue()]);
                         errEl.style.display = 'none';
-                        showToast(
-                            '⏳  Another run is in progress — "' + (body.module || moduleFile) +
-                            '" has been added to the queue at position ' + body.position +
-                            '. It will start automatically once the current run finishes.',
-                            'info'
-                        );
                     } else {
                         const sessionId = body && (body.session_id || body.sessionId);
                         if (!sessionId) throw new Error('No session id returned');
@@ -12188,12 +12451,6 @@
                     });
                     if (body && body.queued) {
                         await loadQueue();
-                        showToast(
-                            '⏳  Another run is in progress — "' + (body.module || moduleFile) +
-                            '" has been added to the queue at position ' + body.position +
-                            '. It will start automatically once the current run finishes.',
-                            'info'
-                        );
                     } else {
                         const sessionId = body && (body.session_id || body.sessionId);
                         if (!sessionId) throw new Error('No session id returned');
@@ -12263,6 +12520,7 @@
                 state.startTs = Date.now();
                 resetStepUI();
                 $('qaConsole').innerHTML = '';
+                state.buildEl = null; state.buildSummary = null; state.buildLines = 0;
                 $('qaLiveResult').textContent = '';
                 hideStepRetryButtons();
                 $('qaLiveCard').style.display = '';
@@ -12454,7 +12712,6 @@
                         apiFetch(AGENT_BASE + '/run/active').then(function(b) {
                             if (b && b.active && b.session_id !== state.activeSession) {
                                 attachLiveRun(b.session_id, b.module, 0);
-                                showToast('▶  Picked up next queued run: "' + (b.module || b.session_id) + '"', 'info');
                             }
                         }).catch(function() {});
                     }, 1500);
@@ -12481,10 +12738,13 @@
 
             function appendLine(cls, text) {
                 const con = $('qaConsole');
-                const div = document.createElement('div');
-                div.className = 'qa-line-' + cls;
-                div.textContent = text;
-                con.appendChild(div);
+                const target = window.qaBuildFold(con, text, state);
+                if (target) {
+                    const div = document.createElement('div');
+                    div.className = 'qa-line-' + cls;
+                    window.qaRenderLine(text, AGENT_BASE).forEach(function (n) { div.appendChild(n); });
+                    target.appendChild(div);
+                }
                 con.scrollTop = con.scrollHeight;
             }
 
@@ -12594,7 +12854,7 @@
                     }
 
                     const hasActions = !!activeSessionId || queued.length > 0;
-                    let html = '<table class="qa-history-table"><thead><tr><th>Session</th><th>File</th><th>Started</th><th>Status</th><th>Result</th><th>Logs</th><th>PR</th>'
+                    let html = '<table class="qa-history-table"><thead><tr><th>Run</th><th>File</th><th>Started</th><th>Status</th><th>Result</th><th>Logs</th><th>PR</th>'
                         + (hasActions ? '<th>Action</th>' : '<th></th>')
                         + '</tr></thead><tbody>';
 
@@ -12604,7 +12864,7 @@
                         const cancelBtn = '<button class="qa-action-btn qa-action-btn-cancel" title="Remove from queue" '
                             + 'onclick="event.stopPropagation();qaAgents.removeFromQueue(' + q.index + ')">✕ Cancel</button>';
                         html += '<tr style="opacity:0.8;">'
-                            + '<td class="qa-session-id">' + escapeHtml(sid || '—') + '</td>'
+                            + '<td class="qa-session-id">' + escapeHtml(QA_RUN_REF(sid)) + '</td>'
                             + '<td>' + escapeHtml(q.module || '—') + '</td>'
                             + '<td style="color:var(--text-light);">—</td>'
                             + '<td><span class="qa-status-pill queued">⏳ To be started</span></td>'
@@ -12618,7 +12878,7 @@
                     // Cancelled queue items (client-side memory, cleared on page reload)
                     _cancelledQueueItems.forEach(function(c) {
                         html += '<tr style="opacity:0.6;">'
-                            + '<td class="qa-session-id">' + escapeHtml(c.session_id || '—') + '</td>'
+                            + '<td class="qa-session-id">' + escapeHtml(QA_RUN_REF(c.session_id)) + '</td>'
                             + '<td>' + escapeHtml(c.module || '—') + '</td>'
                             + '<td style="color:var(--text-light);">—</td>'
                             + '<td><span class="qa-status-pill cancelled">✕ Cancelled</span></td>'
@@ -12644,9 +12904,9 @@
                               + 'onclick="event.stopPropagation();qaAgents.cancelRun(\'' + escapeHtml(sid) + '\')">■ Stop</button>'
                             : '';
                         html += '<tr data-session="' + escapeHtml(sid) + '">'
-                            + '<td class="qa-session-id">' + escapeHtml(sid) + '</td>'
+                            + '<td class="qa-session-id">' + escapeHtml(QA_RUN_REF(sid)) + '</td>'
                             + '<td>' + escapeHtml(feat || '—') + '</td>'
-                            + '<td>' + escapeHtml(s.started_at || '—') + '</td>'
+                            + '<td>' + escapeHtml(QA_FMT_STARTED(s.started_at)) + '</td>'
                             + '<td><span class="qa-status-pill ' + (QA_PILL_CLASS[status] || 'queued') + '">'
                             + escapeHtml(QA_STATUS_LABEL[status] || status) + '</span></td>'
                             + '<td>' + authoringResult(s) + '</td>'
@@ -12805,13 +13065,18 @@
                             + '" queued at position ' + resBody.position + '.', 'info');
                         return;
                     }
-                    showToast('↻ Resuming "' + sessionId + '" from ' + label, 'info');
                     attachLiveRun(sessionId, (resBody && resBody.module) || '—', 0);
                     loadHistory();
                     const card = $('qaLiveCard');
                     if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch (e) {
-                    showToast('Retry failed: ' + (e.message || 'unknown'), 'warning');
+                    const errEl = $('qaRunError');
+                    if (errEl) {
+                        errEl.textContent = 'Retry failed: ' + (e.message || 'unknown');
+                        errEl.style.display = 'block';
+                    } else {
+                        showToast('Retry failed: ' + (e.message || 'unknown'), 'warning');
+                    }
                 }
             }
 
@@ -13028,9 +13293,9 @@
 
             async function loadCases() {
                 const pid = $('qaImportProject').value;
-                if (!pid) { alert('Please select a project.'); return; }
+                if (!pid) { _setStatus('Please select a project.', true); return; }
                 const sid = $('qaImportSuite').value;
-                if (!sid) { alert('Please select a suite.'); return; }
+                if (!sid) { _setStatus('Please select a suite.', true); return; }
                 let params = 'project_id=' + pid + '&suite_id=' + sid;
                 const secId = $('qaImportSection').value;
                 if (secId) params += '&section_id=' + secId;
@@ -13241,17 +13506,18 @@
                         if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = '✨ Update Steps with AI'; }
                         if (addBtn) addBtn.disabled = false;
                         closeAiModal();
-                        if (typeof showToast === 'function') showToast((data && data.error) || 'AI suggestion failed', 'warning');
+                        _setStatus((data && data.error) || 'AI suggestion failed', true);
                     }
                 } catch (e) {
                     if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = '✨ Update Steps with AI'; }
                     if (addBtn) addBtn.disabled = false;
                     closeAiModal();
-                    if (typeof showToast === 'function') showToast('Request failed: ' + (e.message || 'Network error'), 'warning');
+                    _setStatus('Request failed: ' + (e.message || 'Network error'), true);
                 }
             }
 
             function closeAiModal() {
+                _setAiError('');
                 $('qaImportAiModal').classList.remove('visible');
                 _aiIdx = null;
             }
@@ -13285,7 +13551,8 @@
                 const testrailId = rawCase.ID || '';
 
                 if (!testrailId) {
-                    if (typeof showToast === 'function') showToast('No TestRail ID for this case.', 'warning');
+                    closeAiModal();
+                    _showCardError(idx, 'No TestRail ID for this case — it cannot be updated in TestRail.');
                     return;
                 }
 
@@ -13312,19 +13579,19 @@
                     const data = await res.json();
                     queueBtn.disabled = false;
                     queueBtn.textContent = 'Accept & Update in TestRail';
-                    closeAiModal();
-                    renderTable();
                     if (data && data.success) {
-                        if (typeof showToast === 'function') showToast('Updated in TestRail: ' + (data.testrail_id || testrailId), 'success');
+                        // Dismiss only once it worked — closing first discarded the
+                        // AI-suggested edits whenever the update failed.
+                        closeAiModal();
+                        renderTable();
                         _markQueued(idx);
                     } else {
-                        if (typeof showToast === 'function') showToast((data && data.error) || 'Update failed — check TestRail settings.', 'warning');
+                        _setAiError((data && data.error) || 'Update failed — check TestRail settings.');
                     }
                 } catch (e) {
                     queueBtn.disabled = false;
                     queueBtn.textContent = 'Accept & Update in TestRail';
-                    closeAiModal();
-                    if (typeof showToast === 'function') showToast('Request failed: ' + (e.message || 'Network error'), 'warning');
+                    _setAiError('Request failed: ' + (e.message || 'Network error'));
                 }
             }
 
@@ -13391,6 +13658,22 @@
                 return null;
             }
 
+            function _setStatus(msg, isError) {
+                const el = $('qaImportStatus');
+                if (!el) return;
+                if (!msg) { el.textContent = ''; return; }
+                el.innerHTML = isError
+                    ? '<span style="color:#ef4444;">' + escapeHtml(msg) + '</span>'
+                    : escapeHtml(msg);
+            }
+
+            function _setAiError(msg) {
+                const el = $('qaImportAiError');
+                if (!el) { _setStatus(msg, true); return; }
+                el.textContent = msg || '';
+                el.style.display = msg ? 'block' : 'none';
+            }
+
             function _showCardError(idx, msg) {
                 const card = _cardByIdx(idx);
                 if (card) {
@@ -13448,7 +13731,7 @@
                 const selected = Array.from($('qaImportTable').querySelectorAll('.qa-import-check:checked'))
                     .map(function (el) { return parseInt(el.getAttribute('data-idx')); })
                     .filter(function (i) { return !isNaN(i) && _cases[i]; });
-                if (!selected.length) { alert('Select at least one test case.'); return; }
+                if (!selected.length) { _setStatus('Select at least one test case.', true); return; }
 
                 // Split into actionable and blocked (no steps)
                 const noStepsIds = selected.filter(function (idx) { return !_hasSteps(idx); });

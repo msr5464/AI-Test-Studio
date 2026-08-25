@@ -150,7 +150,7 @@ SETTINGS_SCHEMA: List[Dict[str, Any]] = [
         "key": "confluence_cql",
         "env_var": "CONFLUENCE_CQL",
         "label": "CQL Filter",
-        "description": "Confluence Query Language filter for which pages to sync (e.g. type=page AND space=QA)",
+        "description": "Confluence Query Language filter for which pages to sync (e.g. type=page AND space=Product AND ancestor=1170342064)",
         "type": "text",
         "category": "confluence",
         "default": "type=page",
