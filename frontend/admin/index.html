@@ -207,9 +207,9 @@
         }
 
         .main-container {
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
-            padding: 32px 24px 24px;
+            padding: 28px 24px 20px;
             width: 100%;
         }
 
@@ -217,6 +217,7 @@
             display: flex;
             flex-direction: column;
             gap: 0;
+            flex: 1;   /* pass the growth down to .admin-layout below it */
         }
 
         .section {
@@ -1040,82 +1041,24 @@
         }
 
         /* ── Settings Modal ──────────────────────────────────────────── */
-        .settings-modal-backdrop {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(3px);
-            z-index: 900;
-        }
 
-        .settings-modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: min(1020px, 96vw);
-            max-height: 88vh;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
-            z-index: 901;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-        }
 
-        .settings-modal.open,
-        .settings-modal-backdrop.open {
-            display: flex;
-        }
 
-        .settings-modal-backdrop.open {
-            display: block;
-        }
 
-        .settings-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
 
-        .settings-modal-close {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 18px;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: background 0.15s, color 0.15s;
-            line-height: 1;
-        }
 
-        .settings-modal-close:hover {
-            background: var(--bg-card-hover);
-            color: var(--text);
-        }
 
-        .settings-modal-body {
-            padding: 20px;
-            overflow-y: auto;
-            flex: 1;
-        }
 
-        .settings-tabs {
+        .settings-tabs,
+        .agent-tabs {
             display: flex;
             gap: 6px;
             margin-bottom: 16px;
             flex-wrap: wrap;
         }
 
-        .settings-tab-btn {
+        .settings-tab-btn,
+        .agent-tab-btn {
             padding: 7px 16px;
             font-size: 13px;
             font-weight: 600;
@@ -1128,23 +1071,27 @@
             font-family: inherit;
         }
 
-        .settings-tab-btn:hover {
+        .settings-tab-btn:hover,
+        .agent-tab-btn:hover {
             background: var(--primary);
             border-color: var(--primary);
             color: #fff;
         }
 
-        .settings-tab-btn.active {
+        .settings-tab-btn.active,
+        .agent-tab-btn.active {
             background: var(--primary);
             border-color: var(--primary);
             color: #fff;
         }
 
-        .settings-tab-pane {
+        .settings-tab-pane,
+        .agent-tab-pane {
             display: none;
         }
 
-        .settings-tab-pane.active {
+        .settings-tab-pane.active,
+        .agent-tab-pane.active {
             display: block;
         }
 
@@ -1254,6 +1201,286 @@
             border-top: 1px solid var(--border);
         }
 
+
+
+
+
+        /* ── Admin shell: sidebar rail + content ─────────────────────────── */
+        .main-container {
+            /* Flex column so the footer sits at the bottom of the viewport on a
+               short panel, instead of being pushed down by a magic min-height. */
+            min-height: calc(100vh - 73px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 216px minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+            flex: 1;
+        }
+
+        .admin-nav-secondary {
+            padding-top: 12px;
+            margin-top: -6px;
+            border-top: 1px solid var(--border);
+        }
+
+        .admin-sidebar {
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .admin-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .admin-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: inherit;
+            text-align: left;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            background: transparent;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: background 0.16s, color 0.16s, border-color 0.16s;
+        }
+
+        .admin-nav-item .icon {
+            width: 17px;
+            height: 17px;
+            flex: none;
+            stroke: currentColor;
+            opacity: 0.85;
+        }
+
+        .admin-nav-item:hover {
+            background: var(--bg-card-hover);
+            color: var(--text);
+        }
+
+        .admin-nav-item.active {
+            background: var(--bg-card);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .admin-nav-item.active .icon {
+            opacity: 1;
+        }
+
+        .sidebar-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .sidebar-stat {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 5px 12px;
+        }
+
+        .sidebar-stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .sidebar-stat-label {
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+
+        .admin-content {
+            min-width: 0;
+        }
+
+        .admin-pane {
+            display: none;
+        }
+
+        .admin-pane.active {
+            display: block;
+        }
+
+        @media (max-width: 860px) {
+            /* Rail becomes a row above the content; still obviously a nav. */
+            .admin-layout {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 14px;
+            }
+
+            .admin-sidebar {
+                position: static;
+                gap: 12px;
+            }
+
+            .admin-nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .admin-nav-item {
+                width: auto;
+            }
+
+            .sidebar-stats {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 6px;
+                padding-top: 12px;
+            }
+
+            .sidebar-stat {
+                gap: 6px;
+                padding: 4px 10px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+            }
+        }
+
+        /* TestRail and Confluence are twins — show them as siblings, not a stack.
+           They hold a different number of status lines (2 vs 1) and metrics (3 vs 2),
+           so without the flex rules below every row drifts out of line with its
+           opposite number and the two cards end up different heights. */
+        .sync-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+            gap: 14px;
+            align-items: stretch;   /* equal card heights */
+        }
+
+        .sync-grid > .section {
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sync-grid .sync-box,
+        .sync-grid .confluence-sync-box {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* Status text + Sync Now button. TestRail shows two status lines to
+           Confluence's one; without a shared floor the button and the whole log
+           below it sit ~15px higher on the Confluence side. 84px clears the
+           two-line case, so both headers resolve to the same height. */
+        .sync-grid .sync-box > div:first-child,
+        .sync-grid .confluence-sync-box > div:first-child {
+            min-height: 84px;
+            align-items: flex-start;
+        }
+
+        /* The log stretches to fill whatever is left, so both logs share a top
+           AND a bottom edge and the metric rows land on the same line. */
+        .sync-grid [id$="LogContainer"] {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .sync-grid [id$="LogContainer"] > div[id$="Log"] {
+            flex: 1;
+            min-height: 150px;
+        }
+
+        /* Equal-width metric cells that fill the card edge to edge */
+        .sync-grid [id$="Stats"] {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        /* The outer .section already draws a card; the inner .sync-box drawing a
+           second one made every sync panel read as a box inside a box. */
+        .sync-grid .sync-box,
+        .sync-grid .confluence-sync-box {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .btn-header .icon {
+            width: 15px;
+            height: 15px;
+            flex: none;
+            stroke: currentColor;
+            vertical-align: -2px;
+            margin-right: 6px;
+        }
+
+
+        /* Section headings: icon + text on a shared baseline */
+        .section h2 .icon {
+            width: 17px;
+            height: 17px;
+            flex: none;
+            stroke: var(--primary);
+            vertical-align: -3px;
+            margin-right: 7px;
+        }
+
+        /* Secondary action — one primary per panel, everything else recedes */
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            color: var(--text);
+            border-color: var(--primary);
+        }
+
+        /* ── Agent Settings section ─────────────────────────────────────── */
+        .agent-settings-status {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            line-height: 1.5;
+        }
+
+        .agent-settings-status.error {
+            color: var(--danger);
+        }
+
+        .agent-field-warning {
+            font-size: 11px;
+            color: var(--warning, #f59e0b);
+            line-height: 1.4;
+        }
+
+        .agent-field-error {
+            font-size: 11px;
+            color: var(--danger);
+            line-height: 1.4;
+        }
+
         .settings-save-status {
             font-size: 13px;
             color: var(--text-muted);
@@ -1280,250 +1507,299 @@
                 <input type="checkbox" id="themeToggle" aria-label="Light mode">
                 <span class="theme-slider"></span>
             </label>
-            <button type="button" class="btn-header" onclick="openSettingsModal()">⚙️ Settings</button>
-            <button type="button" class="btn-header" onclick="logout()">🚪 Logout</button>
+            <button type="button" class="btn-header" onclick="logout()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Logout</button>
         </nav>
     </header>
 
     <!-- Settings Modal -->
-    <div id="settingsModalBackdrop" class="settings-modal-backdrop" onclick="closeSettingsModal()"></div>
-    <div id="settingsModal" class="settings-modal" role="dialog" aria-modal="true" aria-label="Settings">
-        <div class="settings-modal-header">
-            <h2 style="margin:0; font-size:17px;">⚙️ Settings</h2>
-            <button class="settings-modal-close" onclick="closeSettingsModal()" title="Close">✕</button>
-        </div>
-        <div class="settings-modal-body">
-            <div class="settings-tabs">
-                <button class="settings-tab-btn active" onclick="showSettingsTab('testrail', this)">🔄 TestRail</button>
-                <button class="settings-tab-btn" onclick="showSettingsTab('confluence', this)">📄 Confluence</button>
-                <button class="settings-tab-btn" onclick="showSettingsTab('llm', this)">🤖 LLM & RAG</button>
-                <button class="settings-tab-btn" onclick="showSettingsTab('chat', this)">💬 Chat</button>
-                <button class="settings-tab-btn" onclick="showSettingsTab('requirements', this)">📋
-                    Requirements</button>
-                <button class="settings-tab-btn" onclick="showSettingsTab('appearance', this)">🎨 Appearance</button>
-            </div>
-            <div id="settingsTabContent">
-                <p style="color: var(--text-muted); padding: 24px 0; text-align: center;">⏳ Loading settings...</p>
-            </div>
-        </div>
-    </div>
 
     <div class="main-container">
         <div class="content-wrapper">
             <div id="message" class="message" title="Click to dismiss"></div>
 
-            <!-- User Management Section -->
-            <div class="section">
-                <h2>👥 User Management</h2>
+            <div class="admin-layout">
+                <aside class="admin-sidebar">
+                    <nav class="admin-nav" role="tablist" aria-label="Admin sections">
+                        <button class="admin-nav-item active" role="tab" onclick="showAdminTab('users', this)">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            <span>Users</span>
+                        </button>
+                        <button class="admin-nav-item" role="tab" onclick="showAdminTab('sync', this)">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                            <span>Connectors</span>
+                        </button>
+                        <button class="admin-nav-item" role="tab" onclick="showAdminTab('knowledge', this)">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+                            <span>Knowledge Base</span>
+                        </button>
+                    </nav>
 
-                <!-- Create User Form -->
-                <div class="create-user-form">
-                    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 15px; font-weight: 700;">✨ Create New User
-                        Account</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: end;">
-                        <div>
-                            <label for="newUsername">👤 Username</label>
-                            <input type="text" id="newUsername" placeholder="Enter unique username">
+                    <nav class="admin-nav admin-nav-secondary" aria-label="Configuration">
+                        <button class="admin-nav-item" role="tab" onclick="showAdminTab('agentsettings', this)">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><path d="M8 13v2"/><path d="M16 13v2"/></svg>
+                            <span>Agent Settings</span>
+                        </button>
+                        <button class="admin-nav-item" role="tab" onclick="showAdminTab('studiosettings', this)">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            <span>Studio Settings</span>
+                        </button>
+                    </nav>
+
+                    <div class="sidebar-stats">
+                        <div class="sidebar-stat"><span class="sidebar-stat-value" id="totalDocs">0</span><span class="sidebar-stat-label">Documents</span></div>
+                        <div class="sidebar-stat"><span class="sidebar-stat-value" id="totalChunks">0</span><span class="sidebar-stat-label">Chunks</span></div>
+                        <div class="sidebar-stat"><span class="sidebar-stat-value" id="totalUsers">0</span><span class="sidebar-stat-label">Users</span></div>
+                    </div>
+                </aside>
+
+                <div class="admin-content">
+
+            <div class="admin-pane active" id="adminPane_users" role="tabpanel">
+                <div class="section">
+                    <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>User Management</h2>
+
+                    <!-- Create User Form -->
+                    <div class="create-user-form">
+                        <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 15px; font-weight: 700;">Create New User
+                            Account</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: end;">
+                            <div>
+                                <label for="newUsername">Username</label>
+                                <input type="text" id="newUsername" placeholder="Enter unique username">
+                            </div>
+                            <div>
+                                <label for="newPassword">Password</label>
+                                <input type="password" id="newPassword" placeholder="Enter secure password">
+                            </div>
+                            <div>
+                                <label for="newUserRole">User Role</label>
+                                <select id="newUserRole">
+                                    <option value="customer">Customer</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn" onclick="createUser()"
+                                style="padding: 8px 16px; font-size: 13px; white-space: nowrap;">Create User</button>
                         </div>
-                        <div>
-                            <label for="newPassword">🔒 Password</label>
-                            <input type="password" id="newPassword" placeholder="Enter secure password">
-                        </div>
-                        <div>
-                            <label for="newUserRole">👥 User Role</label>
-                            <select id="newUserRole">
-                                <option value="customer">Customer</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                        <button type="button" class="btn" onclick="createUser()"
-                            style="padding: 8px 16px; font-size: 13px; white-space: nowrap;">✨ Create User</button>
+                    </div>
+
+                    <!-- Users List -->
+                    <div id="usersList" style="margin-top: 10px;">
+                        <p style="text-align: center; color: var(--text-muted); padding: 8px; font-size: 13px;">Loading
+                            user accounts...</p>
                     </div>
                 </div>
 
-                <!-- Users List -->
-                <div id="usersList" style="margin-top: 10px;">
-                    <p style="text-align: center; color: var(--text-muted); padding: 8px; font-size: 13px;">🔄 Loading
-                        user accounts...</p>
-                </div>
+                <!-- Statistics Section -->
             </div>
 
-            <!-- Statistics Section -->
-            <div class="section">
-                <h2>📊 System Statistics</h2>
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalDocs">0</div>
-                        <div class="stat-label">Total Documents</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalChunks">0</div>
-                        <div class="stat-label">Total Chunks</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sync Documents: Upload + Uploaded list -->
-            <div class="section">
-                <h2>📤 Sync Documents</h2>
-                <div class="upload-row">
-                    <div class="upload-area" id="uploadArea">
-                        <p style="font-size: 14px; font-weight: 600; margin-bottom: 0;">📄 Drag and drop files here or
-                            click to browse</p>
-                        <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">CSV, Excel, PDF, Word,
-                            PowerPoint, text</p>
-                        <input type="file" id="fileInput" multiple
-                            accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.pptx,.ppt,.txt,.md">
-                    </div>
-                    <button class="btn btn-upload" id="uploadBtn" disabled>📤 Upload & Process Files</button>
-                </div>
-                <div class="documents-list" id="documentsList"
-                    style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
-                    <p style="text-align: center; color: var(--text-muted); padding: 16px; font-size: 13px;">📭 No
-                        documents uploaded yet. Upload your first document to get started!</p>
-                </div>
-            </div>
-
-            <!-- Sync TestRail Section -->
-            <div id="testrailSyncSection" class="section">
-                <h2>🔄 Sync TestRail</h2>
-                <div class="sync-box">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <div style="flex: 1;">
-                            <p style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px;">📊
-                                Status</p>
-                            <p id="syncStatusText" style="font-size: 14px; color: var(--text-muted); margin: 0;">Not yet
-                                synced</p>
-                            <p id="syncLastTime" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
-                            </p>
-                            <p id="testrailNextRun" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-                            </p>
+            <div class="admin-pane" id="adminPane_knowledge" role="tabpanel">
+                <div class="section">
+                    <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Sync Documents</h2>
+                    <div class="upload-row">
+                        <div class="upload-area" id="uploadArea">
+                            <p style="font-size: 14px; font-weight: 600; margin-bottom: 0;">Drag and drop files here or
+                                click to browse</p>
+                            <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">CSV, Excel, PDF, Word,
+                                PowerPoint, text</p>
+                            <input type="file" id="fileInput" multiple
+                                accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.pptx,.ppt,.txt,.md">
                         </div>
-                        <button id="syncNowBtn" class="btn btn-sync-now">
-                            🚀 Sync Now
+                        <button class="btn btn-upload" id="uploadBtn" disabled>Upload & Process Files</button>
+                    </div>
+                    <div class="documents-list" id="documentsList"
+                        style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+                        <p style="text-align: center; color: var(--text-muted); padding: 16px; font-size: 13px;">No
+                            documents uploaded yet. Upload your first document to get started!</p>
+                    </div>
+                </div>
+
+                <!-- Sync TestRail Section -->
+
+                <div class="section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2 style="margin: 0;"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>Knowledge Base Contents</h2>
+                        <button class="btn btn-danger btn-small" onclick="resetChromaDB()">
+                            Reset Knowledge Base
                         </button>
                     </div>
+                    <div id="chromadbInfo" style="margin-bottom: 8px; padding: 10px;">
+                        <p style="text-align: center; color: var(--text-muted); font-weight: 500;">Loading ChromaDB
+                            contents...</p>
+                    </div>
+                    <div class="chunks-list" id="chunksList"></div>
+                </div>
+            </div>
 
-                    <div id="syncProgress" style="display: none; margin-top: 8px;">
-                        <div class="sync-progress-inner">
-                            <div id="syncStepIndicator"
-                                style="display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
-                                <span id="syncStep1" class="sync-step">1. Fetch from TestRail</span>
-                                <span id="syncStep2" class="sync-step">2. Validate</span>
-                                <span id="syncStep3" class="sync-step">3. Update knowledge base</span>
+            <div class="admin-pane" id="adminPane_sync" role="tabpanel">
+                <div class="sync-grid">
+                    <div id="testrailSyncSection" class="section">
+                        <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>Sync TestRail</h2>
+                        <div class="sync-box">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <div style="flex: 1;">
+                                    <p style="font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px;">Status</p>
+                                    <p id="syncStatusText" style="font-size: 13px; color: var(--text-muted); margin: 0;">Not yet
+                                        synced</p>
+                                    <p id="syncLastTime" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                                    </p>
+                                    <p id="testrailNextRun" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                                    </p>
+                                </div>
+                                <button id="syncNowBtn" class="btn btn-sync-now">
+                                    Sync Now
+                                </button>
                             </div>
-                            <p id="syncProgressText" style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳
-                                Syncing test cases from TestRail...</p>
-                            <p id="syncProgressDetail" style="font-size: 12px; margin: 2px 0 6px 0;"></p>
-                            <div style="background: var(--border); height: 8px; border-radius: 4px; overflow: hidden;">
-                                <div id="syncProgressBarFill"
-                                    style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-hover)); width: 0%; transition: width 0.4s ease;">
+
+                            <div id="syncProgress" style="display: none; margin-top: 8px;">
+                                <div class="sync-progress-inner">
+                                    <div id="syncStepIndicator"
+                                        style="display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+                                        <span id="syncStep1" class="sync-step">1. Fetch from TestRail</span>
+                                        <span id="syncStep2" class="sync-step">2. Validate</span>
+                                        <span id="syncStep3" class="sync-step">3. Update knowledge base</span>
+                                    </div>
+                                    <p id="syncProgressText" style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳
+                                        Syncing test cases from TestRail...</p>
+                                    <p id="syncProgressDetail" style="font-size: 12px; margin: 2px 0 6px 0;"></p>
+                                    <div style="background: var(--border); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div id="syncProgressBarFill"
+                                            style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-hover)); width: 0%; transition: width 0.4s ease;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="syncLogContainer" style="margin-top: 10px;">
+                                <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">Running
+                                    log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span>
+                                </p>
+                                <div id="syncLog"
+                                    style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
+                            </div>
+
+                            <div id="syncResult" style="display: none; margin-top: 10px;"></div>
+
+                            <div id="syncStats"
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; margin-top: 10px;">
+                                <div class="sync-stat-box">
+                                    <span class="sync-stat-num" style="font-size: 18px;" id="syncTestCases">0</span>
+                                    <span>Test Cases Synced</span>
+                                </div>
+                                <div class="sync-stat-box">
+                                    <span class="sync-stat-num" style="font-size: 18px;" id="syncProjects">0</span>
+                                    <span>Projects</span>
+                                </div>
+                                <div class="sync-stat-box">
+                                    <span class="sync-stat-num" style="font-size: 18px;" id="syncDuration">0s</span>
+                                    <span>Last Duration</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="syncLogContainer" style="margin-top: 10px;">
-                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📋 Running
-                            log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span>
-                        </p>
-                        <div id="syncLog"
-                            style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">
-                            No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
+                    <!-- Sync Confluence Section -->
+
+                    <div id="confluenceSyncSection" class="section">
+                        <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>Sync Confluence</h2>
+                        <div class="confluence-sync-box">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <div style="flex: 1;">
+                                    <p style="font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--text);">Status</p>
+                                    <p id="confluenceSyncStatusText"
+                                        style="font-size: 13px; margin: 0; color: var(--text-muted);">Not yet synced</p>
+                                    <p id="confluenceSyncLastTime"
+                                        style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
+                                    <p id="confluenceNextRun"
+                                        style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
+                                </div>
+                                <button id="confluenceSyncNowBtn" class="btn btn-sync-now">Sync Now</button>
+                            </div>
+
+                            <div id="confluenceSyncProgress" style="display: none; margin-top: 8px;">
+                                <div class="sync-progress-inner">
+                                    <div id="confluenceSyncStepIndicator"
+                                        style="display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap;">
+                                        <span id="confluenceSyncStep1" class="sync-step">1. Fetch from Confluence</span>
+                                        <span id="confluenceSyncStep2" class="sync-step">2. Validate</span>
+                                        <span id="confluenceSyncStep3" class="sync-step">3. Update knowledge base</span>
+                                    </div>
+                                    <p id="confluenceSyncProgressText"
+                                        style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳ Syncing pages from
+                                        Confluence (CQL)...</p>
+                                    <p id="confluenceSyncProgressDetail" style="font-size: 12px; margin: 2px 0 6px 0;"></p>
+                                    <div style="background: var(--border); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div id="confluenceSyncProgressBarFill"
+                                            style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-hover)); width: 0%; transition: width 0.4s ease;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="confluenceSyncLogContainer" style="margin-top: 10px;">
+                                <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">Running
+                                    log <span id="confluenceSyncLogLiveBadge" class="sync-live-badge"
+                                        style="display: none;">Live</span></p>
+                                <div id="confluenceSyncLog"
+                                    style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
+                            </div>
+
+                            <div id="confluenceSyncResult" style="display: none; margin-top: 10px;"></div>
+
+                            <div id="confluenceSyncStats"
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; margin-top: 10px;">
+                                <div class="sync-stat-box">
+                                    <span class="sync-stat-num" style="font-size: 18px;" id="confluenceSyncPages">0</span>
+                                    <span>Pages Synced</span>
+                                </div>
+                                <div class="sync-stat-box">
+                                    <span class="sync-stat-num" style="font-size: 18px;" id="confluenceSyncDuration">0s</span>
+                                    <span>Last Duration</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="syncResult" style="display: none; margin-top: 10px;"></div>
-
-                    <div id="syncStats"
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 10px;">
-                        <div class="sync-stat-box">
-                            <span class="sync-stat-num" style="font-size: 18px;" id="syncTestCases">0</span>
-                            <span>Test Cases Synced</span>
-                        </div>
-                        <div class="sync-stat-box">
-                            <span class="sync-stat-num" style="font-size: 18px;" id="syncProjects">0</span>
-                            <span>Projects</span>
-                        </div>
-                        <div class="sync-stat-box">
-                            <span class="sync-stat-num" style="font-size: 18px;" id="syncDuration">0s</span>
-                            <span>Last Duration</span>
-                        </div>
-                    </div>
+                    <!-- ChromaDB Contents Section -->
                 </div>
             </div>
 
-            <!-- Sync Confluence Section -->
-            <div id="confluenceSyncSection" class="section">
-                <h2>📄 Sync Confluence</h2>
-                <div class="confluence-sync-box">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <div style="flex: 1;">
-                            <p style="font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📊
-                                Status</p>
-                            <p id="confluenceSyncStatusText"
-                                style="font-size: 13px; margin: 0; color: var(--text-muted);">Not yet synced</p>
-                            <p id="confluenceSyncLastTime"
-                                style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
-                            <p id="confluenceNextRun"
-                                style="font-size: 12px; margin-top: 2px; color: var(--text-muted);"></p>
-                        </div>
-                        <button id="confluenceSyncNowBtn" class="btn btn-sync-now">🚀 Sync Now</button>
-                    </div>
-
-                    <div id="confluenceSyncProgress" style="display: none; margin-top: 8px;">
-                        <div class="sync-progress-inner">
-                            <p id="confluenceSyncProgressText"
-                                style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">⏳ Syncing pages from
-                                Confluence (CQL)...</p>
-                            <p id="confluenceSyncProgressDetail" style="font-size: 12px; margin: 2px 0 6px 0;"></p>
+                    <div class="admin-pane" id="adminPane_agentsettings" role="tabpanel">
+                        <div class="section">
+                            <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><path d="M8 13v2"/><path d="M16 13v2"/></svg>Agent Settings</h2>
+                    <p class="agent-settings-status" id="agentSettingsStatus">⏳ Loading agent settings…</p>
+                    <div class="agent-tabs" id="agentSettingsTabs"></div>
+                    <div id="agentSettingsTabContent"></div>
                         </div>
                     </div>
 
-                    <div id="confluenceSyncLogContainer" style="margin-top: 10px;">
-                        <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">📋 Running
-                            log <span id="confluenceSyncLogLiveBadge" class="sync-live-badge"
-                                style="display: none;">Live</span></p>
-                        <div id="confluenceSyncLog"
-                            style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">
-                            No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
+                    <div class="admin-pane" id="adminPane_studiosettings" role="tabpanel">
+                        <div class="section">
+                            <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Studio Settings</h2>
+                    <div class="settings-tabs">
+                        <button class="settings-tab-btn active" onclick="showSettingsTab('testrail', this)">🔄 TestRail</button>
+                        <button class="settings-tab-btn" onclick="showSettingsTab('confluence', this)">📄 Confluence</button>
+                        <button class="settings-tab-btn" onclick="showSettingsTab('llm', this)">🤖 LLM & RAG</button>
+                        <button class="settings-tab-btn" onclick="showSettingsTab('chat', this)">💬 Chat</button>
+                        <button class="settings-tab-btn" onclick="showSettingsTab('requirements', this)">📋
+                            Requirements</button>
+                        <button class="settings-tab-btn" onclick="showSettingsTab('appearance', this)">🎨 Appearance</button>
                     </div>
-
-                    <div id="confluenceSyncStats"
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 10px;">
-                        <div class="sync-stat-box">
-                            <span class="sync-stat-num" style="font-size: 18px;" id="confluenceSyncPages">—</span>
-                            <span>Pages Synced</span>
-                        </div>
-                        <div class="sync-stat-box">
-                            <span class="sync-stat-num" style="font-size: 18px;" id="confluenceSyncDuration">—</span>
-                            <span>Last Duration</span>
+                    <div id="settingsTabContent">
+                        <p style="color: var(--text-muted); padding: 24px 0; text-align: center;">⏳ Loading settings...</p>
+                    </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- ChromaDB Contents Section -->
-            <div class="section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <h2 style="margin: 0;">🗄️ ChromaDB Contents</h2>
-                    <button class="btn btn-danger btn-small" onclick="resetChromaDB()">
-                        ⚠️ Reset Knowledge Base
-                    </button>
-                </div>
-                <div id="chromadbInfo" style="margin-bottom: 8px; padding: 10px;">
-                    <p style="text-align: center; color: var(--text-muted); font-weight: 500;">🔄 Loading ChromaDB
-                        contents...</p>
-                </div>
-                <div class="chunks-list" id="chunksList"></div>
             </div>
         </div>
 
         <div class="attribution-footer">
             Made with ❤️ for Engineering Teams &nbsp;·&nbsp; Built by <a target="_blank"
                 href="https://www.linkedin.com/in/mukesh-rajput">Mukesh Rajput</a> &nbsp;·&nbsp; <a target="_blank"
-                href="https://github.com/msr5464/Knowledge-AI">Open Source on GitHub</a>
+                href="https://github.com/msr5464/AI-Test-Studio">Open Source on GitHub</a>
         </div>
     </div><!-- .main-container -->
 
@@ -1666,7 +1942,7 @@
             if (selectedFiles.length > 0) {
                 uploadArea.innerHTML = `<p style="font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">✅ ${selectedFiles.length} file(s) ready to upload</p><p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">Click "Upload & Process Files" to proceed</p>`;
             } else if (files.length > 0) {
-                uploadArea.innerHTML = '<p style="font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">📄 Drag and drop files here or click to browse</p><p style="color: var(--danger); font-size: 14px; margin-top: 8px;">⚠️ No supported files selected. Supported formats: CSV, Excel (.xlsx, .xls)</p>';
+                uploadArea.innerHTML = '<p style="font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">Drag and drop files here, or click to browse</p><p style="color: var(--danger); font-size: 14px; margin-top: 8px;">⚠️ No supported files selected. Supported formats: CSV, Excel (.xlsx, .xls)</p>';
             }
         }
 
@@ -1682,9 +1958,9 @@
 
             selectedFiles = [];
             uploadBtn.disabled = true;
-            uploadBtn.innerHTML = '📤 Upload & Process Files';
+            uploadBtn.innerHTML = 'Upload & Process Files';
             fileInput.value = '';
-            uploadArea.innerHTML = '<p style="font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">📄 Drag and drop files here or click to browse</p><p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">Supported formats: CSV, Excel (.xlsx, .xls)</p>';
+            uploadArea.innerHTML = '<p style="font-size: 18px; font-weight: 600; color: var(--primary); margin-bottom: 8px;">Drag and drop files here, or click to browse</p><p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">Supported formats: CSV, Excel (.xlsx, .xls)</p>';
 
             loadDocuments();
             loadStats();
@@ -1733,7 +2009,7 @@
             const list = document.getElementById('documentsList');
 
             if (documents.length === 0) {
-                list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px; font-size: 15px;">📭 No documents uploaded yet. Upload your first document to get started!</p>';
+                list.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px; font-size: 15px;">No documents uploaded yet — upload one to get started.</p>';
                 return;
             }
 
@@ -2050,6 +2326,7 @@
         loadStats();
         loadUsers();
         loadChromaDBContents();
+        restoreAdminTab();
 
         // User Management Functions
         async function loadUsers() {
@@ -2070,6 +2347,9 @@
         }
 
         function displayUsers(users) {
+            const countEl = document.getElementById('totalUsers');
+            if (countEl) countEl.textContent = Array.isArray(users) ? users.length : 0;
+
             const list = document.getElementById('usersList');
 
             if (users.length === 0) {
@@ -2351,10 +2631,10 @@
                     updateSyncLog(logArr);
                     var latest = statusData.status.latest_sync_record;
                     if (latest && latest.status === 'success') {
-                        result.innerHTML = '<div class="alert-success">' +
-                            '<strong>✅ Sync successful!</strong><br>Successfully synced ' + (latest.test_cases_fetched != null ? latest.test_cases_fetched : 0) +
-                            ' test cases from ' + (latest.projects_count != null ? latest.projects_count : '?') + ' project(s).</div>';
-                        result.style.display = 'block';
+                        // No success banner: the status line and the metrics row
+                        // below already report the same thing. Failures still get
+                        // one, because latest.error appears nowhere else.
+                        result.style.display = 'none';
                         document.getElementById('syncStatusText').textContent = '✅ Sync successful';
                         document.getElementById('syncTestCases').textContent = latest.test_cases_fetched != null ? latest.test_cases_fetched : 0;
                         document.getElementById('syncProjects').textContent = latest.projects_count != null ? latest.projects_count : 0;
@@ -2372,7 +2652,7 @@
                     }
                     progress.style.display = 'none';
                     btn.disabled = false;
-                    btn.innerHTML = '🚀 Sync Now';
+                    btn.innerHTML = 'Sync Now';
                     if (!fromReload) syncInProgress = false;
                 } else {
                     var cur = statusData.status.current_sync;
@@ -2381,8 +2661,9 @@
                         document.getElementById('syncTestCases').textContent = cur.test_cases_so_far;
                         document.getElementById('syncProjects').textContent = cur.projects_total;
                     }
+                    document.getElementById('syncStatusText').textContent = '⏳ Syncing...';
                     updateSyncLogWhenSyncing(statusData.status.sync_log && Array.isArray(statusData.status.sync_log) ? statusData.status.sync_log : []);
-                    btn.innerHTML = '⏳ Syncing...';
+                    btn.innerHTML = 'Syncing…';
                     var liveBadge = document.getElementById('syncLogLiveBadge');
                     if (liveBadge) liveBadge.style.display = 'inline';
                 }
@@ -2424,12 +2705,12 @@
                         document.getElementById('syncProjects').textContent = cur.projects_total;
                         updateSyncLogWhenSyncing(status.sync_log);
                         document.getElementById('syncNowBtn').disabled = true;
-                        document.getElementById('syncNowBtn').innerHTML = '⏳ Syncing...';
+                        document.getElementById('syncNowBtn').innerHTML = 'Syncing…';
                         startSyncPolling(true);
                     } else {
                         document.getElementById('syncProgress').style.display = 'none';
                         document.getElementById('syncNowBtn').disabled = false;
-                        document.getElementById('syncNowBtn').innerHTML = '🚀 Sync Now';
+                        document.getElementById('syncNowBtn').innerHTML = 'Sync Now';
                     }
 
                     // Update stats whenever we have latest_sync_record (not only when last_sync is set)
@@ -2457,7 +2738,7 @@
                             document.getElementById('syncStatusText').textContent = 'Not yet synced';
                         }
                     } else if (!status.is_syncing) {
-                        document.getElementById('syncLastTime').textContent = 'Not yet synced';
+                        document.getElementById('syncLastTime').textContent = '';
                         document.getElementById('syncTestCases').textContent = '0';
                         document.getElementById('syncProjects').textContent = '0';
                         document.getElementById('syncDuration').textContent = '0s';
@@ -2473,13 +2754,13 @@
                         if (conf.is_syncing) {
                             document.getElementById('confluenceSyncProgress').style.display = 'block';
                             document.getElementById('confluenceSyncNowBtn').disabled = true;
-                            document.getElementById('confluenceSyncNowBtn').innerHTML = '⏳ Syncing...';
+                            document.getElementById('confluenceSyncNowBtn').innerHTML = 'Syncing…';
                             document.getElementById('confluenceSyncLogLiveBadge').style.display = 'inline';
                             if (!confluenceSyncPollIntervalId && !confluenceSyncPollTimeoutId) startConfluenceSyncPolling();
                         } else {
                             document.getElementById('confluenceSyncProgress').style.display = 'none';
                             document.getElementById('confluenceSyncNowBtn').disabled = false;
-                            document.getElementById('confluenceSyncNowBtn').innerHTML = '🚀 Sync Now';
+                            document.getElementById('confluenceSyncNowBtn').innerHTML = 'Sync Now';
                             document.getElementById('confluenceSyncLogLiveBadge').style.display = 'none';
                         }
                     }
@@ -2506,23 +2787,45 @@
 
         function updateConfluenceSyncUI(conf) {
             if (!conf) return;
+            // Log rendering mirrors updateSyncLog/updateSyncLogWhenSyncing on the
+            // TestRail side: follow the tail as lines arrive, and say something
+            // different while a sync is actually running.
             var logEl = document.getElementById('confluenceSyncLog');
             if (logEl) {
                 var arr = conf.sync_log && Array.isArray(conf.sync_log) ? conf.sync_log : [];
-                logEl.textContent = arr.length > 0 ? arr.join('\n') : 'No log yet. Click "Sync Now" to see live logs.';
+                if (arr.length > 0) {
+                    logEl.textContent = arr.join('\n');
+                    logEl.scrollTop = logEl.scrollHeight;
+                } else {
+                    logEl.textContent = conf.is_syncing
+                        ? 'Waiting for log from server... (sync in progress)'
+                        : 'No log yet. Click "Sync Now" to see live logs.';
+                }
             }
+            var result = document.getElementById('confluenceSyncResult');
             var latest = conf.latest_sync_record;
             if (latest && !conf.is_syncing) {
-                document.getElementById('confluenceSyncStatusText').textContent = latest.status === 'success' ? '✅ Sync successful' : '❌ Sync failed';
+                var ok = latest.status === 'success';
+                document.getElementById('confluenceSyncStatusText').textContent = ok ? '✅ Sync successful' : '❌ Sync failed';
                 document.getElementById('confluenceSyncPages').textContent = latest.pages_fetched != null ? latest.pages_fetched : 0;
                 document.getElementById('confluenceSyncDuration').textContent = (latest.duration_seconds || 0).toFixed(1) + 's';
                 if (latest.timestamp) document.getElementById('confluenceSyncLastTime').textContent = 'Last synced: ' + new Date(latest.timestamp).toLocaleString();
+                if (result) {
+                    if (ok) {
+                        result.style.display = 'none';
+                    } else {
+                        result.innerHTML = '<div class="alert-danger"><strong>❌ Sync failed</strong><br>' +
+                            (latest.error || 'Unknown error') + '</div>';
+                        result.style.display = 'block';
+                    }
+                }
             } else if (!conf.is_syncing) {
                 // No Confluence sync has been run yet
                 document.getElementById('confluenceSyncStatusText').textContent = 'Not yet synced';
                 document.getElementById('confluenceSyncPages').textContent = '0';
                 document.getElementById('confluenceSyncDuration').textContent = '0s';
                 document.getElementById('confluenceSyncLastTime').textContent = '';
+                if (result) result.style.display = 'none';
             }
             if (conf.is_syncing && conf.current_sync) {
                 var cur = conf.current_sync;
@@ -2532,6 +2835,31 @@
                 if (cur.current != null && cur.total != null) detail = cur.current + ' / ' + cur.total + ' pages';
                 else if (cur.message) detail = cur.message;
                 document.getElementById('confluenceSyncProgressDetail').textContent = detail;
+                // Live metrics + bar, so the card moves during a sync the way TestRail's does
+                if (cur.current != null) document.getElementById('confluenceSyncPages').textContent = cur.current;
+                // Steps and bar follow `phase`, the same field TestRail reads.
+                // confluence_sync_service.py emits the identical sequence:
+                // starting -> fetching -> validating -> chromadb.
+                var cphase = cur.phase || '';
+                var cs1 = document.getElementById('confluenceSyncStep1');
+                var cs2 = document.getElementById('confluenceSyncStep2');
+                var cs3 = document.getElementById('confluenceSyncStep3');
+                if (cs1 && cs2 && cs3) {
+                    [cs1, cs2, cs3].forEach(function (s) { s.classList.remove('active', 'done'); });
+                    if (cphase === 'chromadb') { cs1.classList.add('done'); cs2.classList.add('done'); cs3.classList.add('active'); }
+                    else if (cphase === 'validating') { cs1.classList.add('done'); cs2.classList.add('active'); }
+                    else { cs1.classList.add('active'); }
+                }
+                var bar = document.getElementById('confluenceSyncProgressBarFill');
+                if (bar) {
+                    // Same 0-33 fetch / 60 validate / 100 write banding as TestRail,
+                    // so a full bar means the sync is done — not just the fetch.
+                    var pct = 0;
+                    if (cphase === 'chromadb') pct = 100;
+                    else if (cphase === 'validating') pct = 60;
+                    else pct = (cur.total > 0 && cur.current != null) ? Math.round((cur.current / cur.total) * 33) : 5;
+                    bar.style.width = pct + '%';
+                }
             }
         }
 
@@ -2554,7 +2882,7 @@
                         stopConfluenceSyncPolling();
                         document.getElementById('confluenceSyncProgress').style.display = 'none';
                         document.getElementById('confluenceSyncNowBtn').disabled = false;
-                        document.getElementById('confluenceSyncNowBtn').innerHTML = '🚀 Sync Now';
+                        document.getElementById('confluenceSyncNowBtn').innerHTML = 'Sync Now';
                         document.getElementById('confluenceSyncLogLiveBadge').style.display = 'none';
                         confluenceSyncInProgress = false;
                         if (conf && conf.latest_sync_record && conf.latest_sync_record.status === 'success') {
@@ -2587,7 +2915,7 @@
 
             syncInProgress = true;
             btn.disabled = true;
-            btn.innerHTML = '⏳ Syncing...';
+            btn.innerHTML = 'Syncing…';
             progress.style.display = 'block';
             result.style.display = 'none';
             var syncSectionEl = document.getElementById('testrailSyncSection');
@@ -2642,7 +2970,7 @@
 
                 progress.style.display = 'none';
                 btn.disabled = false;
-                btn.innerHTML = '🚀 Sync Now';
+                btn.innerHTML = 'Sync Now';
                 syncInProgress = false;
             }
         }
@@ -2658,10 +2986,14 @@
             var progress = document.getElementById('confluenceSyncProgress');
             confluenceSyncInProgress = true;
             btn.disabled = true;
-            btn.innerHTML = '⏳ Syncing...';
+            btn.innerHTML = 'Syncing…';
             progress.style.display = 'block';
             document.getElementById('confluenceSyncProgressText').textContent = 'Starting Confluence sync (CQL)...';
             document.getElementById('confluenceSyncProgressDetail').textContent = '';
+            // Clear the previous run's banner, as triggerTestRailSync does — otherwise
+            // a stale "Sync successful" sits above a sync that is still running.
+            var cfResult = document.getElementById('confluenceSyncResult');
+            if (cfResult) cfResult.style.display = 'none';
             document.getElementById('confluenceSyncLogLiveBadge').style.display = 'inline';
             document.getElementById('confluenceSyncSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
@@ -2690,7 +3022,7 @@
                 } else {
                     confluenceSyncInProgress = false;
                     btn.disabled = false;
-                    btn.innerHTML = '🚀 Sync Now';
+                    btn.innerHTML = 'Sync Now';
                     progress.style.display = 'none';
                     document.getElementById('confluenceSyncLogLiveBadge').style.display = 'none';
                     alert(data.message || data.error || 'Failed to start Confluence sync');
@@ -2698,7 +3030,7 @@
             } catch (e) {
                 confluenceSyncInProgress = false;
                 btn.disabled = false;
-                btn.innerHTML = '🚀 Sync Now';
+                btn.innerHTML = 'Sync Now';
                 progress.style.display = 'none';
                 document.getElementById('confluenceSyncLogLiveBadge').style.display = 'none';
                 alert('Request failed: ' + (e.message || e));
@@ -2713,24 +3045,6 @@
 
         // ── Settings Modal ───────────────────────────────────────────────────
 
-        function openSettingsModal() {
-            document.getElementById('settingsModal').classList.add('open');
-            document.getElementById('settingsModalBackdrop').classList.add('open');
-            document.body.style.overflow = 'hidden';
-            // Load settings the first time; refresh on every open to show latest values
-            loadSettings();
-        }
-
-        function closeSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('open');
-            document.getElementById('settingsModalBackdrop').classList.remove('open');
-            document.body.style.overflow = '';
-        }
-
-        // Close on Escape key
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeSettingsModal();
-        });
 
 
         async function loadSettings() {
@@ -2928,6 +3242,242 @@
                 }
             } catch (e) {
                 showMessage(`❌ Error saving settings: ${e.message}`, 'error');
+                if (statusEl) statusEl.textContent = '❌ Error';
+            }
+        }
+
+        // ── Admin tabs ───────────────────────────────────────────────────────
+        // Six sections on one scroll meant paging past unrelated panels to reach an
+        // action. One pane at a time; the choice survives a reload.
+        function showAdminTab(name, btn) {
+            document.querySelectorAll('.admin-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.admin-nav-item').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
+            const pane = document.getElementById('adminPane_' + name);
+            if (pane) pane.classList.add('active');
+            if (btn) {
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+            }
+            try { localStorage.setItem('adminActiveTab', name); } catch (e) { /* private mode */ }
+
+            // The settings panes used to fetch when their modal opened; now they
+            // fetch when their pane is shown, so values are never stale.
+            if (name === 'agentsettings') loadAgentSettings();
+            if (name === 'studiosettings') loadSettings();
+        }
+
+        function restoreAdminTab() {
+            let saved = null;
+            try { saved = localStorage.getItem('adminActiveTab'); } catch (e) { /* private mode */ }
+            if (!saved || !document.getElementById('adminPane_' + saved)) return;
+            const btn = [...document.querySelectorAll('.admin-nav-item')]
+                .find(b => (b.getAttribute('onclick') || '').includes("'" + saved + "'"));
+            showAdminTab(saved, btn);
+        }
+
+        // ── Agent Settings (QA-Agent-Network config/.env) ────────────────────
+        // Schema-driven, same contract as the ⚙️ Settings modal, but rendered
+        // into the page. Class names and input ids are deliberately distinct
+        // (.agent-tab-*, af_<key>) because showSettingsTab() queries
+        // .settings-tab-pane / .settings-tab-btn globally — sharing them would
+        // make opening the modal blank this section's panes.
+
+        const AGENT_CATEGORY_LABELS = {
+            common: '⚙️ Common',
+            authoring: '✍️ Test Authoring',
+            healing: '🩹 Test Healing',
+            triaging: '🔍 Test Triaging',
+            server: '🖥️ Server'
+        };
+
+        // Long values that read badly in a half-width cell
+        const AGENT_FULL_WIDTH_KEYS = [
+            'workspace_dir', 'test_runner_cmd', 'autofix_base_url',
+            'dashboard_base_url', 'jira_base_url', 'github_pr_reviewers'
+        ];
+
+
+        async function loadAgentSettings() {
+            const statusEl = document.getElementById('agentSettingsStatus');
+            try {
+                const response = await fetch(`${API_BASE}/agent-settings`, { credentials: 'include' });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    // The agents proxy returns {error, detail} with a 503 when the
+                    // QA-Agent-Network server is not running — show the detail, it
+                    // tells the admin exactly how to start it.
+                    let msg = data.detail || data.error || `HTTP ${response.status}`;
+                    if (response.status === 404) {
+                        // A bare "Not found" leaves no clue which of the two servers
+                        // is missing the route, and the answer is almost always that
+                        // one of them is still running pre-update code.
+                        msg = 'Agent settings endpoint not found (404). Restart the ' +
+                              'AI-Test-Studio backend and the QA Agent Network server ' +
+                              '(`bash scripts/run-server.sh`) so both pick up the route.';
+                    }
+                    statusEl.className = 'agent-settings-status error';
+                    statusEl.textContent = `❌ ${msg}`;
+                    document.getElementById('agentSettingsTabs').innerHTML = '';
+                    document.getElementById('agentSettingsTabContent').innerHTML = '';
+                    return;
+                }
+
+                window._agentSettingsSchema = data.schema;
+                window._agentSettingsValues = data.values;
+                statusEl.className = 'agent-settings-status';
+                statusEl.innerHTML =
+                    `Saved to <code>${escapeHtml(data.env_file || 'config/.env')}</code> ` +
+                    `on the QA Agent Network host. Changes apply from the next agent run — no restart needed.`;
+                renderAgentSettingsTabs(data);
+            } catch (e) {
+                statusEl.className = 'agent-settings-status error';
+                statusEl.textContent = `❌ Could not load agent settings: ${e.message}`;
+            }
+        }
+
+        function showAgentSettingsTab(category, btn) {
+            window._activeAgentTab = category;
+            const root = document.getElementById('adminPane_agentsettings');
+            root.querySelectorAll('.agent-tab-pane').forEach(p => p.classList.remove('active'));
+            root.querySelectorAll('.agent-tab-btn').forEach(b => b.classList.remove('active'));
+            const pane = document.getElementById('agentPane_' + category);
+            if (pane) pane.classList.add('active');
+            if (btn) btn.classList.add('active');
+        }
+
+        function renderAgentSettingsTabs(data) {
+            const schema = data.schema || [];
+            const values = data.values || {};
+            const shadowed = data.shadowed || {};
+            const categories = (data.categories || []).filter(c => schema.some(f => f.category === c));
+            const activeTab = categories.includes(window._activeAgentTab)
+                ? window._activeAgentTab
+                : categories[0];
+
+            function renderFieldContent(field, val) {
+                let h = `<label for="af_${field.key}">${escapeHtml(field.label)}</label>`;
+                if (field.type === 'boolean') {
+                    const checked = (val === true || val === 'True' || val === 'true') ? 'checked' : '';
+                    h += `<div class="settings-checkbox-row">
+                        <input type="checkbox" id="af_${field.key}" ${checked}>
+                        <span>Enabled</span>
+                    </div>`;
+                } else if (field.type === 'select') {
+                    h += `<select id="af_${field.key}">`;
+                    (field.options || []).forEach(opt => {
+                        const sel = String(opt.value) === String(val) ? 'selected' : '';
+                        h += `<option value="${escapeHtml(opt.value)}" ${sel}>${escapeHtml(opt.label)}</option>`;
+                    });
+                    h += `</select>`;
+                } else if (field.type === 'password') {
+                    h += `<input type="text" id="af_${field.key}" value="${escapeHtml(String(val || ''))}" autocomplete="off" placeholder="Enter new value to update">`;
+                } else if (field.type === 'number') {
+                    const minAttr = field.min !== undefined ? `min="${field.min}"` : '';
+                    const maxAttr = field.max !== undefined ? `max="${field.max}"` : '';
+                    const shown = (val !== undefined && val !== null && val !== '') ? val : (field.default !== undefined ? field.default : '');
+                    h += `<input type="number" id="af_${field.key}" value="${escapeHtml(String(shown))}" ${minAttr} ${maxAttr}>`;
+                } else {
+                    h += `<input type="text" id="af_${field.key}" value="${escapeHtml(String(val || ''))}" placeholder="${escapeHtml(String(field.default || ''))}">`;
+                }
+                if (field.description) {
+                    h += `<span class="field-desc">${escapeHtml(field.description)}</span>`;
+                }
+                // A key declared in a lower-precedence .env wins at run time, so a
+                // value saved here would silently do nothing. Say so.
+                if (shadowed[field.key]) {
+                    h += `<span class="agent-field-warning">⚠️ Overridden at run time by <code>${escapeHtml(shadowed[field.key])}</code> — remove it there for this value to take effect.</span>`;
+                }
+                h += `<span class="agent-field-error" id="afErr_${field.key}"></span>`;
+                return h;
+            }
+
+            let tabsHtml = '';
+            let html = '';
+            categories.forEach(cat => {
+                const fields = schema.filter(f => f.category === cat);
+                const isActive = cat === activeTab ? 'active' : '';
+                const label = AGENT_CATEGORY_LABELS[cat] || cat;
+
+                tabsHtml += `<button class="agent-tab-btn ${isActive}" onclick="showAgentSettingsTab('${cat}', this)">${escapeHtml(label)}</button>`;
+
+                html += `<div class="agent-tab-pane ${isActive}" id="agentPane_${cat}"><div class="settings-grid">`;
+                fields.forEach(field => {
+                    const fullWidth = AGENT_FULL_WIDTH_KEYS.includes(field.key) ? ' settings-full-width' : '';
+                    html += `<div class="settings-field${fullWidth}">${renderFieldContent(field, values[field.key])}</div>`;
+                });
+                html += `<div class="settings-save-row">
+                    <button class="btn" onclick="saveAgentSettingsTab('${cat}')">💾 Save ${escapeHtml(label.replace(/^\S+\s/, ''))} Settings</button>
+                    <span class="settings-save-status" id="agentSaveStatus_${cat}"></span>
+                </div>`;
+                html += `</div></div>`;
+            });
+
+            document.getElementById('agentSettingsTabs').innerHTML = tabsHtml;
+            document.getElementById('agentSettingsTabContent').innerHTML = html;
+        }
+
+        async function saveAgentSettingsTab(category) {
+            const schema = window._agentSettingsSchema || [];
+            const catFields = schema.filter(f => f.category === category);
+            const payload = {};
+
+            catFields.forEach(field => {
+                const el = document.getElementById('af_' + field.key);
+                if (!el) return;
+                if (field.type === 'boolean') {
+                    payload[field.key] = el.checked;
+                } else if (field.type === 'number') {
+                    payload[field.key] = el.value !== '' ? Number(el.value) : el.value;
+                } else {
+                    payload[field.key] = el.value;
+                }
+            });
+
+            // Clear any errors left over from a previous attempt
+            catFields.forEach(f => {
+                const errEl = document.getElementById('afErr_' + f.key);
+                if (errEl) errEl.textContent = '';
+            });
+
+            const statusEl = document.getElementById('agentSaveStatus_' + category);
+            if (statusEl) statusEl.textContent = '⏳ Saving...';
+
+            try {
+                const response = await fetch(`${API_BASE}/agent-settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    window._agentSettingsValues = result.values;
+                    showMessage('✅ Agent settings saved — they apply from the next agent run', 'success');
+                    if (statusEl) {
+                        statusEl.textContent = '✅ Saved';
+                        setTimeout(() => { statusEl.textContent = ''; }, 3000);
+                    }
+                    renderAgentSettingsTabs(result);
+                } else if (result.errors) {
+                    // Per-field validation failure — show it against the field itself
+                    Object.entries(result.errors).forEach(([key, msg]) => {
+                        const errEl = document.getElementById('afErr_' + key);
+                        if (errEl) errEl.textContent = `❌ ${msg}`;
+                    });
+                    showMessage('❌ Some settings were not saved — see the highlighted fields', 'error');
+                    if (statusEl) statusEl.textContent = '❌ Not saved';
+                } else {
+                    const msg = result.detail || result.error || 'Unknown error';
+                    showMessage(`❌ Failed to save agent settings: ${msg}`, 'error');
+                    if (statusEl) statusEl.textContent = '❌ Failed';
+                }
+            } catch (e) {
+                showMessage(`❌ Error saving agent settings: ${e.message}`, 'error');
                 if (statusEl) statusEl.textContent = '❌ Error';
             }
         }

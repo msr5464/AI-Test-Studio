@@ -22,9 +22,26 @@ import os
 from typing import Iterable, Tuple
 
 import requests
-from flask import Blueprint, Response, request, jsonify, stream_with_context
+from flask import (Blueprint, Response, current_app, jsonify, request,
+                   stream_with_context)
 
 agents_bp = Blueprint("agents_proxy", __name__)
+
+
+# ⚠️ NO AUTHENTICATION IS ENFORCED HERE.
+#
+# The module docstring above says these routes are gated by require_auth(), but
+# no route carries the decorator and there is no before_request guard — every
+# /api/agents/* endpoint, including POST /run which spawns processes on the host,
+# is reachable without a session.
+#
+# This was tried as a blueprint-wide before_request guard and reverted: the
+# customer UI never authenticates (nothing in frontend/customer/index.html calls
+# /api/auth/login) and no other customer API requires auth either, so enforcing
+# it here 401s the working Tests-to-Automation panel with no way for a user to
+# log in. Closing the gap needs a product decision — add a login flow to the
+# customer UI, bind the app to localhost, or accept the exposure — so it is
+# flagged here rather than changed unilaterally.
 
 
 def _upstream_base() -> str:
@@ -140,7 +157,12 @@ def _forward_stream(path: str) -> Response:
         headers={
             "Cache-Control": "no-cache, no-transform",
             "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
+            # NOT keep-alive. An SSE stream that ends (the run finished) left the
+            # socket in a state the browser held rather than released, and with a
+            # six-connection-per-origin cap the next request on the page queued
+            # behind it — measured at a flat ~20s stall right after a run
+            # completed. "close" tears the socket down when the stream ends.
+            "Connection": "close",
         },
     )
 
@@ -192,6 +214,11 @@ def queue_read(name: str):
     return _forward_json("GET", f"/agents/test-authoring-agent/queue/{name}")
 
 
+@agents_bp.route("/test-authoring-agent/config", methods=["GET"])
+def authoring_config():
+    return _forward_json("GET", "/agents/test-authoring-agent/config")
+
+
 # ── Run control ──────────────────────────────────────────────────────────────
 @agents_bp.route("/test-authoring-agent/run", methods=["POST"])
 def run_start():
@@ -201,6 +228,11 @@ def run_start():
 @agents_bp.route("/test-authoring-agent/run/active", methods=["GET"])
 def run_active():
     return _forward_json("GET", "/agents/test-authoring-agent/run/active")
+
+
+@agents_bp.route("/test-authoring-agent/sessions/<session_id>/events", methods=["GET"])
+def authoring_session_events(session_id: str):
+    return _forward_json("GET", f"/agents/test-authoring-agent/sessions/{session_id}/events")
 
 
 @agents_bp.route("/test-authoring-agent/run/queue", methods=["GET"])
@@ -238,3 +270,75 @@ def sessions_get(session_id: str):
 @agents_bp.route("/test-authoring-agent/sessions/<session_id>/retry", methods=["POST"])
 def sessions_retry(session_id: str):
     return _forward_json("POST", f"/agents/test-authoring-agent/sessions/{session_id}/retry")
+
+
+# ── test-healing-agent ───────────────────────────────────────────────────────
+# Same shapes as the authoring routes above. POST /run takes either
+# {"test": "Class#method", "repair": bool, "force": bool} for a standalone run,
+# or {"build_tag": "..."} to pick up a handoff test-triaging-agent already queued.
+_HEALING = "/agents/test-healing-agent"
+
+
+@agents_bp.route("/test-healing-agent/queue", methods=["GET"])
+def healing_queue_list():
+    return _forward_json("GET", f"{_HEALING}/queue")
+
+
+@agents_bp.route("/test-healing-agent/queue/<name>", methods=["GET"])
+def healing_queue_read(name: str):
+    return _forward_json("GET", f"{_HEALING}/queue/{name}")
+
+
+@agents_bp.route("/test-healing-agent/config", methods=["GET"])
+def healing_config():
+    return _forward_json("GET", f"{_HEALING}/config")
+
+
+@agents_bp.route("/test-healing-agent/tests", methods=["GET"])
+def healing_tests_list():
+    return _forward_json("GET", f"{_HEALING}/tests")
+
+
+@agents_bp.route("/test-healing-agent/run", methods=["POST"])
+def healing_run_start():
+    return _forward_json("POST", f"{_HEALING}/run")
+
+
+@agents_bp.route("/test-healing-agent/run/active", methods=["GET"])
+def healing_run_active():
+    return _forward_json("GET", f"{_HEALING}/run/active")
+
+
+@agents_bp.route("/test-healing-agent/sessions/<session_id>/events", methods=["GET"])
+def healing_session_events(session_id: str):
+    return _forward_json("GET", f"{_HEALING}/sessions/{session_id}/events")
+
+
+@agents_bp.route("/test-healing-agent/run/queue", methods=["GET"])
+def healing_pending_queue_list():
+    return _forward_json("GET", f"{_HEALING}/run/queue")
+
+
+@agents_bp.route("/test-healing-agent/run/queue/<int:index>", methods=["DELETE"])
+def healing_pending_queue_remove(index: int):
+    return _forward_json("DELETE", f"{_HEALING}/run/queue/{index}")
+
+
+@agents_bp.route("/test-healing-agent/run/<session_id>/cancel", methods=["POST"])
+def healing_run_cancel(session_id: str):
+    return _forward_json("POST", f"{_HEALING}/run/{session_id}/cancel")
+
+
+@agents_bp.route("/test-healing-agent/run/<session_id>/stream", methods=["GET"])
+def healing_run_stream(session_id: str):
+    return _forward_stream(f"{_HEALING}/run/{session_id}/stream")
+
+
+@agents_bp.route("/test-healing-agent/sessions", methods=["GET"])
+def healing_sessions_list():
+    return _forward_json("GET", f"{_HEALING}/sessions")
+
+
+@agents_bp.route("/test-healing-agent/sessions/<session_id>", methods=["GET"])
+def healing_sessions_get(session_id: str):
+    return _forward_json("GET", f"{_HEALING}/sessions/{session_id}")

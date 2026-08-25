@@ -428,6 +428,40 @@
             cursor: not-allowed;
         }
 
+        .agent-offline-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            border-left: 3px solid #f59e0b;
+            border-radius: 10px;
+            background: rgba(245, 158, 11, 0.08);
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .agent-offline-banner strong { display: block; margin-bottom: 2px; }
+        .agent-offline-banner span   { color: var(--text-light); }
+        .agent-offline-banner code {
+            background: var(--bg-input);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .agent-offline-banner > div  { flex: 1; }
+        .agent-offline-icon          { font-size: 18px; }
+
+        /* Everything the agent server drives is inert while it is down. */
+        .agent-panel-offline .analyze-box,
+        .agent-panel-offline .qa-card {
+            opacity: 0.5;
+            pointer-events: none;
+            user-select: none;
+        }
+
         .nav-soon {
             margin-left: auto;
             font-size: 10px;
@@ -5849,14 +5883,21 @@
 
         /* ── Agent panel: compact form elements ── */
         #tabPanelAgents input.qa-input,
-        #tabPanelAgents select.qa-select {
+        #tabPanelAgents select.qa-select,
+        #tabPanelHealing input.qa-input,
+        #tabPanelHealing select.qa-select {
             padding: 8px 12px !important;
             font-size: 13px !important;
             min-height: 36px !important;
             border-radius: 8px !important;
         }
-        #tabPanelAgents select.qa-select {
+        #tabPanelAgents select.qa-select,
+        #tabPanelHealing select.qa-select {
             padding: 8px 36px 8px 12px !important;
+        }
+        #tabPanelHealing .analyze-btn {
+            padding: 11px 24px;
+            font-size: 14px;
         }
         #tabPanelAgents .analyze-textarea {
             padding: 12px 14px;
@@ -6177,9 +6218,12 @@
             overflow: hidden;
         }
 
-        #qaLiveCard.terminal-completed  { border-left-color: #10b981; }
-        #qaLiveCard.terminal-failed     { border-left-color: #ef4444; }
-        #qaLiveCard.terminal-cancelled  { border-left-color: #94a3b8; }
+        #qaLiveCard.terminal-completed,
+        #healLiveCard.terminal-completed  { border-left-color: #10b981; }
+        #qaLiveCard.terminal-failed,
+        #healLiveCard.terminal-failed     { border-left-color: #ef4444; }
+        #qaLiveCard.terminal-cancelled,
+        #healLiveCard.terminal-cancelled  { border-left-color: #94a3b8; }
 
         .qa-live-header {
             display: flex;
@@ -6738,9 +6782,8 @@
                     style="margin-top: 12px;">📋 Requirements → Tests</button>
                 <button class="nav-item" data-nav="agents" onclick="showTab('agents')">🤖 Tests → Automation
                     Code</button>
+                <button class="nav-item" data-nav="healing" onclick="showTab('healing')">🔧 Auto-Heal Tests</button>
                 <button class="nav-item" data-nav="ask" onclick="showTab('ask')">💬 Talk to your Tests</button>
-                <button class="nav-item disabled">🔍 Analyse Failures <span class="nav-soon">soon</span></button>
-                <button class="nav-item disabled">🔧 Fix Broken Tests <span class="nav-soon">soon</span></button>
             </div>
             <div class="nav-spacer"></div>
             <!-- Agent network status — sidebar footer -->
@@ -6918,6 +6961,17 @@
             <!-- QA Agents Tab -->
             <div class="tab-panel" id="tabPanelAgents">
                 <div class="panel-body">
+                    <div class="agent-offline-banner" id="qaOfflineBanner" style="display:none;">
+                        <span class="agent-offline-icon">⚠️</span>
+                        <div>
+                            <strong>Agent Network is unreachable.</strong>
+                            <span>This page needs the agent server. Start it with
+                            <code>bash scripts/run-server.sh</code> in the QA-Agent-Network repo,
+                            then retry.</span>
+                        </div>
+                        <button type="button" class="qa-btn qa-btn-ghost"
+                                onclick="agentGate.refresh()">Retry</button>
+                    </div>
                     <h2 class="page-title"><span>🤖</span> Test Authoring Agent</h2>
                     <div class="analyze-intro-block">
                         <div class="analyze-intro-content">
@@ -7167,6 +7221,155 @@
                 </div><!-- /.panel-body -->
             </div><!-- /#tabPanelAgents -->
 
+            <!-- ── Test Healing Agent ─────────────────────────────────────── -->
+            <div class="tab-panel" id="tabPanelHealing">
+                <div class="panel-body">
+                    <div class="agent-offline-banner" id="healOfflineBanner" style="display:none;">
+                        <span class="agent-offline-icon">⚠️</span>
+                        <div>
+                            <strong>Agent Network is unreachable.</strong>
+                            <span>This page needs the agent server. Start it with
+                            <code>bash scripts/run-server.sh</code> in the QA-Agent-Network repo,
+                            then retry.</span>
+                        </div>
+                        <button type="button" class="qa-btn qa-btn-ghost"
+                                onclick="agentGate.refresh()">Retry</button>
+                    </div>
+                    <h2 class="page-title"><span>🔧</span> Test Healing Agent</h2>
+                    <div class="analyze-intro-block">
+                        <div class="analyze-intro-content">
+                            <p class="analyze-intro-headline">Fix a broken locator</p>
+                            <p class="analyze-intro-sub">Name a failing test — the agent runs it locally,
+                                reads the page as it actually was when it failed, fixes the locator,
+                                proves it by re-running the test, and raises a PR.</p>
+                        </div>
+                    </div>
+
+                    <div class="analyze-box">
+                        <div id="healPickerWrap" style="margin-bottom:14px;">
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                                <div style="flex:1;min-width:150px;">
+                                    <label class="qa-live-meta-label" for="healModule">Module</label>
+                                    <select id="healModule" class="qa-select"
+                                            style="margin-top:6px;"
+                                            onchange="qaHealing.onModuleChange()"><option value="">All modules</option></select>
+                                </div>
+                                <div style="flex:1.4;min-width:190px;">
+                                    <label class="qa-live-meta-label" for="healClass">Class</label>
+                                    <select id="healClass" class="qa-select"
+                                            style="margin-top:6px;"
+                                            onchange="qaHealing.onClassChange()"><option value="">— select a class —</option></select>
+                                </div>
+                                <div style="flex:2;min-width:230px;">
+                                    <label class="qa-live-meta-label" for="healMethod">Test</label>
+                                    <select id="healMethod" class="qa-select"
+                                            style="margin-top:6px;"
+                                            onchange="qaHealing.onMethodChange()"><option value="">— pick a class first —</option></select>
+                                </div>
+                            </div>
+                            <label class="analyze-option" style="margin-top:8px;"
+                                   title="The agent only fixes locators, so API and unit tests are hidden by default">
+                                <input type="checkbox" id="healShowAll"
+                                       onchange="qaHealing.renderPicker()" /> Show non-web tests
+                            </label>
+                        </div>
+
+                        <label class="qa-live-meta-label" for="healTestName">Test to fix</label>
+                        <input type="text" id="healTestName" class="qa-input"
+                               placeholder="LoginTest#testLogin  ·  automation.saucedemo.SauceDemoWebTest"
+                               style="margin:6px 0 4px 0;" />
+                        <p style="font-size:12px;color:var(--text-light);margin:0 0 10px 0;">
+                            Accepts <code>Class#method</code>, <code>Class.method</code>,
+                            <code>pkg.Class.method</code>, or a bare <code>Class</code> to fix every
+                            failing test in it.
+                        </p>
+
+                        <div class="analyze-actions" id="healRunActions">
+                            <label class="analyze-option">
+                                <input type="checkbox" id="healAutoPush" /> Auto-push PR on success
+                            </label>
+                            <button type="button" class="analyze-btn" id="healRunBtn" onclick="qaHealing.run()">
+                                <span id="healRunBtnLabel">🔧 Diagnose &amp; Fix</span>
+                                <span id="healRunBtnSpinner" style="display:none;vertical-align:middle;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:qa-spin 0.8s linear infinite;vertical-align:middle;">
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                    </svg>
+                                    Starting…
+                                </span>
+                            </button>
+                        </div>
+                        <p id="healRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
+                    </div>
+
+                    <!-- Handoffs waiting from the triaging agent -->
+                    <div class="qa-card" id="healQueueCard" style="display:none;margin-top:18px;">
+                        <h3>📥 From Triaging <span class="qa-live-badge badge-running" id="healQueueCount" style="font-size:11px;">0</span></h3>
+                        <p style="font-size:12px;color:var(--text-light);margin:0 0 12px 0;">
+                            Builds that test-triaging-agent has classified as broken locators.
+                        </p>
+                        <div id="healQueueWrap"></div>
+                    </div>
+
+                    <!-- Live run -->
+                    <div class="qa-card" id="healLiveCard" style="display:none;margin-top:18px;">
+                        <div class="qa-live-header">
+                            <div class="qa-live-header-icon">📡</div>
+                            <span class="qa-live-header-title">Live Run</span>
+                            <span class="qa-live-badge badge-running" id="healLiveStatus">running…</span>
+                            <span class="qa-live-elapsed" id="healLiveElapsed">00:00</span>
+                        </div>
+                        <div class="qa-live-meta">
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Session</span>
+                                <span class="qa-live-meta-value" id="healLiveSession">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Target</span>
+                                <span class="qa-live-meta-value" id="healLiveTarget">—</span>
+                            </div>
+                        </div>
+                        <div class="qa-live-steps-wrap">
+                            <div class="qa-progress-steps" id="healProgressSteps">
+                                <div class="qa-step" data-step="reproduce"><span class="qa-step-icon">1</span>Reproduce</div>
+                                <div class="qa-step" data-step="fix"><span class="qa-step-icon">2</span>Fix</div>
+                                <div class="qa-step" data-step="ship"><span class="qa-step-icon">3</span>Ship</div>
+                            </div>
+                        </div>
+                        <div class="qa-live-console-wrap">
+                            <button type="button" class="qa-console-copy-btn" id="healConsoleCopyBtn"
+                                title="Copy logs" onclick="qaHealing.copyLogs()">⧉</button>
+                            <div class="qa-console" id="healConsole"></div>
+                        </div>
+                        <div class="qa-live-footer">
+                            <button type="button" class="qa-btn qa-btn-danger" id="healCancelBtn"
+                                onclick="qaHealing.cancel()" style="padding:6px 14px;font-size:12px;">✕ Cancel</button>
+                            <span id="healLiveResult"></span>
+                        </div>
+                    </div>
+
+                    <div class="qa-card" style="margin-top:18px;">
+                        <h3>🕓 History <button type="button" class="qa-btn qa-btn-ghost"
+                                onclick="qaHealing.loadHistory()"
+                                style="margin-left:auto;padding:6px 12px;font-size:12px;">Refresh</button></h3>
+                        <div id="healHistoryWrap">
+                            <div class="qa-history-empty">No runs yet.</div>
+                        </div>
+                    </div>
+
+                </div><!-- /.panel-body -->
+            </div><!-- /#tabPanelHealing -->
+
+            <!-- Healing session detail — same shell as the authoring modal -->
+            <div class="qa-modal-overlay" id="healSessionModal" onclick="qaHealing.closeSession(event)">
+                <div class="qa-modal" onclick="event.stopPropagation()">
+                    <h3>Session detail <button type="button" class="qa-modal-close"
+                            onclick="qaHealing.closeSession()" aria-label="Close">×</button></h3>
+                    <div id="healSessionDetail">
+                        <div class="qa-empty-hint">Loading…</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Session detail modal -->
             <div class="qa-modal-overlay" id="qaSessionModal" onclick="qaAgents.closeSessionModal(event)">
                 <div class="qa-modal" onclick="event.stopPropagation()">
@@ -7182,7 +7385,7 @@
             <footer class="site-footer">
                 Made with ❤️ for Engineering Teams &nbsp;·&nbsp; Built by <a
                     href="https://www.linkedin.com/in/mukesh-rajput" target="_blank">Mukesh Rajput</a> &nbsp;·&nbsp; <a
-                    href="https://github.com/msr5464/Knowledge-AI" target="_blank">Open Source on GitHub</a>
+                    href="https://github.com/msr5464/AI-Test-Studio" target="_blank">Open Source on GitHub</a>
             </footer>
 
         </main><!-- /.app-main -->
@@ -7556,7 +7759,7 @@
     <footer class="app-footer">
         Built with ❤️ by <a href="https://www.linkedin.com/in/mukesh-rajput" target="_blank">Mukesh Rajput</a>
         &nbsp;·&nbsp;
-        <a href="https://github.com/msr5464/Knowledge-AI" target="_blank">Open Source on GitHub</a>
+        <a href="https://github.com/msr5464/AI-Test-Studio" target="_blank">Open Source on GitHub</a>
     </footer>
     </div><!-- /.app -->
 
@@ -7767,17 +7970,98 @@
             if (qInput) qInput.style.setProperty('font-size', '15px', 'important');
             // Run health check immediately so sidebar footer shows status on any tab,
             // and wire the refresh button here so it works from every tab (not just Agents).
-            if (window.qaAgents && window.qaAgents.checkHealth) {
-                window.qaAgents.checkHealth();
-                var _refreshBtn = document.getElementById('qaHealthRefresh');
-                if (_refreshBtn) {
-                    _refreshBtn.addEventListener('click', function () { window.qaAgents.checkHealth(); });
-                }
+            window.agentGate.start();
+            var _refreshBtn = document.getElementById('qaHealthRefresh');
+            if (_refreshBtn) {
+                _refreshBtn.addEventListener('click', function () { window.agentGate.refresh(); });
             }
         });
 
         // Also load immediately in case DOMContentLoaded already fired
         loadTheme();
+
+        // ── Agent-server gate ─────────────────────────────────────────────
+        // The Authoring and Auto-Heal pages are pure front-ends over the agent
+        // server: queue, history, catalogue and runs all come from it. With the
+        // server down every control is a dead end, so rather than let people
+        // fill in a form that cannot submit, both pages are made inert and say
+        // why. Owned by the shell, not by either module, so the state is shared
+        // and the check runs on whichever tab you happen to be on.
+        window.agentGate = (function () {
+            const GATED_TABS = ['agents', 'healing'];
+            const PANELS = { agents: 'qaOfflineBanner', healing: 'healOfflineBanner' };
+            const POLL_MS = 20000;
+            let online = null;          // null until the first check resolves
+            let timer = null;
+
+            function setIndicator(state, message) {
+                const dot = document.getElementById('qaHealthDot');
+                const text = document.getElementById('qaHealthText');
+                if (dot) dot.className = 'nav-health-dot' + (state ? ' ' + state : '');
+                if (text) text.textContent = message;
+            }
+
+            function apply(isOnline) {
+                const recovered = online === false && isOnline;
+                online = isOnline;
+                GATED_TABS.forEach(function (tab) {
+                    const nav = document.querySelector('.nav-item[data-nav="' + tab + '"]');
+                    if (nav) nav.classList.toggle('disabled', !isOnline);
+
+                    const panel = document.getElementById(
+                        'tabPanel' + tab.charAt(0).toUpperCase() + tab.slice(1));
+                    if (panel) panel.classList.toggle('agent-panel-offline', !isOnline);
+
+                    const banner = document.getElementById(PANELS[tab]);
+                    if (banner) banner.style.display = isOnline ? 'none' : 'flex';
+                });
+
+                // Un-gating alone leaves the page enabled but still empty — the
+                // catalogue, history and defaults were never fetched. Reload
+                // whichever gated page is on screen.
+                if (recovered) {
+                    const active = document.body.getAttribute('data-active-tab');
+                    if (active === 'healing' && window.qaHealing) window.qaHealing.init();
+                    if (active === 'agents' && window.qaAgents) window.qaAgents.init();
+                }
+            }
+
+            async function refresh() {
+                setIndicator('', 'Checking…');
+                const ctrl = new AbortController();
+                const tid = setTimeout(function () { ctrl.abort(); }, 8000);
+                try {
+                    const r = await fetch('/api/agents/health', {
+                        signal: ctrl.signal, credentials: 'same-origin',
+                    });
+                    clearTimeout(tid);
+                    const body = await r.json().catch(function () { return null; });
+                    const ok = !!(body && body.connected);
+                    setIndicator(ok ? 'ok' : 'err',
+                                 ok ? 'Agent Network connected' : 'Agent Network unreachable');
+                    apply(ok);
+                    return ok;
+                } catch (e) {
+                    clearTimeout(tid);
+                    setIndicator('err', (e && e.name === 'AbortError')
+                        ? 'Health check timed out' : 'Agent Network unreachable');
+                    apply(false);
+                    return false;
+                }
+            }
+
+            function isOnline() { return online !== false; }
+
+            function start() {
+                refresh();
+                if (timer) clearInterval(timer);
+                // Poll so a server that comes back up re-enables the pages without
+                // a reload, and one that dies mid-session stops accepting input.
+                timer = setInterval(refresh, POLL_MS);
+            }
+
+            return { refresh: refresh, isOnline: isOnline, start: start, gatedTabs: GATED_TABS };
+        })();
 
         // Data-driven nav router — adding a new panel only needs a nav-item + a tab-panel, no JS changes
         function showTab(tab) {
@@ -7811,13 +8095,32 @@
                         qInput.focus();
                     }
                 });
-            } else if (tab === 'agents') {
-                if (window.qaAgents && typeof window.qaAgents.init === 'function') {
-                    window.qaAgents.init();
-                }
-                if (window.qaImport && typeof window.qaImport.init === 'function') {
-                    window.qaImport.init(); // preload in background so "From TestRail" tab shows instantly
-                }
+            } else if (tab === 'healing' || tab === 'agents') {
+                // Re-check on entry: the server may have come back (or gone) since
+                // the last poll, and initialising against a dead server just fills
+                // the panel with failed requests.
+                window.agentGate.refresh().then(function (ok) {
+                    if (!ok) {
+                        // Offline: still paint the picker's empty state so the
+                        // selects say why they are empty rather than being blank.
+                        if (tab === 'healing' && window.qaHealing) {
+                            window.qaHealing.renderPicker();
+                        }
+                        return;
+                    }
+                    if (tab === 'healing') {
+                        if (window.qaHealing && typeof window.qaHealing.init === 'function') {
+                            window.qaHealing.init();
+                        }
+                        return;
+                    }
+                    if (window.qaAgents && typeof window.qaAgents.init === 'function') {
+                        window.qaAgents.init();
+                    }
+                    if (window.qaImport && typeof window.qaImport.init === 'function') {
+                        window.qaImport.init(); // preload so "From TestRail" shows instantly
+                    }
+                });
             } else {
                 document.getElementById('reqSpecText')?.focus();
             }
@@ -10670,6 +10973,29 @@
             }
         });
 
+        // One status vocabulary for both agent panels. Only six pill styles exist
+        // in CSS, so every status an agent can report has to map onto one of them
+        // — the authoring history used the raw status as the class name, which
+        // rendered `in_progress` and `unknown` as unstyled bare text.
+        window.QA_PILL_CLASS = {
+            // shared / authoring
+            completed: 'completed', failed: 'failed', cancelled: 'cancelled',
+            running: 'running', in_progress: 'running', interrupted: 'interrupted',
+            queued: 'queued', unknown: 'cancelled',
+            // healing
+            fixed: 'completed', pr_created: 'completed', nothing_to_fix: 'completed',
+            needs_review: 'failed', crashed: 'failed', blocked: 'failed',
+            unverified: 'queued', not_a_locator: 'queued', skipped: 'cancelled',
+        };
+        window.QA_STATUS_LABEL = {
+            completed: 'completed', failed: 'failed', cancelled: 'cancelled',
+            running: 'running', in_progress: 'running', interrupted: 'interrupted',
+            queued: 'queued', unknown: 'unknown',
+            fixed: 'fixed', pr_created: 'PR created', nothing_to_fix: 'nothing to fix',
+            needs_review: 'needs review', crashed: 'crashed', blocked: 'blocked',
+            unverified: 'unverified', not_a_locator: 'not a locator', skipped: 'skipped',
+        };
+
         function showToast(text, type = 'info') {
             const toast = document.getElementById('toastMessage');
             if (!toast) {
@@ -10729,6 +11055,788 @@
             };
         }
 
+        // ── QA Healing module ─────────────────────────────────────────────
+        // Deliberately self-contained rather than folded into qaAgents: it has its
+        // own EventSource, its own step model and its own result shape (one fix can
+        // green several tests), and sharing state with the authoring panel would
+        // couple two independent runs together.
+        window.qaHealing = (function () {
+            const BASE = '/api/agents/test-healing-agent';
+            // Mirrors HEALING_STEPS in qa_agents_server/agents.py — keep in sync.
+            const STEPS = ['reproduce', 'fix', 'ship'];
+
+            const state = {
+                initialised: false, defaultsApplied: false,
+                eventSource: null, session: null, catalog: [],
+                target: null, lastSeq: 0, startTs: null, elapsedTimer: null,
+                terminal: false, logs: [], sawOutput: false, replay: false,
+            };
+
+            let _currentQueue = [];              // last /run/queue snapshot
+            const _cancelledHealItems = [];      // {module, session_id} — kept until page reload
+
+            function $(id) { return document.getElementById(id); }
+            function esc(v) {
+                if (v == null) return '';
+                return String(v).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            function fetchJson(url, opts) {
+                return fetch(url, Object.assign({ credentials: 'same-origin' }, opts || {}))
+                    .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); });
+            }
+
+            function setError(msg) {
+                const el = $('healRunError');
+                if (!el) return;
+                el.textContent = msg || '';
+                el.style.display = msg ? 'block' : 'none';
+            }
+
+            function appendLog(line) {
+                state.sawOutput = true;
+                state.logs.push(line);
+                const el = $('healConsole');
+                if (!el) return;
+                const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+                const div = document.createElement('div');
+                div.textContent = line;
+                el.appendChild(div);
+                if (atBottom) el.scrollTop = el.scrollHeight;
+            }
+
+            function markStep(key, status) {
+                const el = document.querySelector('#healProgressSteps .qa-step[data-step="' + key + '"]');
+                if (!el) return;
+                el.classList.remove('running', 'done', 'failed');
+                if (status) el.classList.add(status);
+            }
+
+            function startElapsed() {
+                state.startTs = Date.now();
+                clearInterval(state.elapsedTimer);
+                state.elapsedTimer = setInterval(function () {
+                    const s = Math.floor((Date.now() - state.startTs) / 1000);
+                    const el = $('healLiveElapsed');
+                    if (el) el.textContent =
+                        String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+                }, 1000);
+            }
+
+            function run() {
+                setError('');
+                const test = ($('healTestName') || {}).value;
+                if (!test || !test.trim()) { setError('Enter a test name first.'); return; }
+
+                // No repair/force here by design. Repair mode turns itself on when
+                // a first attempt fails and a live browser would actually add
+                // something. Force is offered after a run, once the failure shape
+                // is known — see renderResult.
+                const payload = {
+                    test: test.trim(),
+                    auto_push: !!($('healAutoPush') || {}).checked,
+                };
+                setRunBtnLoading(true);
+
+                fetchJson(BASE + '/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                }).then(function (res) {
+                    setRunBtnLoading(false);
+                    if (!res.ok) {
+                        showToast((res.body && res.body.error) || 'Failed to start.', 'warning');
+                        return;
+                    }
+                    if (res.body.queued) {
+                        // The run slot is shared with the authoring agent — both
+                        // drive the same automation repo, so they never overlap.
+                        showToast('⏳  Another agent run is in progress — queued at position ' +
+                                  res.body.position + '.', 'info');
+                        loadHistory();
+                        return;
+                    }
+                    showToast('🔧  Diagnosing ' + payload.test, 'info');
+                    openRun(res.body.session_id, payload.test);
+                }).catch(function (e) {
+                    setRunBtnLoading(false);
+                    showToast('Could not reach the agent server: ' + (e.message || 'unknown'), 'warning');
+                });
+            }
+
+            // Mirrors the authoring panel's _setRunBtnLoading.
+            function setRunBtnLoading(loading) {
+                const btn = $('healRunBtn');
+                if (btn) btn.disabled = loading;
+                const label = $('healRunBtnLabel');
+                const spin = $('healRunBtnSpinner');
+                if (label) label.style.display = loading ? 'none' : '';
+                if (spin) spin.style.display = loading ? '' : 'none';
+            }
+
+            function openRun(sessionId, target, isReplay) {
+                state.session = sessionId;
+                state.target = target;
+                state.lastSeq = 0;
+                state.terminal = false;
+                state.logs = [];
+                // Replaying history is not an event — only a run that finishes
+                // while you are watching it deserves a toast.
+                state.replay = !!isReplay;
+
+                const card = $('healLiveCard');
+                if (card) {
+                    card.style.display = 'block';
+                    card.classList.remove('terminal-completed', 'terminal-failed', 'terminal-cancelled');
+                }
+                if ($('healConsole')) $('healConsole').innerHTML = '';
+                if ($('healLiveElapsed')) $('healLiveElapsed').textContent = '00:00';
+                state.sawOutput = false;
+                if ($('healLiveSession')) $('healLiveSession').textContent = sessionId;
+                if ($('healLiveTarget')) $('healLiveTarget').textContent = target || '—';
+                if ($('healLiveResult')) $('healLiveResult').innerHTML = '';
+                if ($('healLiveStatus')) {
+                    $('healLiveStatus').textContent = 'running…';
+                    $('healLiveStatus').className = 'qa-live-badge badge-running';
+                }
+                STEPS.forEach(function (k) { markStep(k, null); });
+                startElapsed();
+                if (isReplay) { replayHistory(); } else { connect(); }
+            }
+
+            // A finished session's events are already complete, so fetch them in
+            // one request rather than holding a stream open for them. Same
+            // handler, same rendering path — only the transport differs.
+            function replayHistory() {
+                fetchJson(BASE + '/sessions/' + encodeURIComponent(state.session) + '/events')
+                    .then(function (res) {
+                        const events = (res.body && res.body.events) || [];
+                        if (!res.ok || !events.length) {
+                            appendLog('[stream] no recorded events for this session');
+                            finish({ status: 'unknown' });
+                            return;
+                        }
+                        events.forEach(function (ev) {
+                            const d = ev.data || {};
+                            if (typeof ev.seq === 'number') {
+                                state.lastSeq = Math.max(state.lastSeq, ev.seq);
+                            }
+                            if (ev.kind === 'stdout') appendLog(d.line || '');
+                            else if (ev.kind === 'step') markStep(d.key, d.status);
+                            else if (ev.kind === 'error') appendLog('[error] ' + (d.message || ''));
+                            else if (ev.kind === 'done') finish(d);
+                        });
+                    })
+                    .catch(function (e) {
+                        appendLog('[stream] could not load this run: ' + (e && e.message || e));
+                        finish({ status: 'unknown' });
+                    });
+            }
+
+            function connect() {
+                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+                const url = BASE + '/run/' + encodeURIComponent(state.session) +
+                            '/stream?offset=' + state.lastSeq;
+                const es = new EventSource(url, { withCredentials: true });
+                state.eventSource = es;
+
+                // The server tags every frame with `event: <kind>`, so onmessage —
+                // which only fires for untagged frames — never sees them. Each kind
+                // needs its own listener, the same way the authoring panel does it.
+                function handle(kind, msg) {
+                    let ev;
+                    try { ev = JSON.parse(msg.data); } catch (e) { return; }
+                    if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
+                    const d = ev.data || {};
+                    if (kind === 'stdout') appendLog(d.line || '');
+                    else if (kind === 'step') markStep(d.key, d.status);
+                    else if (kind === 'error') appendLog('[error] ' + (d.message || ''));
+                    else if (kind === 'done') {
+                        // Close THIS stream, not just whichever one state points at.
+                        // finish() only closes state.eventSource, so a stream that
+                        // has since been superseded would stay open — and the
+                        // browser caps concurrent connections per origin, so a few
+                        // orphans are enough to stall every later request on the
+                        // page. Observed as a 20s delay opening a session after
+                        // repeatedly viewing logs.
+                        es.close();
+                        finish(d);
+                    }
+                }
+                ['stdout', 'step', 'status', 'error', 'done'].forEach(function (kind) {
+                    es.addEventListener(kind, function (msg) { handle(kind, msg); });
+                });
+                es.onerror = function () {
+                    // A superseded stream must not keep reconnecting in the
+                    // background; only the current one is allowed to recover.
+                    if (state.eventSource !== es) { es.close(); return; }
+                    if (state.terminal) { es.close(); return; }
+                    // The browser reconnects on its own; offset= replays anything missed.
+                    appendLog('[stream] connection dropped — reconnecting…');
+                };
+            }
+
+            function finish(d) {
+                state.terminal = true;
+                clearInterval(state.elapsedTimer);
+                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+
+                // Historical replay sends duration_s; the live path sends duration.
+                // A finished session stays in the runner's memory for a while, so
+                // re-opening it streams the LIVE shape — reading only duration_s
+                // left those replays showing 00:00.
+                const durSecs = d.duration_s ?? d.duration;
+                if (durSecs != null) {
+                    const ds = Math.round(durSecs);
+                    const el = $('healLiveElapsed');
+                    if (el) {
+                        el.textContent = String(Math.floor(ds / 60)).padStart(2, '0') + ':' +
+                                         String(ds % 60).padStart(2, '0');
+                    }
+                }
+
+                if ($('healCancelBtn')) $('healCancelBtn').style.display = 'none';
+
+                // Only runs the server spawned have a recorded console; one started
+                // from the CLI replays its steps and verdict but no output. An empty
+                // black box looks like a failure to load, so name the reason.
+                const con = $('healConsole');
+                if (!state.sawOutput && con && !con.children.length) {
+                    const note = document.createElement('div');
+                    note.style.cssText = 'color:var(--text-light);font-style:italic;';
+                    note.textContent =
+                        'No console output was recorded for this run — it was started ' +
+                        'outside the dashboard. Its steps and result are shown above.';
+                    con.appendChild(note);
+                }
+
+                renderResult(d);
+                loadHistory();
+            }
+
+            // One place decides how a finished run reads, from the same status the
+            // history pill shows. A live run's `done` carries the runner's PROCESS
+            // status ("completed"), while a replayed one carries the healing status
+            // ("nothing_to_fix"), so deciding here from whichever arrived made the
+            // same session look green in history and grey-with-a-warning-toast live.
+            function applyVerdict(status) {
+                const key = (status || 'finished').toLowerCase();
+                const pill = PILL_CLASS[key] || 'queued';
+                const ok = pill === 'completed';
+                const label = STATUS_LABEL[key] || key;
+
+                const badge = $('healLiveStatus');
+                if (badge) {
+                    badge.textContent = label;
+                    badge.className = 'qa-live-badge ' + (
+                        ok ? 'badge-done' : (pill === 'failed' ? 'badge-failed' : 'badge-running'));
+                }
+                const card = $('healLiveCard');
+                if (card) {
+                    card.classList.toggle('terminal-completed', ok);
+                    card.classList.toggle('terminal-failed', pill === 'failed');
+                    card.classList.toggle('terminal-cancelled', pill === 'cancelled');
+                }
+                if (!state.replay) {
+                    showToast((ok ? '✅  ' : '⚠️  ') + label, ok ? 'success' : 'warning');
+                }
+            }
+
+            // One edit can green several tests, so fixes and tests are counted
+            // separately — and "applied but unverified" is never folded into
+            // "fixed", exactly as the PR body separates them.
+            function renderResult(d) {
+                const el = $('healLiveResult');
+                if (!el) return;
+                fetchJson(BASE + '/sessions/' + encodeURIComponent(state.session))
+                    .then(function (res) {
+                        const s = res.body || {};
+                        applyVerdict(s.status || d.status);
+                        const bits = [];
+                        if (s.distinct_fixes) {
+                            bits.push('<span class="qa-live-badge badge-done">' + s.distinct_fixes +
+                                      ' fix' + (s.distinct_fixes === 1 ? '' : 'es') + ' → ' +
+                                      (s.tests_fixed || 0) + ' test' + (s.tests_fixed === 1 ? '' : 's') +
+                                      ' green</span>');
+                        }
+                        if (s.tests_unverified) {
+                            bits.push('<span class="qa-live-badge badge-running" title="No test runner was available — these changes were never executed">⚠️ ' +
+                                      s.tests_unverified + ' applied but unverified</span>');
+                        }
+                        if (s.tests_failed) {
+                            bits.push('<span class="qa-live-badge badge-failed">' + s.tests_failed +
+                                      ' still failing</span>');
+                        }
+                        // The gate stopped this run: it is not a broken locator, so
+                        // nothing was attempted. Offer the override HERE rather than
+                        // as a pre-run checkbox — the shape is only knowable now, and
+                        // the reason is on screen to read before overriding.
+                        if (s.gate_stopped && s.failure_shape !== 'LOCATOR') {
+                            el.innerHTML =
+                                '<div style="display:flex;flex-direction:column;gap:6px;">' +
+                                '<span class="qa-live-badge badge-failed">' + esc(s.failure_shape) + '</span>' +
+                                '<span style="font-size:12px;color:var(--text-light);">' +
+                                esc(s.failure_headline || 'Not a locator failure — no fix was attempted.') +
+                                '</span>' +
+                                '<span style="font-size:11px;color:var(--text-light);">' +
+                                'The agent only edits locators. Forcing it at a different kind of ' +
+                                'failure risks it changing an assertion so the test passes over a real bug.' +
+                                '</span>' +
+                                '<button type="button" class="qa-btn qa-btn-ghost" ' +
+                                'style="padding:4px 12px;font-size:12px;align-self:flex-start;" ' +
+                                'onclick="qaHealing.retryForced()">Try anyway →</button></div>';
+                            return;
+                        }
+                        if (!bits.length) {
+                            const k = (s.status || '').toLowerCase();
+                            bits.push('<span class="qa-live-badge">' +
+                                      esc(STATUS_LABEL[k] || s.status || 'no changes') + '</span>');
+                        }
+                        if (s.pr_url) {
+                            bits.push('<a href="' + esc(s.pr_url) + '" target="_blank" rel="noopener" class="qa-btn qa-btn-ghost" style="padding:4px 10px;font-size:12px;">View PR →</a>');
+                        }
+                        el.innerHTML = bits.join(' ');
+                    })
+                    .catch(function (err) {
+                        // Never blank the panel silently — an empty result box after a
+                        // finished run is indistinguishable from "nothing happened".
+                        console.error('[qaHealing] renderResult failed', err);
+                        applyVerdict(d.status);
+                        el.innerHTML = '<span class="qa-live-badge">' +
+                            esc(STATUS_LABEL[(d.status || '').toLowerCase()] || d.status || 'finished') + '</span> ' +
+                            '<span style="font-size:12px;color:var(--text-light);">' +
+                            'could not load the result summary: ' + esc(err && err.message || err) +
+                            '</span>';
+                    });
+            }
+
+            function retryForced() {
+                if (!state.target) return;
+                setError('');
+                fetchJson(BASE + '/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        test: state.target,
+                        force: true,
+                        auto_push: !!($('healAutoPush') || {}).checked,
+                    }),
+                }).then(function (res) {
+                    if (!res.ok) {
+                        showToast((res.body && res.body.error) || 'Failed to start.', 'warning');
+                        return;
+                    }
+                    if (res.body.queued) {
+                        showToast('⏳  Queued at position ' + res.body.position + '.', 'info');
+                        loadHistory();
+                        return;
+                    }
+                    showToast('⚠️  Forcing a fix on a non-locator failure', 'warning');
+                    openRun(res.body.session_id, state.target);
+                });
+            }
+
+            function cancel() {
+                if (!state.session) return;
+                fetchJson(BASE + '/run/' + encodeURIComponent(state.session) + '/cancel', { method: 'POST' })
+                    .then(function () { appendLog('[stream] cancellation requested'); });
+            }
+
+            function copyLogs() {
+                navigator.clipboard.writeText(state.logs.join('\n')).catch(function () {});
+            }
+
+            // ── Test picker ──────────────────────────────────────────────
+            // Assists the text field, never replaces it: a name from a pipeline
+            // handoff, or a class the scan missed, must still be typable.
+            // The checkbox is not a neutral default: whatever it holds is sent with
+            // the run and beats config/.env. So it must start showing what .env
+            // actually says, and the user overrides from there.
+            function applyDefaults() {
+                fetchJson(BASE + '/config').then(function (res) {
+                    if (!res.ok || !res.body) return;
+                    const box = $('healAutoPush');
+                    if (box && !state.defaultsApplied) {
+                        box.checked = !!res.body.auto_push_default;
+                        state.defaultsApplied = true;
+                    }
+                }).catch(function () { /* leave the box as-is */ });
+            }
+
+            function loadCatalog() {
+                fetchJson(BASE + '/tests').then(function (res) {
+                    state.catalog = (res.ok && res.body && res.body.classes) || [];
+                    renderPicker();
+                }).catch(function () {
+                    state.catalog = [];
+                    renderPicker();
+                });
+            }
+
+            // Why the list is empty, in the select itself. Hiding the picker
+            // when the catalogue cannot load made the page change shape between
+            // server states, which reads as a second unexplained problem on top
+            // of the offline banner already saying what is wrong.
+            function emptyOptionLabel() {
+                if (window.agentGate && !window.agentGate.isOnline()) {
+                    return '— unavailable while the agent server is offline —';
+                }
+                return '— no tests found —';
+            }
+
+            function visibleClasses() {
+                const showAll = !!($('healShowAll') || {}).checked;
+                return (state.catalog || []).filter(function (c) {
+                    return showAll || c.web_count > 0;
+                });
+            }
+
+            function renderPicker() {
+                const classes = visibleClasses();
+                const modSel = $('healModule');
+                if (!modSel) return;
+
+                if (!classes.length) {
+                    const placeholder = '<option value="">' + esc(emptyOptionLabel()) + '</option>';
+                    modSel.innerHTML = placeholder;
+                    if ($('healClass')) $('healClass').innerHTML = placeholder;
+                    if ($('healMethod')) $('healMethod').innerHTML = placeholder;
+                    return;
+                }
+
+                const modules = [];
+                classes.forEach(function (c) {
+                    if (modules.indexOf(c.module) === -1) modules.push(c.module);
+                });
+                modules.sort(function (a, b) { return a.toLowerCase() < b.toLowerCase() ? -1 : 1; });
+
+                const keepModule = modSel.value;
+                modSel.innerHTML = '<option value="">All modules</option>' +
+                    modules.map(function (m) {
+                        return '<option value="' + esc(m) + '">' + esc(m) + '</option>';
+                    }).join('');
+                if (modules.indexOf(keepModule) !== -1) modSel.value = keepModule;
+                renderClasses();
+            }
+
+            function renderClasses() {
+                const sel = $('healClass');
+                if (!sel) return;
+                const module = ($('healModule') || {}).value || '';
+                const classes = visibleClasses().filter(function (c) {
+                    return !module || c.module === module;
+                });
+                sel.innerHTML = '<option value="">— select a class —</option>' +
+                    classes.map(function (c) {
+                        const n = c.methods.length;
+                        return '<option value="' + esc(c.qualified_name) + '">' +
+                               esc(c.name) + ' (' + n + ' test' + (n === 1 ? '' : 's') + ')</option>';
+                    }).join('');
+                renderMethods();
+            }
+
+            function renderMethods() {
+                const sel = $('healMethod');
+                if (!sel) return;
+                const qualified = ($('healClass') || {}).value || '';
+                const cls = (state.catalog || []).find(function (c) {
+                    return c.qualified_name === qualified;
+                });
+                if (!cls) {
+                    sel.innerHTML = '<option value="">— pick a class first —</option>';
+                    return;
+                }
+                sel.innerHTML =
+                    '<option value="__CLASS__">Whole class (every failing test in it)</option>' +
+                    cls.methods.map(function (m) {
+                        // Read like a test plan, not a list of identifiers.
+                        const label = (m.description || m.name) +
+                                      (m.enabled ? '' : '  (disabled)');
+                        return '<option value="' + esc(m.name) + '"' +
+                               (m.enabled ? '' : ' style="opacity:.55;"') + '>' +
+                               esc(label) + '</option>';
+                    }).join('');
+                onMethodChange();
+            }
+
+            function onModuleChange() { renderClasses(); }
+
+            function onClassChange() {
+                renderMethods();
+                const qualified = ($('healClass') || {}).value || '';
+                if (qualified) setTestName(qualified.split('.').pop());
+            }
+
+            function onMethodChange() {
+                const qualified = ($('healClass') || {}).value || '';
+                if (!qualified) return;
+                const simple = qualified.split('.').pop();
+                const method = ($('healMethod') || {}).value || '';
+                setTestName(method && method !== '__CLASS__' ? simple + '#' + method : simple);
+            }
+
+            function setTestName(value) {
+                const field = $('healTestName');
+                if (field) field.value = value;
+                setError('');
+            }
+
+            function loadQueue() {
+                fetchJson(BASE + '/queue').then(function (res) {
+                    const items = (res.body && res.body.items) || [];
+                    const card = $('healQueueCard');
+                    const wrap = $('healQueueWrap');
+                    if (!card || !wrap) return;
+                    if (!items.length) { card.style.display = 'none'; return; }
+                    card.style.display = 'block';
+                    if ($('healQueueCount')) $('healQueueCount').textContent = items.length;
+                    wrap.innerHTML = items.map(function (i) {
+                        return '<div class="qa-live-meta-item" style="justify-content:space-between;">' +
+                               '<span class="qa-live-meta-value">' + esc(i.name) + '</span>' +
+                               '<button type="button" class="qa-btn qa-btn-ghost" style="padding:4px 10px;font-size:12px;" ' +
+                               'onclick="qaHealing.runBuild(\'' + esc(i.name) + '\')">Fix →</button></div>';
+                    }).join('');
+                }).catch(function () {});
+            }
+
+            function runBuild(buildTag) {
+                setError('');
+                fetchJson(BASE + '/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ build_tag: buildTag, auto_push: !!($('healAutoPush') || {}).checked }),
+                }).then(function (res) {
+                    if (!res.ok) {
+                        showToast((res.body && res.body.error) || 'Failed to start.', 'warning');
+                        return;
+                    }
+                    if (res.body.queued) {
+                        showToast('⏳  Queued at position ' + res.body.position + '.', 'info');
+                        loadHistory();
+                        return;
+                    }
+                    openRun(res.body.session_id, buildTag);
+                });
+            }
+
+            // Healing statuses are its own vocabulary; the pill classes are the
+            // shared themed ones, so map rather than invent new colours.
+            const PILL_CLASS = window.QA_PILL_CLASS;
+            const STATUS_LABEL = window.QA_STATUS_LABEL;
+
+            function resultSummary(s) {
+                const bits = [];
+                if (s.distinct_fixes) {
+                    bits.push(s.distinct_fixes + ' fix' + (s.distinct_fixes === 1 ? '' : 'es') +
+                              ' → ' + (s.tests_fixed || 0) + ' green');
+                }
+                if (s.tests_unverified) bits.push(s.tests_unverified + ' unverified');
+                if (s.tests_failed) bits.push(s.tests_failed + ' failed');
+                if (bits.length) return esc(bits.join(' · '));
+                // No counts does not mean no outcome — a test that already passed,
+                // or a run the gate stopped, both have something worth saying.
+                if (s.failure_headline) return esc(s.failure_headline);
+                if (s.failure_shape) return esc(s.failure_shape);
+                return '—';
+            }
+
+            function loadHistory() {
+                const wrap = $('healHistoryWrap');
+                if (!wrap) return;
+                // Same shape as the authoring history: queued rows on top, then
+                // sessions, with Logs and a Stop action for whatever is running.
+                Promise.all([
+                    fetchJson(BASE + '/sessions?limit=20'),
+                    fetchJson(BASE + '/run/queue').catch(function () { return { body: {} }; }),
+                    fetchJson(BASE + '/run/active').catch(function () { return { body: {} }; }),
+                ]).then(function (results) {
+                    const items  = (results[0].body && results[0].body.items) || [];
+                    const queued = (results[1].body && results[1].body.queue) || [];
+                    const active = results[2].body || {};
+                    const activeSid = active.active ? active.session_id : null;
+                    _currentQueue = queued;  // keep in sync for removeFromQueue lookups
+
+                    if (!items.length && !queued.length && !_cancelledHealItems.length) {
+                        wrap.innerHTML = '<div class="qa-history-empty">No runs yet.</div>';
+                        return;
+                    }
+
+                    const hasActions = !!activeSid || queued.length > 0;
+                    let html = '<table class="qa-history-table"><thead><tr>' +
+                        '<th>Session</th><th>Test</th><th>Started</th>' +
+                        '<th>Status</th><th>Result</th><th>Logs</th><th>PR</th>' +
+                        (hasActions ? '<th>Action</th>' : '<th></th>') +
+                        '</tr></thead><tbody>';
+
+                    queued.forEach(function (q) {
+                        const cancel = '<button class="qa-action-btn qa-action-btn-cancel" ' +
+                            'title="Remove from queue" onclick="event.stopPropagation();' +
+                            'qaHealing.removeFromQueue(' + q.index + ')">✕ Cancel</button>';
+                        html += '<tr style="opacity:0.8;">' +
+                            '<td class="qa-session-id">' + esc(q.session_id || '—') + '</td>' +
+                            '<td>' + esc(q.module || '—') + '</td>' +
+                            '<td style="color:var(--text-light);">—</td>' +
+                            '<td><span class="qa-status-pill queued">⏳ To be started</span></td>' +
+                            '<td>—</td><td>—</td><td>—</td><td>' + cancel + '</td></tr>';
+                    });
+
+                    _cancelledHealItems.forEach(function (c) {
+                        html += '<tr style="opacity:0.6;">' +
+                            '<td class="qa-session-id">' + esc(c.session_id || '—') + '</td>' +
+                            '<td>' + esc(c.module || '—') + '</td>' +
+                            '<td style="color:var(--text-light);">—</td>' +
+                            '<td><span class="qa-status-pill cancelled">✕ Cancelled</span></td>' +
+                            '<td>—</td><td>—</td><td>—</td><td></td></tr>';
+                    });
+
+                    items.forEach(function (s) {
+                        const sid = s.session_id || '';
+                        const status = (s.status || 'unknown').toLowerCase();
+                        const pill = PILL_CLASS[status] || 'queued';
+                        const label = STATUS_LABEL[status] || status;
+                        const pr = s.pr_url
+                            ? '<a href="' + esc(s.pr_url) + '" target="_blank" rel="noopener" ' +
+                              'onclick="event.stopPropagation();" style="color:var(--primary);">link</a>'
+                            : '—';
+                        const logs = '<a href="#" style="color:var(--primary);" ' +
+                            'onclick="event.stopPropagation();event.preventDefault();' +
+                            'qaHealing.viewLogs(\'' + esc(sid) + '\',\'' +
+                            esc(s.test_name || s.build_tag || '') + '\');">view</a>';
+                        const action = (sid === activeSid)
+                            ? '<button class="qa-action-btn qa-action-btn-stop" title="Stop run" ' +
+                              'onclick="event.stopPropagation();qaHealing.cancelSession(\'' + esc(sid) + '\')">■ Stop</button>'
+                            : '';
+                        html += '<tr data-session="' + esc(sid) + '">' +
+                            '<td class="qa-session-id">' + esc(sid) + '</td>' +
+                            '<td>' + esc(s.test_name || s.build_tag || '—') + '</td>' +
+                            '<td>' + esc(s.started_at || '—') + '</td>' +
+                            '<td><span class="qa-status-pill ' + pill + '">' + esc(label) + '</span></td>' +
+                            '<td>' + resultSummary(s) + '</td>' +
+                            '<td>' + logs + '</td>' +
+                            '<td>' + pr + '</td>' +
+                            '<td>' + action + '</td>' +
+                            '</tr>';
+                    });
+
+                    wrap.innerHTML = html + '</tbody></table>';
+                    wrap.querySelectorAll('tbody tr[data-session]').forEach(function (tr) {
+                        tr.addEventListener('click', function () { openSession(tr.dataset.session); });
+                    });
+                }).catch(function (e) {
+                    wrap.innerHTML = '<div class="qa-history-empty">Failed to load: ' +
+                        esc(e && e.message || e) + '</div>';
+                });
+            }
+
+            // Replay a finished session into the Live Run card and scroll to it —
+            // the same gesture the authoring history uses, rather than a modal.
+            function viewLogs(sessionId, target) {
+                if (!sessionId) return;
+                openRun(sessionId, target || '—', true);
+                const card = $('healLiveCard');
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            function cancelSession(sessionId) {
+                fetchJson(BASE + '/run/' + encodeURIComponent(sessionId) + '/cancel',
+                          { method: 'POST' }).then(function () {
+                    showToast('■ Stopping "' + sessionId + '"', 'info');
+                    loadHistory();
+                });
+            }
+
+            function removeFromQueue(index) {
+                const item = (_currentQueue || []).find(function (q) { return q.index === index; });
+                fetchJson(BASE + '/run/queue/' + index, { method: 'DELETE' }).then(function (res) {
+                    if (res.ok && item) {
+                        _cancelledHealItems.unshift({
+                            module: item.module || '—',
+                            session_id: item.session_id || '',
+                        });
+                    }
+                    showToast(res.ok ? '✕ Removed from queue'
+                                     : 'Could not remove: ' + ((res.body && res.body.error) || ''),
+                              res.ok ? 'info' : 'warning');
+                    loadHistory();
+                });
+            }
+
+            function openSession(sessionId) {
+                if (!sessionId) return;
+                const modal = $('healSessionModal');
+                const body = $('healSessionDetail');
+                if (!modal || !body) return;
+                body.innerHTML = '<div class="qa-empty-hint">Loading…</div>';
+                modal.classList.add('active');
+                fetchJson(BASE + '/sessions/' + encodeURIComponent(sessionId)).then(function (res) {
+                    const d = res.body || {};
+                    const reports = d.reports || {};
+                    const section = function (title, md) {
+                        if (!md) return '';
+                        return '<h4 style="margin:16px 0 6px 0;font-size:13px;">' + esc(title) + '</h4>' +
+                               '<pre class="qa-console" style="max-height:260px;white-space:pre-wrap;">' +
+                               esc(md) + '</pre>';
+                    };
+                    const meta =
+                        '<div class="qa-live-meta">' +
+                        '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Test</span>' +
+                        '<span class="qa-live-meta-value">' + esc(d.test_name || d.build_tag || '—') + '</span></div>' +
+                        '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Mode</span>' +
+                        '<span class="qa-live-meta-value">' + esc(d.mode || '—') + '</span></div>' +
+                        '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Result</span>' +
+                        '<span class="qa-live-meta-value">' + resultSummary(d) + '</span></div>' +
+                        '</div>' +
+                        (d.pr_url ? '<p style="margin:12px 0 0 0;"><a href="' + esc(d.pr_url) +
+                                    '" target="_blank" rel="noopener">View PR →</a></p>' : '');
+                    const reportsHtml =
+                        section('Reproduce', reports.reproduce_md) +
+                        section('Fix', reports.fix_md) +
+                        section('Ship', reports.ship_md);
+                    body.innerHTML = meta + reportsHtml;
+                }).catch(function (e) {
+                    body.innerHTML = '<div class="qa-empty-hint">Failed: ' + esc(e && e.message || e) + '</div>';
+                });
+            }
+
+            function closeSession(event) {
+                if (event && event.target !== event.currentTarget) return;
+                const modal = $('healSessionModal');
+                if (modal) modal.classList.remove('active');
+            }
+
+            function resumeActive() {
+                fetchJson(BASE + '/run/active').then(function (res) {
+                    const a = res.body || {};
+                    // The slot is shared, so an active run may belong to another agent.
+                    if (a.active && a.agent === 'test-healing-agent') {
+                        openRun(a.session_id, a.module);
+                    }
+                }).catch(function () {});
+            }
+
+            function init() {
+                const first = !state.initialised;
+                state.initialised = true;
+                // Every call refreshes: the first open may have happened while the
+                // server was down, leaving the catalogue and defaults unfetched.
+                applyDefaults();
+                loadCatalog();
+                loadQueue();
+                loadHistory();
+                if (first) resumeActive();
+            }
+
+            return { init: init, run: run, runBuild: runBuild, retryForced: retryForced,
+                     renderPicker: renderPicker, onModuleChange: onModuleChange,
+                     onClassChange: onClassChange, onMethodChange: onMethodChange,
+                     cancel: cancel,
+                     copyLogs: copyLogs, loadHistory: loadHistory, loadQueue: loadQueue,
+                     openSession: openSession, closeSession: closeSession,
+                     cancelSession: cancelSession, viewLogs: viewLogs,
+                     removeFromQueue: removeFromQueue };
+        })();
+
         // ── QA Agents module ──────────────────────────────────────────────
         window.qaAgents = (function () {
             const API_BASE = '/api/agents';
@@ -10740,6 +11848,7 @@
 
             const state = {
                 initialised: false,
+                defaultsApplied: false,
                 mode: 'new',
                 eventSource: null,
                 activeSession: null,
@@ -10782,28 +11891,10 @@
             }
 
             // ─ Health ─
-            async function checkHealth() {
-                const dot = $('qaHealthDot');
-                const text = $('qaHealthText');
-                dot.className = 'nav-health-dot';
-                text.textContent = 'Checking…';
-                const ctrl = new AbortController();
-                const tid = setTimeout(function () { ctrl.abort(); }, 8000);
-                try {
-                    const body = await apiFetch(API_BASE + '/health', { signal: ctrl.signal });
-                    clearTimeout(tid);
-                    if (body && body.connected) {
-                        dot.classList.add('ok');
-                        text.textContent = 'Agent Network connected';
-                    } else {
-                        dot.classList.add('err');
-                        text.textContent = 'Agent Network unreachable';
-                    }
-                } catch (e) {
-                    clearTimeout(tid);
-                    dot.classList.add('err');
-                    text.textContent = (e && e.name === 'AbortError') ? 'Health check timed out' : 'Agent Network unreachable';
-                }
+            // Health lives in window.agentGate now — it also gates the pages, and
+            // two independent pollers would flicker the same indicator.
+            function checkHealth() {
+                return window.agentGate ? window.agentGate.refresh() : Promise.resolve(true);
             }
 
             // ─ Module files ─
@@ -11142,14 +12233,14 @@
                         + '<span class="qa-queue-module">' + escapeHtml(item.module) + '</span>'
                         + (item.auto_push ? '<span style="font-size:11px;color:var(--text-light);">auto-push</span>' : '')
                         + '<button class="qa-queue-remove" title="Remove from queue" '
-                        + 'onclick="qaAgents.removeFromQueue(' + (item.position - 1) + ')">✕</button>'
+                        + 'onclick="qaAgents.removeFromQueue(' + item.index + ')">✕</button>'
                         + '</div>';
                 }).join('');
             }
 
             async function removeFromQueue(index) {
                 try {
-                    const item = _currentQueue[index];
+                    const item = (_currentQueue || []).find(function (q) { return q.index === index; });
                     const body = await apiFetch(AGENT_BASE + '/run/queue/' + index, { method: 'DELETE' });
                     if (item) {
                         _cancelledQueueItems.unshift({
@@ -11163,7 +12254,7 @@
                 } catch (_) {}
             }
 
-            function attachLiveRun(sessionId, moduleFile, offset) {
+            function attachLiveRun(sessionId, moduleFile, offset, isReplay) {
                 state.activeSession = sessionId;
                 state.activeModule = moduleFile || '—';
                 state.lastSeq = offset || 0;
@@ -11184,7 +12275,33 @@
                 $('qaCancelBtn').disabled = false;
                 $('qaCancelBtn').style.display = '';
                 startElapsed();
-                subscribe();
+                if (isReplay) { replayHistory(); } else { subscribe(); }
+            }
+
+            // A finished session is a complete, finite list of events, so fetch it
+            // in one request instead of holding an SSE connection open for it.
+            // Browsers cap concurrent connections per origin at six; replaying
+            // history over SSE saturated that pool and made later requests on the
+            // page stall for seconds. Live runs still subscribe().
+            function replayHistory() {
+                apiFetch(AGENT_BASE + '/sessions/' +
+                         encodeURIComponent(state.activeSession) + '/events')
+                    .then(function (body) {
+                        const events = (body && body.events) || [];
+                        if (!events.length) {
+                            appendLine('info', '[stream] no recorded events for this session');
+                            stopElapsed();
+                            return;
+                        }
+                        events.forEach(function (ev) {
+                            handleEvent(ev.kind, { data: JSON.stringify(ev) });
+                        });
+                    })
+                    .catch(function (e) {
+                        appendLine('error', '[stream] could not load this run: ' +
+                                   (e && e.message || e));
+                        stopElapsed();
+                    });
             }
 
             function resetStepUI() {
@@ -11439,11 +12556,30 @@
             }
 
             // ─ History ─
+            // What the run produced, in the same spirit as the healing panel's
+            // Result column: the review verdict and whether the test actually ran
+            // green — "completed" alone does not distinguish an approved suite
+            // from one that shipped needing review.
+            function authoringResult(s) {
+                const bits = [];
+                if (s.verdict) {
+                    const v = String(s.verdict).toUpperCase();
+                    const cls = v === 'APPROVED' ? 'completed'
+                              : (v === 'NEEDS-REVIEW' ? 'failed' : 'queued');
+                    bits.push('<span class="qa-status-pill ' + cls + '">' +
+                              escapeHtml(String(s.verdict).toLowerCase()) + '</span>');
+                }
+                if (s.test_passed === true) bits.push('tests green');
+                else if (s.test_passed === false) bits.push('tests failing');
+                if (s.files_count) bits.push(s.files_count + ' file' + (s.files_count === 1 ? '' : 's'));
+                return bits.length ? bits.join(' · ') : '—';
+            }
+
             async function loadHistory() {
                 const wrap = $('qaHistoryWrap');
                 try {
                     const [histBody, queueBody, activeBody] = await Promise.all([
-                        apiFetch(AGENT_BASE + '/sessions'),
+                        apiFetch(AGENT_BASE + '/sessions?limit=20'),
                         apiFetch(AGENT_BASE + '/run/queue').catch(function() { return { queue: [] }; }),
                         apiFetch(AGENT_BASE + '/run/active').catch(function() { return { active: false }; }),
                     ]);
@@ -11458,20 +12594,21 @@
                     }
 
                     const hasActions = !!activeSessionId || queued.length > 0;
-                    let html = '<table class="qa-history-table"><thead><tr><th>Session</th><th>File</th><th>Started</th><th>Status</th><th>Logs</th><th>PR</th>'
+                    let html = '<table class="qa-history-table"><thead><tr><th>Session</th><th>File</th><th>Started</th><th>Status</th><th>Result</th><th>Logs</th><th>PR</th>'
                         + (hasActions ? '<th>Action</th>' : '<th></th>')
                         + '</tr></thead><tbody>';
 
                     // Pending queue rows — shown at the top
-                    queued.forEach(function(q, i) {
+                    queued.forEach(function(q) {
                         const sid = q.session_id || '';
                         const cancelBtn = '<button class="qa-action-btn qa-action-btn-cancel" title="Remove from queue" '
-                            + 'onclick="event.stopPropagation();qaAgents.removeFromQueue(' + i + ')">✕ Cancel</button>';
+                            + 'onclick="event.stopPropagation();qaAgents.removeFromQueue(' + q.index + ')">✕ Cancel</button>';
                         html += '<tr style="opacity:0.8;">'
                             + '<td class="qa-session-id">' + escapeHtml(sid || '—') + '</td>'
                             + '<td>' + escapeHtml(q.module || '—') + '</td>'
                             + '<td style="color:var(--text-light);">—</td>'
                             + '<td><span class="qa-status-pill queued">⏳ To be started</span></td>'
+                            + '<td>—</td>'
                             + '<td>—</td>'
                             + '<td>—</td>'
                             + '<td>' + cancelBtn + '</td>'
@@ -11485,6 +12622,7 @@
                             + '<td>' + escapeHtml(c.module || '—') + '</td>'
                             + '<td style="color:var(--text-light);">—</td>'
                             + '<td><span class="qa-status-pill cancelled">✕ Cancelled</span></td>'
+                            + '<td>—</td>'
                             + '<td>—</td>'
                             + '<td>—</td>'
                             + '<td></td>'
@@ -11509,7 +12647,9 @@
                             + '<td class="qa-session-id">' + escapeHtml(sid) + '</td>'
                             + '<td>' + escapeHtml(feat || '—') + '</td>'
                             + '<td>' + escapeHtml(s.started_at || '—') + '</td>'
-                            + '<td><span class="qa-status-pill ' + escapeHtml(status) + '">' + escapeHtml(status) + '</span></td>'
+                            + '<td><span class="qa-status-pill ' + (QA_PILL_CLASS[status] || 'queued') + '">'
+                            + escapeHtml(QA_STATUS_LABEL[status] || status) + '</span></td>'
+                            + '<td>' + authoringResult(s) + '</td>'
                             + '<td>' + logs + '</td>'
                             + '<td>' + pr + '</td>'
                             + '<td>' + actionBtn + '</td>'
@@ -11677,7 +12817,7 @@
 
             function viewLogs(sessionId, moduleFile) {
                 if (!sessionId) return;
-                attachLiveRun(sessionId, moduleFile || '—', 0);
+                attachLiveRun(sessionId, moduleFile || '—', 0, true);
                 const card = $('qaLiveCard');
                 if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -11688,6 +12828,21 @@
             }
 
             // ─ Re-attach on mount ─
+            // Seed the auto-push box from config/.env. Its value is sent with the
+            // run and overrides the .env setting, so a box that always starts
+            // unticked silently turns AUTO_PUSH=true into a dry run.
+            async function applyAgentDefaults() {
+                if (state.defaultsApplied) return;
+                try {
+                    const cfg = await apiFetch(AGENT_BASE + '/config');
+                    const box = $('qaAutoPush');
+                    if (cfg && box) {
+                        box.checked = !!cfg.auto_push_default;
+                        state.defaultsApplied = true;
+                    }
+                } catch (e) { /* leave the box as-is */ }
+            }
+
             async function init() {
                 if (!state.initialised) {
                     state.initialised = true;
@@ -11696,6 +12851,7 @@
                     window.addEventListener('beforeunload', closeStream);
                 }
                 checkHealth();
+                applyAgentDefaults();
                 loadModuleFiles();
                 loadHistory();
                 // Re-attach to any active run

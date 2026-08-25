@@ -10,6 +10,7 @@ from pathlib import Path
 import os
 import tempfile
 from backend.api.auth.routes import require_auth
+from backend.api.agents.proxy import _forward_json
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -395,6 +396,25 @@ def update_settings():
         }), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/agent-settings', methods=['GET'])
+@require_auth(admin_only=True)
+def get_agent_settings():
+    """Proxy the QA-Agent-Network settings schema + values for the Agent Settings page.
+
+    Deliberately served from the admin blueprint rather than /api/agents/*: the
+    agents proxy enforces no auth at all (see the comment at the top of
+    proxy.py), and this endpoint's sibling PUT writes GITHUB_TOKEN.
+    """
+    return _forward_json('GET', '/settings')
+
+
+@admin_bp.route('/agent-settings', methods=['PUT'])
+@require_auth(admin_only=True)
+def update_agent_settings():
+    """Save agent settings to QA-Agent-Network's config/.env. Admin only."""
+    return _forward_json('PUT', '/settings')
 
 
 @admin_bp.route('/sync/schedule', methods=['GET'])
