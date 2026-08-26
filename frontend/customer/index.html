@@ -11058,6 +11058,9 @@
             fixed: 'fixed', pr_created: 'PR created', nothing_to_fix: 'nothing to fix',
             needs_review: 'needs review', crashed: 'crashed', blocked: 'blocked',
             unverified: 'unverified', not_a_locator: 'not a locator', skipped: 'skipped',
+            // A run that identified the real cause and correctly declined to edit
+            // anything. Distinct from 'failed', which it used to render as.
+            diagnosed: 'diagnosed',
         };
 
         // A session id is '<YYYYMMDD>-<HHMMSS>-<verb>-<target>' — i.e. the Started
@@ -11156,20 +11159,22 @@
             return String(line).replace(/^\[\d\d:\d\d:\d\d\]\s*(\[[\w-]+\]\s*)?/, '');
         }
 
-        // What the TEST printed, as opposed to what MAVEN printed. Everything not
-        // matching this folds: [INFO], [WARNING], SLF4J, the lombok/JDK deprecation
-        // warnings, and the "[Help 1]" trailer. Deliberately NOT the agent-side
-        // _keep_for_capture filter — that one is tuned for what the model should
-        // see and leaves the JVM warnings visible (39% folded vs 82% with this).
-        const QA_TEST_OUTPUT = new RegExp(
-            '^\\[\\d\\d:\\d\\d:\\d\\d\\]'      // framework's own logger
-            + '|^Test Suite (Started|Finished)'
-            + '|^(Running|Finished) test - '
-            + '|Tests run:'
-            + '|<<< (FAILURE|ERROR)!'
-            + '|^java\\.lang\\.|^com\\.microsoft\\.'
-            + '|^\\s+at automation\\.'
-        );
+        // A collapsed build should still say WHY it failed, so the one visible
+        // line carries the verdict rather than only a line count. First match wins.
+        const QA_FAILURE_HINTS = [
+            /Failed to load Element Locator@\S+(?: in \w+)?/,
+            /\b\w*(?:AssertionError|Exception|Error):\s*(.{0,90})/,
+            /Tests run:.*?Failures: [1-9]\d*[^<]*/,
+        ];
+
+        function _buildHeadline(bare) {
+            for (const re of QA_FAILURE_HINTS) {
+                const m = re.exec(bare);
+                if (m) return m[0].trim().slice(0, 110);
+            }
+            return null;
+        }
+
 
         window.qaBuildFold = function (consoleEl, line, state) {
             const start = line.match(/\[build:start\]\s*(.*)$/);
@@ -11187,6 +11192,7 @@
                 state.buildSummary = sum;
                 state.buildCmd = start[1] || '';
                 state.buildLines = 0;
+                state.buildHeadline = null;
                 return null;            // the marker itself is not shown
             }
             const end = line.match(/\[build:end\]\s*(.*)$/);
@@ -11196,21 +11202,23 @@
                            : /timed out/.test(verdict) ? '⏱' : '❌';
                 state.buildSummary.textContent =
                     icon + '  build ' + verdict + '  ·  ' + state.buildLines +
-                    ' lines  ·  ' + state.buildCmd;
+                    ' lines  ·  ' + (state.buildHeadline || state.buildCmd);
+                state.buildSummary.title = state.buildCmd;
+                state.buildHeadline = null;
                 state.buildSummary.parentElement.classList.toggle(
                     'build-failed', !/passed/.test(verdict));
                 state.buildEl = null;
                 state.buildSummary = null;
                 return null;
             }
-            // Inside a build, only maven/JVM machinery folds. Bracketing the whole
-            // subprocess also swallowed what the TEST printed — the STEP/ACTION
-            // narrative and, worst of all, "Failed to load Element Locator@…",
-            // which is the single line you open the log for.
+            // Everything between the markers folds: maven's own scaffolding and
+            // the test's execution log alike. They are one run of one command, so
+            // splitting them just moved half the noise back out of the widget.
+            // The headline goes in the summary instead — see _buildHeadline.
             if (state.buildEl) {
                 state.buildLines += 1;
-                const t = QA_TEST_OUTPUT.test(_bare(line)) ? consoleEl : state.buildEl;
-                return _traceFold(t, line, state);
+                state.buildHeadline = state.buildHeadline || _buildHeadline(_bare(line));
+                return _traceFold(state.buildEl, line, state);
             }
             return _traceFold(consoleEl, line, state);
         };
@@ -11630,19 +11638,49 @@
                         // as a pre-run checkbox — the shape is only knowable now, and
                         // the reason is on screen to read before overriding.
                         if (s.gate_stopped && s.failure_shape !== 'LOCATOR') {
-                            el.innerHTML =
-                                '<div style="display:flex;flex-direction:column;gap:6px;">' +
-                                '<span class="qa-live-badge badge-failed">' + esc(s.failure_shape) + '</span>' +
-                                '<span style="font-size:12px;color:var(--text-light);">' +
-                                esc(s.failure_headline || 'Not a locator failure — no fix was attempted.') +
-                                '</span>' +
-                                '<span style="font-size:11px;color:var(--text-light);">' +
-                                'The agent only edits locators. Forcing it at a different kind of ' +
-                                'failure risks it changing an assertion so the test passes over a real bug.' +
-                                '</span>' +
-                                '<button type="button" class="qa-btn qa-btn-ghost" ' +
-                                'style="padding:4px 12px;font-size:12px;align-self:flex-start;" ' +
-                                'onclick="qaHealing.retryForced()">Try anyway →</button></div>';
+                            // A run that worked out why a test fails and correctly
+                            // declined to edit anything has done its job. Showing it
+                            // red teaches people to skip exactly the runs worth
+                            // reading, so a measured diagnosis gets a neutral badge
+                            // and leads with the remediation.
+                            const dx = s.diagnosis || {};
+                            const confident = !!s.diagnosis_confident;
+                            const parts = ['<div style="display:flex;flex-direction:column;gap:6px;">'];
+                            parts.push('<span class="qa-live-badge' +
+                                       (confident ? '' : ' badge-failed') + '">' +
+                                       esc(s.failure_shape) + '</span>');
+                            parts.push('<span style="font-size:12px;color:var(--text-light);">' +
+                                       esc(dx.remediation || s.failure_headline ||
+                                           'Not a locator failure — no fix was attempted.') +
+                                       '</span>');
+                            (dx.reasons || []).slice(0, 3).forEach(function (reason) {
+                                parts.push('<span style="font-size:11px;color:var(--text-light);">• ' +
+                                           esc(reason) + '</span>');
+                            });
+                            if (confident) {
+                                // Still reachable, deliberately not inviting: forcing a
+                                // locator fix here re-enables the behaviour this gate
+                                // exists to stop.
+                                parts.push('<span style="font-size:11px;color:var(--text-light);">' +
+                                           'The cause above was measured, not guessed. A locator fix ' +
+                                           'cannot address it, and forcing one risks weakening an ' +
+                                           'assertion until the test passes over a real bug.' +
+                                           '</span>');
+                                parts.push('<button type="button" class="qa-btn qa-btn-ghost" ' +
+                                           'style="padding:4px 12px;font-size:12px;align-self:flex-start;' +
+                                           'opacity:0.7;" ' +
+                                           'onclick="qaHealing.retryForced()">Force a locator fix anyway →</button>');
+                            } else {
+                                parts.push('<span style="font-size:11px;color:var(--text-light);">' +
+                                           'The agent only edits locators. Forcing it at a different kind of ' +
+                                           'failure risks it changing an assertion so the test passes over a real bug.' +
+                                           '</span>');
+                                parts.push('<button type="button" class="qa-btn qa-btn-ghost" ' +
+                                           'style="padding:4px 12px;font-size:12px;align-self:flex-start;" ' +
+                                           'onclick="qaHealing.retryForced()">Try anyway →</button>');
+                            }
+                            parts.push('</div>');
+                            el.innerHTML = parts.join('');
                             return;
                         }
                         if (!bits.length) {
