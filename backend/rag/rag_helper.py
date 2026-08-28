@@ -6,6 +6,7 @@ Utility functions and classes for RAG operations.
 Includes ChromaDB helper (merged from rag_chromadb_helper.py).
 """
 
+import time
 import sys
 import re
 import hashlib
@@ -311,7 +312,8 @@ def extract_answer_from_llm_result(result: Any) -> str:
         return str(result)
 
 
-def expand_query(query: str, use_query_expansion: bool = False, llm=None) -> List[str]:
+def expand_query(query: str, use_query_expansion: bool = False, llm=None,
+                 run_id: Optional[str] = None) -> List[str]:
     """
     Expand query with alternative phrasings using LLM when available.
 
@@ -320,6 +322,7 @@ def expand_query(query: str, use_query_expansion: bool = False, llm=None) -> Lis
         use_query_expansion: If True, expand the query
         llm: Optional LLM instance. When provided, generates 2 semantic reformulations.
              When None, falls back to basic punctuation-stripping expansion.
+        run_id: Correlation id, so expansion cost joins the run that caused it.
 
     Returns:
         List of query strings (original + expansions)
@@ -334,9 +337,20 @@ def expand_query(query: str, use_query_expansion: bool = False, llm=None) -> Lis
                 "Return only the phrasings, one per line, no numbering or extra text.\n"
                 f"Query: {query}"
             )
+            _t0 = time.time()
             result = llm.invoke(prompt)
             raw = result.content if hasattr(result, 'content') else str(result)
             variants = [line.strip() for line in raw.strip().split('\n') if line.strip()]
+            # Recorded on the success path only, and inside the existing guard:
+            # this call fires on every retrieval, so a tracking failure must
+            # never be able to turn a working expansion into a failed search.
+            try:
+                from backend.cost_tracker import record_from_langchain_result
+                record_from_langchain_result("rag.query_expansion", result,
+                                             run_id=run_id,
+                                             duration_s=time.time() - _t0)
+            except Exception:
+                pass
             return [query] + variants[:2]
         except Exception:
             pass  # Fall through to basic expansion on LLM failure

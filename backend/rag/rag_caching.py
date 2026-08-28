@@ -330,6 +330,15 @@ class EmbeddingCache:
         }
 
 
+def _embedding_model_name(embeddings) -> str:
+    """Best-effort model id for an embeddings object, across providers."""
+    for attr in ("model", "model_name"):
+        value = getattr(embeddings, attr, None)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
 class CachedEmbeddings:
     """
     Wrapper around embeddings that adds caching.
@@ -366,7 +375,15 @@ class CachedEmbeddings:
             return cached if isinstance(cached, list) else list(cached)
         
         # Generate embedding
+        _t0 = time.time()
         embedding = self.embeddings.embed_query(text)
+        try:
+            from backend.cost_tracker import record_embedding
+            record_embedding("ingest.embed_query", [text],
+                             model=_embedding_model_name(self.embeddings),
+                             duration_s=time.time() - _t0)
+        except Exception:
+            pass
         
         # Save to cache
         if NUMPY_AVAILABLE:
@@ -391,7 +408,18 @@ class CachedEmbeddings:
         
         # Generate embeddings for uncached texts
         if uncached_texts:
+            _t0 = time.time()
             new_embeddings = self.embeddings.embed_documents(uncached_texts)
+            # Only cache MISSES cost anything, which is exactly what this branch
+            # holds — recording the full batch would bill re-ingestion of
+            # unchanged documents that never hit the API.
+            try:
+                from backend.cost_tracker import record_embedding
+                record_embedding("ingest.embed_documents", uncached_texts,
+                                 model=_embedding_model_name(self.embeddings),
+                                 duration_s=time.time() - _t0)
+            except Exception:
+                pass
             # Save new embeddings to cache
             if NUMPY_AVAILABLE:
                 self.cache.save_embeddings_batch(uncached_texts, [np.array(e) for e in new_embeddings])

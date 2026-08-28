@@ -204,159 +204,39 @@ def health():
     })
 
 
-# ── Feature file CRUD ────────────────────────────────────────────────────────
-@agents_bp.route("/test-authoring-agent/queue", methods=["GET"])
-def queue_list():
-    return _forward_json("GET", "/agents/test-authoring-agent/queue")
+# ── One forwarder for every agent route ──────────────────────────────────────
+#
+# This used to be ~15 hand-written route decorators per agent, each body a
+# one-line `_forward_json("GET", "/agents/test-authoring-agent/queue")`. Two
+# agents made that 30 near-identical functions, and a third would have made 45 —
+# with the failure mode that a route someone forgot to copy 404s only for the
+# new agent, which is the sort of thing nobody notices until a demo.
+#
+# The upstream server already dispatches on the agent segment, so this only has
+# to pass it through. The allowlist stays: this path reaches an internal service,
+# and forwarding an arbitrary agent name to it is not something to leave open.
+_ALLOWED_AGENTS = {
+    "test-authoring-agent",
+    "test-healing-agent",
+    "test-adaptation-agent",
+}
 
 
-@agents_bp.route("/test-authoring-agent/queue", methods=["POST"])
-def queue_create():
-    return _forward_json("POST", "/agents/test-authoring-agent/queue")
+@agents_bp.route("/<agent>/<path:rest>",
+                 methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+def forward_agent(agent: str, rest: str):
+    if agent not in _ALLOWED_AGENTS:
+        return jsonify({
+            "error": f"unknown agent: {agent}",
+            "known": sorted(_ALLOWED_AGENTS),
+        }), 404
 
+    # No query string here: both forwarders already pass params=request.args,
+    # so appending it would send every parameter twice.
+    path = f"/agents/{agent}/{rest}"
 
-@agents_bp.route("/test-authoring-agent/queue/<name>", methods=["GET"])
-def queue_read(name: str):
-    return _forward_json("GET", f"/agents/test-authoring-agent/queue/{name}")
-
-
-@agents_bp.route("/test-authoring-agent/config", methods=["GET"])
-def authoring_config():
-    return _forward_json("GET", "/agents/test-authoring-agent/config")
-
-
-# ── Run control ──────────────────────────────────────────────────────────────
-@agents_bp.route("/test-authoring-agent/run", methods=["POST"])
-def run_start():
-    return _forward_json("POST", "/agents/test-authoring-agent/run")
-
-
-@agents_bp.route("/test-authoring-agent/run/active", methods=["GET"])
-def run_active():
-    return _forward_json("GET", "/agents/test-authoring-agent/run/active")
-
-
-@agents_bp.route("/test-authoring-agent/sessions/<session_id>/events", methods=["GET"])
-def authoring_session_events(session_id: str):
-    return _forward_json("GET", f"/agents/test-authoring-agent/sessions/{session_id}/events")
-
-
-@agents_bp.route("/test-authoring-agent/run/queue", methods=["GET"])
-def pending_queue_list():
-    return _forward_json("GET", "/agents/test-authoring-agent/run/queue")
-
-
-@agents_bp.route("/test-authoring-agent/run/queue/<int:index>", methods=["DELETE"])
-def pending_queue_remove(index: int):
-    return _forward_json("DELETE", f"/agents/test-authoring-agent/run/queue/{index}")
-
-
-@agents_bp.route("/test-authoring-agent/run/<session_id>/cancel", methods=["POST"])
-def run_cancel(session_id: str):
-    return _forward_json("POST", f"/agents/test-authoring-agent/run/{session_id}/cancel")
-
-
-# ── Stream (SSE) ─────────────────────────────────────────────────────────────
-@agents_bp.route("/test-authoring-agent/run/<session_id>/stream", methods=["GET"])
-def run_stream(session_id: str):
-    return _forward_stream(f"/agents/test-authoring-agent/run/{session_id}/stream")
-
-
-# ── History ──────────────────────────────────────────────────────────────────
-@agents_bp.route("/test-authoring-agent/sessions", methods=["GET"])
-def sessions_list():
-    return _forward_json("GET", "/agents/test-authoring-agent/sessions")
-
-
-@agents_bp.route("/test-authoring-agent/sessions/<session_id>", methods=["GET"])
-def sessions_get(session_id: str):
-    return _forward_json("GET", f"/agents/test-authoring-agent/sessions/{session_id}")
-
-
-@agents_bp.route("/test-authoring-agent/sessions/<session_id>/retry", methods=["POST"])
-def sessions_retry(session_id: str):
-    return _forward_json("POST", f"/agents/test-authoring-agent/sessions/{session_id}/retry")
-
-
-# ── test-healing-agent ───────────────────────────────────────────────────────
-# Same shapes as the authoring routes above. POST /run takes either
-# {"test": "Class#method", "repair": bool, "force": bool} for a standalone run,
-# or {"build_tag": "..."} to pick up a handoff test-triaging-agent already queued.
-_HEALING = "/agents/test-healing-agent"
-
-
-@agents_bp.route("/test-healing-agent/queue", methods=["GET"])
-def healing_queue_list():
-    return _forward_json("GET", f"{_HEALING}/queue")
-
-
-@agents_bp.route("/test-healing-agent/queue/<name>", methods=["GET"])
-def healing_queue_read(name: str):
-    return _forward_json("GET", f"{_HEALING}/queue/{name}")
-
-
-@agents_bp.route("/test-healing-agent/config", methods=["GET"])
-def healing_config():
-    return _forward_json("GET", f"{_HEALING}/config")
-
-
-@agents_bp.route("/test-healing-agent/tests", methods=["GET"])
-def healing_tests_list():
-    return _forward_json("GET", f"{_HEALING}/tests")
-
-
-@agents_bp.route("/test-healing-agent/run", methods=["POST"])
-def healing_run_start():
-    return _forward_json("POST", f"{_HEALING}/run")
-
-
-@agents_bp.route("/test-healing-agent/run/active", methods=["GET"])
-def healing_run_active():
-    return _forward_json("GET", f"{_HEALING}/run/active")
-
-
-# Artefact files (screenshot / DOM / trace / video). Binary, so it cannot go
-# through _forward_json — stream the bytes and keep the upstream content type.
-@agents_bp.route("/test-healing-agent/artifact", methods=["GET"])
-def healing_artifact():
-    return _forward_stream(f"{_HEALING}/artifact")
-
-
-@agents_bp.route("/test-authoring-agent/artifact", methods=["GET"])
-def authoring_artifact():
-    return _forward_stream("/agents/test-authoring-agent/artifact")
-
-
-@agents_bp.route("/test-healing-agent/sessions/<session_id>/events", methods=["GET"])
-def healing_session_events(session_id: str):
-    return _forward_json("GET", f"{_HEALING}/sessions/{session_id}/events")
-
-
-@agents_bp.route("/test-healing-agent/run/queue", methods=["GET"])
-def healing_pending_queue_list():
-    return _forward_json("GET", f"{_HEALING}/run/queue")
-
-
-@agents_bp.route("/test-healing-agent/run/queue/<int:index>", methods=["DELETE"])
-def healing_pending_queue_remove(index: int):
-    return _forward_json("DELETE", f"{_HEALING}/run/queue/{index}")
-
-
-@agents_bp.route("/test-healing-agent/run/<session_id>/cancel", methods=["POST"])
-def healing_run_cancel(session_id: str):
-    return _forward_json("POST", f"{_HEALING}/run/{session_id}/cancel")
-
-
-@agents_bp.route("/test-healing-agent/run/<session_id>/stream", methods=["GET"])
-def healing_run_stream(session_id: str):
-    return _forward_stream(f"{_HEALING}/run/{session_id}/stream")
-
-
-@agents_bp.route("/test-healing-agent/sessions", methods=["GET"])
-def healing_sessions_list():
-    return _forward_json("GET", f"{_HEALING}/sessions")
-
-
-@agents_bp.route("/test-healing-agent/sessions/<session_id>", methods=["GET"])
-def healing_sessions_get(session_id: str):
-    return _forward_json("GET", f"{_HEALING}/sessions/{session_id}")
+    # SSE has to stream; everything else is a plain JSON round-trip. Deciding on
+    # the suffix rather than on a route table keeps the two lists from drifting.
+    if request.method == "GET" and rest.endswith("/stream"):
+        return _forward_stream(path)
+    return _forward_json(request.method, path)

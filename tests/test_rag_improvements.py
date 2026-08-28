@@ -461,4 +461,7 @@ class TestQueryExpansion:
                 except Exception:
                     pass  # we only care that expand_query was called with llm
 
-            mock_expand.assert_called_once_with("test query", True, llm=rag.llm)
+            # run_id correlates the expansion call's cost with the run that
+            # caused it; without it these records land as orphans.
+            mock_expand.assert_called_once_with("test query", True, llm=rag.llm,
+                                                run_id=None)

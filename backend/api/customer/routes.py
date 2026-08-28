@@ -9,6 +9,7 @@ import os
 import queue
 import threading
 import time
+import uuid
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import tempfile
@@ -327,13 +328,19 @@ def requirement_analysis_stream():
 
     q = queue.Queue(maxsize=500)
     cancel_event = threading.Event()
+    run_started = time.time()
+    run_outcome = {"result": None, "status": "", "error": ""}
+    _source_type = ("confluence" if confluence_urls else
+                    "file" if file_paths else "text")
     rag_service = current_app.config["RAG_SERVICE"]
     svc = RequirementAnalysisService(rag_service=rag_service)
 
     def run_analyze():
         try:
-            def progress_cb(stage, message, progress):
-                q.put(("progress", stage, message, progress))
+            def progress_cb(stage, message, progress, closed_stage=None):
+                # closed_stage carries the duration and cost of the stage that
+                # just finished, so the UI can fill in its per-stage timings.
+                q.put(("progress", stage, message, progress, closed_stage))
 
             def requirement_result_cb(req_id, data):
                 q.put(("requirement_result", req_id, _trim_requirement_result_for_stream(data)))
@@ -357,10 +364,27 @@ def requirement_analysis_stream():
                 cancel_event=cancel_event,
                 **opts,
             )
+            run_outcome["result"] = result
+            run_outcome["status"] = "completed"
             q.put(("result", result))
         except Exception as e:
+            run_outcome["status"] = "failed"
+            run_outcome["error"] = str(e)
             q.put(("error", str(e)))
         finally:
+            # Every terminal path lands here — success, exception, the 20-minute
+            # deadline, and a client disconnect. A failed run still spent money.
+            try:
+                from backend.services.analytics_service import record_requirement_run
+                record_requirement_run(
+                    run_outcome.get("result"),
+                    status=run_outcome.get("status") or "interrupted",
+                    source_type=_source_type,
+                    started_at=run_started,
+                    error=run_outcome.get("error") or "",
+                )
+            except Exception:
+                pass
             for fp in file_paths:
                 if fp and fp.exists():
                     try: fp.unlink()
@@ -433,8 +457,12 @@ def requirement_analysis_stream():
             if item[0] == "error":
                 yield sse(json.dumps({"success": False, "error": item[1]}))
                 break
-            _, stage, message, progress = item
-            yield sse(json.dumps({"stage": stage, "message": message, "progress": progress}))
+            _, stage, message, progress = item[:4]
+            payload = {"stage": stage, "message": message, "progress": progress}
+            closed_stage = item[4] if len(item) > 4 else None
+            if closed_stage:
+                payload["closed_stage"] = closed_stage
+            yield sse(json.dumps(payload))
 
     return Response(
         stream_with_context(gen()),
@@ -931,9 +959,24 @@ def query():
     # Get RAG service
     rag_service = current_app.config['RAG_SERVICE']
     
-    # Process query
-    result = rag_service.query(question, session_id, bypass_cache=bypass_cache, use_rag=use_rag)
-    
+    # Process query.
+    # session_id doubles as the cost-correlation id. The chat client does not
+    # always send one, and without it the turn's records land as orphans and its
+    # cost cannot be reported back — so mint a per-request id in that case.
+    _correlation_id = session_id or f"ask-{uuid.uuid4().hex[:16]}"
+    _t0 = time.time()
+    result = rag_service.query(question, _correlation_id, bypass_cache=bypass_cache,
+                               use_rag=use_rag)
+
+    # Cost and time for this turn. session_id doubles as the correlation id, so
+    # the cost records for one conversation group together.
+    try:
+        from backend.services.analytics_service import turn_metrics
+        result.setdefault('metrics', turn_metrics(_correlation_id, since=_t0))
+        result['metrics']['duration_s'] = round(time.time() - _t0, 2)
+    except Exception:
+        pass
+
     if result['success']:
         return jsonify(result), 200
     else:

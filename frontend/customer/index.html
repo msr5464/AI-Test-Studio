@@ -5676,6 +5676,15 @@
             gap: 8px;
         }
 
+        /* Used both inside a card heading and as a standalone sub-line under
+           card content — the heading-scoped rule below only covered the first. */
+        .qa-card-sub {
+            font-size: 12px;
+            color: var(--text-light);
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
         .qa-card h3 .qa-card-sub {
             font-size: 12px;
             font-weight: 400;
@@ -5885,17 +5894,21 @@
         #tabPanelAgents input.qa-input,
         #tabPanelAgents select.qa-select,
         #tabPanelHealing input.qa-input,
-        #tabPanelHealing select.qa-select {
+        #tabPanelHealing select.qa-select,
+        #tabPanelAdapt input.qa-input,
+        #tabPanelAdapt select.qa-select {
             padding: 8px 12px !important;
             font-size: 13px !important;
             min-height: 36px !important;
             border-radius: 8px !important;
         }
         #tabPanelAgents select.qa-select,
-        #tabPanelHealing select.qa-select {
+        #tabPanelHealing select.qa-select,
+        #tabPanelAdapt select.qa-select {
             padding: 8px 36px 8px 12px !important;
         }
-        #tabPanelHealing .analyze-btn {
+        #tabPanelHealing .analyze-btn,
+        #tabPanelAdapt .analyze-btn {
             padding: 11px 24px;
             font-size: 14px;
         }
@@ -6517,6 +6530,218 @@
         #qaHistoryWrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         #qaHistoryWrap::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
 
+        /* Flow map on the Adapt page. Its own class rather than reusing the
+           history table's: this one has to stay readable inside a card and
+           scroll horizontally on a narrow window without dragging the page. */
+        /* ── Adapt form ─────────────────────────────────────────────────────
+           Read on the left, write on the right. The reference pane is scrollable
+           rather than growing, so the What-changed box never gets pushed off
+           screen by a test with twenty steps. */
+        .qa-adapt-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 16px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .qa-adapt-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Before a test is picked there is nothing to read, so the What-changed
+           box takes the whole width rather than sitting beside an empty panel. */
+        .qa-adapt-grid.qa-adapt-grid-single { grid-template-columns: 1fr; }
+
+        .qa-inline-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .qa-inline-field .qa-live-meta-label { white-space: nowrap; }
+        .qa-inline-field .qa-select { min-width: 260px; }
+
+        .qa-adapt-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .qa-intent-pane {
+            border: 1px solid var(--border, rgba(128, 128, 128, 0.25));
+            border-radius: 10px;
+            background: var(--bg-input, rgba(128, 128, 128, 0.04));
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.55;
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .qa-intent-empty {
+            color: var(--text-light);
+            font-size: 12.5px;
+            padding: 6px 0;
+        }
+
+        .qa-intent-title {
+            font-weight: 600;
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .qa-intent-desc {
+            color: var(--text-light);
+            font-style: italic;
+            margin: 2px 0 10px 0;
+        }
+
+        .qa-intent-h {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            opacity: 0.7;
+            margin: 10px 0 4px 0;
+        }
+
+        .qa-intent-step {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            padding: 3px 0;
+        }
+
+        .qa-intent-step-n {
+            opacity: 0.6;
+            flex-shrink: 0;
+            min-width: 16px;
+        }
+
+        /* Appears on hover rather than sitting there: the pane is for reading,
+           and five always-visible buttons read as a toolbar. */
+        .qa-intent-seed {
+            margin-left: auto;
+            flex-shrink: 0;
+            border: none;
+            background: transparent;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 0 4px;
+            opacity: 0;
+            transition: opacity 0.12s;
+        }
+
+        .qa-intent-step:hover .qa-intent-seed,
+        .qa-intent-seed:focus { opacity: 1; }
+
+        .qa-intent-warn {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .qa-intent-badge {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border: 1px solid var(--border, rgba(128, 128, 128, 0.3));
+            border-radius: 4px;
+            padding: 1px 5px;
+            margin-left: 6px;
+            opacity: 0.75;
+            white-space: nowrap;
+        }
+
+        .qa-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .qa-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            border: 1px solid var(--border, rgba(128, 128, 128, 0.3));
+            border-radius: 999px;
+            padding: 3px 6px 3px 10px;
+            background: var(--bg-input, rgba(128, 128, 128, 0.06));
+        }
+
+        .qa-chip button {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.55;
+            font-size: 13px;
+            line-height: 1;
+            padding: 0 2px;
+        }
+
+        .qa-chip button:hover { opacity: 1; }
+
+        .qa-hint {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .qa-advanced {
+            margin-top: 16px;
+            border-top: 1px solid var(--border, rgba(128, 128, 128, 0.25));
+            padding-top: 12px;
+        }
+
+        .qa-advanced > summary {
+            cursor: pointer;
+            font-size: 12.5px;
+            color: var(--text-light);
+            user-select: none;
+        }
+
+        .qa-draft-banner {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            line-height: 1.5;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            background: rgba(245, 158, 11, 0.09);
+        }
+
+        .qa-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            margin-top: 8px;
+        }
+
+        .qa-table th,
+        .qa-table td {
+            text-align: left;
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border, rgba(128, 128, 128, 0.25));
+            white-space: nowrap;
+        }
+
+        .qa-table th {
+            font-weight: 600;
+            opacity: 0.75;
+        }
+
+        .qa-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
         .qa-history-table {
             width: 100%;
             border-collapse: collapse;
@@ -6818,6 +7043,8 @@
                 <button class="nav-item" data-nav="agents" onclick="showTab('agents')">🤖 Tests → Automation
                     Code</button>
                 <button class="nav-item" data-nav="healing" onclick="showTab('healing')">🔧 Auto-Heal Tests</button>
+                <button class="nav-item" data-nav="adapt" onclick="showTab('adapt')">🔁 Adapt to Product
+                    Changes</button>
                 <button class="nav-item" data-nav="ask" onclick="showTab('ask')">💬 Talk to your Tests</button>
             </div>
             <div class="nav-spacer"></div>
@@ -7209,6 +7436,18 @@
                                 <span class="qa-live-meta-label">Module</span>
                                 <span class="qa-live-meta-value" id="qaLiveModule">—</span>
                             </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Cost</span>
+                                <span class="qa-live-meta-value" id="qaLiveCost">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Tokens</span>
+                                <span class="qa-live-meta-value" id="qaLiveTokens">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">LLM calls</span>
+                                <span class="qa-live-meta-value" id="qaLiveCalls">—</span>
+                            </div>
                         </div>
                         <!-- Progress steps -->
                         <div class="qa-live-steps-wrap">
@@ -7257,6 +7496,256 @@
             </div><!-- /#tabPanelAgents -->
 
             <!-- ── Test Healing Agent ─────────────────────────────────────── -->
+            <!-- Adapt to Product Changes -->
+<div class="tab-panel" id="tabPanelAdapt">
+                <div class="panel-body">
+                    <div class="agent-offline-banner" id="adaptOfflineBanner" style="display:none;">
+                        <span class="agent-offline-icon">⚠️</span>
+                        <div>
+                            <strong>Agent Network is unreachable.</strong>
+                            <span>This page needs the agent server. Start it with
+                            <code>bash scripts/run-server.sh</code> in the QA-Agent-Network repo,
+                            then retry.</span>
+                        </div>
+                        <button type="button" class="qa-btn qa-btn-ghost"
+                                onclick="agentGate.refresh()">Retry</button>
+                    </div>
+
+                    <h2 class="page-title"><span>🔁</span> Adapt to Product Changes</h2>
+                    <div class="analyze-intro-block">
+                        <div class="analyze-intro-content">
+                            <p class="analyze-intro-headline">The product changed — update the tests to match</p>
+                            <p class="analyze-intro-sub">Pick the tests the change touches, read what they
+                                do today, and describe what changed in plain English. The agent walks the
+                                new flow in a real browser, updates the affected tests, and raises a PR.
+                                It runs <strong>before</strong> the tests go red, and every PR needs a
+                                human review.</p>
+                        </div>
+                    </div>
+
+                    <div class="analyze-box">
+                        <!-- Which note we are writing into. The filename is an
+                             implementation detail (run.sh reads queue/$MODULE.txt),
+                             so it is derived and only editable under Advanced. -->
+                        <div class="qa-form-row" style="margin-bottom:0;">
+                            <label class="qa-live-meta-label" for="adaptNoteSelect">Change note</label>
+                            <select id="adaptNoteSelect" class="qa-select" style="margin-top:6px;"
+                                    onchange="qaAdapt.onNoteChange()">
+                                <option value="__NEW__">＋ New change note</option>
+                            </select>
+                        </div>
+
+                        <!-- A note the healing agent drafted is a claim about the product, not a fact -->
+                        <div class="qa-draft-banner" id="adaptDraftBanner" style="display:none;">
+                            <span>📝</span>
+                            <div><strong>Drafted by the healing agent</strong> from a page it found
+                                rebuilt rather than broken. Confirm the product really changed, and fill
+                                in the placeholders, before running it.</div>
+                        </div>
+
+                        <!-- Which tests the change reaches -->
+                        <div class="qa-adapt-row" style="margin-top:14px;">
+                            <div style="flex:1;min-width:140px;">
+                                <label class="qa-live-meta-label" for="adaptModule">Module</label>
+                                <select id="adaptModule" class="qa-select" style="margin-top:6px;"
+                                        onchange="qaAdapt.onModuleChange()"><option value="">All modules</option></select>
+                            </div>
+                            <div style="flex:1.4;min-width:180px;">
+                                <label class="qa-live-meta-label" for="adaptClass">Class</label>
+                                <select id="adaptClass" class="qa-select" style="margin-top:6px;"
+                                        onchange="qaAdapt.onClassChange()"><option value="">— select a class —</option></select>
+                            </div>
+                        </div>
+                        <div class="qa-adapt-row" style="margin-top:10px;">
+                            <div style="flex:2;min-width:230px;">
+                                <label class="qa-live-meta-label" for="adaptTest">Test</label>
+                                <select id="adaptTest" class="qa-select" style="margin-top:6px;"
+                                        onchange="qaAdapt.onTestChange()"><option value="">— pick a class first —</option></select>
+                            </div>
+                            <button type="button" class="qa-btn qa-btn-ghost" id="adaptAddBtn"
+                                    onclick="qaAdapt.addSelected()">＋ Add</button>
+                        </div>
+
+                        <div id="adaptSelectedWrap" class="qa-chip-row" style="display:none;"></div>
+
+                        <label class="analyze-option" style="margin-top:10px;"
+                               title="Off = only the tests listed above. On = every test that shares their page objects and helpers.">
+                            <input type="checkbox" id="adaptWiden" onchange="qaAdapt.onFormChange()" />
+                            Also check tests that share this code
+                            <span class="qa-hint">(wider blast radius, slower run)</span>
+                        </label>
+
+                        <!-- Read on the left, write on the right -->
+                        <div class="qa-adapt-grid qa-adapt-grid-single">
+                            <div class="qa-intent-pane" id="adaptIntentPane" style="display:none;"></div>
+                            <div>
+                                <label class="qa-live-meta-label" for="adaptChanged">What changed</label>
+                                <textarea id="adaptChanged" class="qa-textarea" rows="9" spellcheck="false"
+                                          style="margin-top:6px;width:100%;"
+                                          oninput="qaAdapt.onFormChange()"
+                                          placeholder="Describe the change to the PRODUCT, one numbered item each:&#10;&#10;1. After login a &quot;Choose workspace&quot; screen now appears before the dashboard.&#10;2. The 3-step checkout wizard is now 2 steps."></textarea>
+                                <label class="qa-live-meta-label" for="adaptOutcome"
+                                       style="margin-top:10px;display:block;">Expected outcome unchanged
+                                    <span id="adaptOutcomeDerived" class="qa-intent-badge"
+                                          style="display:none;">from the test</span></label>
+                                <input id="adaptOutcome" class="qa-input" style="margin-top:6px;"
+                                       placeholder="what the flow must still achieve"
+                                       oninput="qaAdapt.onOutcomeEdit()" />
+                                <p class="qa-hint" style="margin:6px 0 0 0;">
+                                    What must still be true once the change ships. The agent explores
+                                    toward it, and if it names something irreversible — placing an order,
+                                    paying, deleting — it stops before that step and escalates instead.
+                                </p>
+                            </div>
+                        </div>
+
+                        <details class="qa-advanced" id="adaptAdvanced">
+                            <summary>Advanced — note name, entry URL, raw note</summary>
+                            <div class="qa-adapt-row" style="margin-top:10px;">
+                                <div style="flex:1;min-width:170px;">
+                                    <label class="qa-live-meta-label" for="adaptNoteName">Saved as</label>
+                                    <input id="adaptNoteName" class="qa-input" style="margin-top:6px;"
+                                           placeholder="checkout" />
+                                </div>
+                                <div style="flex:1.6;min-width:220px;">
+                                    <label class="qa-live-meta-label" for="adaptUrl">Entry URL <span
+                                        style="font-weight:400;color:var(--text-muted);">(optional — the agent finds the module's own otherwise)</span></label>
+                                    <input id="adaptUrl" class="qa-input" style="margin-top:6px;"
+                                           placeholder="https://www.saucedemo.com/"
+                                           oninput="qaAdapt.onFormChange()" />
+                                </div>
+                            </div>
+                            <p id="adaptRawNotice" class="qa-card-sub" style="display:none;">
+                                Editing the raw note — form changes will not overwrite it.
+                                <a href="#" onclick="qaAdapt.resetToForm();return false;">Reset to form</a>
+                            </p>
+                            <textarea id="adaptNoteBody" class="qa-textarea" rows="14" spellcheck="false"
+                                      style="margin-top:6px;width:100%;font-family:var(--font-mono,monospace);font-size:13px;"
+                                      oninput="qaAdapt.onRawEdit()"></textarea>
+                        </details>
+
+                        <div class="analyze-actions" id="adaptRunActions">
+                            <button type="button" class="qa-btn qa-btn-ghost"
+                                    onclick="qaAdapt.saveNote()">💾 Save note</button>
+                            <!-- One ordinal choice, not three booleans. They were
+                                 never independent: a PR needs applied edits, and
+                                 explore-only stops before either. "Apply off + PR on"
+                                 was reachable and did nothing. -->
+                            <label class="qa-inline-field">
+                                <span class="qa-live-meta-label">How far to go</span>
+                                <select id="adaptDepth" class="qa-select">
+                                    <option value="explore">Explore only — map the new flow, change nothing</option>
+                                    <option value="propose">Propose changes — show the diffs, write nothing</option>
+                                    <option value="apply">Apply changes — write and verify, no PR</option>
+                                    <option value="apply_pr">Apply and raise PR</option>
+                                </select>
+                            </label>
+                            <button type="button" class="analyze-btn" id="adaptRunBtn" onclick="qaAdapt.run()">
+                                <span id="adaptRunBtnLabel">▶ Run adaptation</span>
+                                <span id="adaptRunBtnSpinner" style="display:none;vertical-align:middle;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:qa-spin 0.8s linear infinite;vertical-align:middle;">
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                    </svg>
+                                    Starting…
+                                </span>
+                            </button>
+                        </div>
+                        <div id="adaptRunMsg" class="qa-card-sub" style="margin-top:8px;"></div>
+                        <p id="adaptRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
+                    </div>
+
+                    <!-- Draft notes handed over by the healing agent -->
+                    <div class="qa-card" id="adaptFromHealingCard" style="display:none;margin-top:18px;">
+                        <h3>📥 From Healing <span class="qa-live-badge badge-running" id="adaptFromHealingCount" style="font-size:11px;">0</span></h3>
+                        <p style="font-size:12px;color:var(--text-light);margin:0 0 12px 0;">
+                            Pages test-healing-agent found rebuilt rather than broken. Nobody runs these
+                            automatically — read what it observed, then edit and run.
+                        </p>
+                        <div id="adaptFromHealingWrap"></div>
+                    </div>
+
+                    <!-- Live run -->
+                    <div class="qa-card" id="adaptLiveCard" style="display:none;margin-top:18px;">
+                        <div class="qa-live-header">
+                            <div class="qa-live-header-icon">📡</div>
+                            <span class="qa-live-header-title">Live Run</span>
+                            <span class="qa-live-badge badge-running" id="adaptLiveStatus">running…</span>
+                            <span class="qa-live-elapsed" id="adaptLiveElapsed">00:00</span>
+                        </div>
+                        <div class="qa-live-meta">
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Session</span>
+                                <span class="qa-live-meta-value" id="adaptLiveSession">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Change note</span>
+                                <span class="qa-live-meta-value" id="adaptLiveNote">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Scope</span>
+                                <span class="qa-live-meta-value" id="adaptLiveScope">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Cost</span>
+                                <span class="qa-live-meta-value" id="adaptLiveCost">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Tokens</span>
+                                <span class="qa-live-meta-value" id="adaptLiveTokens">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">LLM calls</span>
+                                <span class="qa-live-meta-value" id="adaptLiveCalls">—</span>
+                            </div>
+                        </div>
+                        <div class="qa-live-steps-wrap">
+                            <div class="qa-progress-steps" id="adaptProgressSteps">
+                                <div class="qa-step" data-step="parse_change"><span class="qa-step-icon">1</span>Parse Change</div>
+                                <div class="qa-step" data-step="scope"><span class="qa-step-icon">2</span>Scope<button type="button" class="qa-step-retry-btn" data-retry-step="2" style="display:none;" title="Retry from Scope">↻</button></div>
+                                <div class="qa-step" data-step="explore"><span class="qa-step-icon">3</span>Explore<button type="button" class="qa-step-retry-btn" data-retry-step="3" style="display:none;" title="Retry from Explore">↻</button></div>
+                                <div class="qa-step" data-step="adapt"><span class="qa-step-icon">4</span>Adapt<button type="button" class="qa-step-retry-btn" data-retry-step="4" style="display:none;" title="Retry from Adapt">↻</button></div>
+                                <div class="qa-step" data-step="ship"><span class="qa-step-icon">5</span>Ship<button type="button" class="qa-step-retry-btn" data-retry-step="5" style="display:none;" title="Retry from Ship">↻</button></div>
+                            </div>
+                        </div>
+                        <div class="qa-live-console-wrap">
+                            <button type="button" class="qa-console-copy-btn" id="adaptConsoleCopyBtn"
+                                title="Copy logs" onclick="qaAdapt.copyLogs()">⧉</button>
+                            <div class="qa-console" id="adaptConsole"></div>
+                        </div>
+                        <div class="qa-live-footer">
+                            <button type="button" class="qa-btn qa-btn-danger" id="adaptCancelBtn"
+                                onclick="qaAdapt.cancel()" style="padding:6px 14px;font-size:12px;">✕ Cancel</button>
+                            <span id="adaptLiveResult"></span>
+                        </div>
+                    </div>
+
+                    <div id="adaptResult" style="margin-top:18px;"></div>
+
+                    <!-- History -->
+                    <div class="qa-card" style="margin-top:18px;">
+                        <h3>🕓 History <button type="button" class="qa-btn qa-btn-ghost"
+                                onclick="qaAdapt.loadHistory()"
+                                style="margin-left:auto;padding:6px 12px;font-size:12px;">Refresh</button></h3>
+                        <div id="adaptHistoryWrap">
+                            <div class="qa-history-empty">No runs yet.</div>
+                        </div>
+                    </div>
+
+                </div><!-- /.panel-body -->
+            </div><!-- /#tabPanelAdapt -->
+
+            <!-- Adaptation session detail — same shell as the healing modal -->
+            <div class="qa-modal-overlay" id="adaptSessionModal" onclick="qaAdapt.closeSession(event)">
+                <div class="qa-modal" onclick="event.stopPropagation()">
+                    <h3>Session detail <button type="button" class="qa-modal-close"
+                            onclick="qaAdapt.closeSession()" aria-label="Close">×</button></h3>
+                    <div id="adaptSessionDetail">
+                        <div class="qa-empty-hint">Loading…</div>
+                    </div>
+                </div>
+            </div>
+
+            
             <div class="tab-panel" id="tabPanelHealing">
                 <div class="panel-body">
                     <div class="agent-offline-banner" id="healOfflineBanner" style="display:none;">
@@ -7361,6 +7850,18 @@
                             <div class="qa-live-meta-item">
                                 <span class="qa-live-meta-label">Target</span>
                                 <span class="qa-live-meta-value" id="healLiveTarget">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Cost</span>
+                                <span class="qa-live-meta-value" id="healLiveCost">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Tokens</span>
+                                <span class="qa-live-meta-value" id="healLiveTokens">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">LLM calls</span>
+                                <span class="qa-live-meta-value" id="healLiveCalls">—</span>
                             </div>
                         </div>
                         <div class="qa-live-steps-wrap">
@@ -8027,8 +8528,9 @@
         // why. Owned by the shell, not by either module, so the state is shared
         // and the check runs on whichever tab you happen to be on.
         window.agentGate = (function () {
-            const GATED_TABS = ['agents', 'healing'];
-            const PANELS = { agents: 'qaOfflineBanner', healing: 'healOfflineBanner' };
+            const GATED_TABS = ['agents', 'healing', 'adapt'];
+            const PANELS = { agents: 'qaOfflineBanner', healing: 'healOfflineBanner',
+                             adapt: 'adaptOfflineBanner' };
             const POLL_MS = 20000;
             let online = null;          // null until the first check resolves
             let timer = null;
@@ -8062,6 +8564,7 @@
                     const active = document.body.getAttribute('data-active-tab');
                     if (active === 'healing' && window.qaHealing) window.qaHealing.init();
                     if (active === 'agents' && window.qaAgents) window.qaAgents.init();
+                    if (active === 'adapt' && window.qaAdapt) window.qaAdapt.init();
                 }
             }
 
@@ -8134,7 +8637,7 @@
                         qInput.focus();
                     }
                 });
-            } else if (tab === 'healing' || tab === 'agents') {
+            } else if (tab === 'healing' || tab === 'agents' || tab === 'adapt') {
                 // Re-check on entry: the server may have come back (or gone) since
                 // the last poll, and initialising against a dead server just fills
                 // the panel with failed requests.
@@ -8145,11 +8648,20 @@
                         if (tab === 'healing' && window.qaHealing) {
                             window.qaHealing.renderPicker();
                         }
+                        if (tab === 'adapt' && window.qaAdapt) {
+                            window.qaAdapt.renderEmpty();
+                        }
                         return;
                     }
                     if (tab === 'healing') {
                         if (window.qaHealing && typeof window.qaHealing.init === 'function') {
                             window.qaHealing.init();
+                        }
+                        return;
+                    }
+                    if (tab === 'adapt') {
+                        if (window.qaAdapt && typeof window.qaAdapt.init === 'function') {
+                            window.qaAdapt.init();
                         }
                         return;
                     }
@@ -8657,6 +9169,24 @@
                                     if (i < data.stage) s.classList.add('done');
                                     if (i === data.stage) s.classList.add('active');
                                 });
+                                // Per-stage time and cost, into the .req-stage-time
+                                // span the stylesheet has always had but nothing
+                                // ever rendered.
+                                if (data.closed_stage && data.closed_stage.stage) {
+                                    var cs = data.closed_stage;
+                                    var stageEl = document.getElementById('reqStage' + cs.stage);
+                                    if (stageEl) {
+                                        var timeEl = stageEl.querySelector('.req-stage-time');
+                                        if (!timeEl) {
+                                            timeEl = document.createElement('span');
+                                            timeEl.className = 'req-stage-time';
+                                            stageEl.appendChild(timeEl);
+                                        }
+                                        var bits = [QA_FMT_DURATION(cs.duration_s)];
+                                        if (cs.cost_usd > 0) bits.push(QA_FMT_COST(cs.cost_usd));
+                                        timeEl.textContent = bits.join(' \u00b7 ');
+                                    }
+                                }
                                 // Parse "X of Y requirements" from message to get total count
                                 var reqMatch = (data.message || '').match(/\((\d+)\s+of\s+(\d+)\s+requirements?\)/i);
                                 if (reqMatch) {
@@ -8903,6 +9433,34 @@
             ];
             if (s.pushed_count) {
                 parts.push('<p class="req-summary-subline"><strong>' + s.pushed_count + '</strong> tests pushed to TestRail</p>');
+            }
+            // Run cost and time. .req-summary-metric (and its .cost variant) have
+            // been styled in this file all along with nothing emitting them.
+            var metrics = [];
+            if (data.duration_s != null) {
+                metrics.push(['', QA_FMT_DURATION(data.duration_s), 'Time taken']);
+            }
+            if (data.total_estimated_cost_usd != null) {
+                metrics.push(['cost', QA_FMT_COST(data.total_estimated_cost_usd),
+                              'Est. cost']);
+            }
+            var calls = data.llm_calls || 0;
+            if (calls > 0) metrics.push(['', String(calls), 'LLM calls']);
+            if (generated + e2eFlowCount > 0) {
+                metrics.push(['generated', String(generated + e2eFlowCount), 'Tests generated']);
+            }
+            if (metrics.length) {
+                parts.push('<div class="req-summary-metrics">');
+                metrics.forEach(function (m) {
+                    parts.push('<div class="req-summary-metric ' + m[0] + '">'
+                        + '<div class="value">' + escapeHtml(m[1]) + '</div>'
+                        + '<div class="label">' + escapeHtml(m[2]) + '</div></div>');
+                });
+                parts.push('</div>');
+                // Cost is derived from a token rate card, not billed usage, and
+                // must not be read as an invoice figure.
+                parts.push('<p class="req-summary-subline" style="opacity:.7;font-size:12px;">'
+                    + 'Cost is estimated from token usage.</p>');
             }
             parts.push('</div>');
             return parts.join('');
@@ -10514,6 +11072,16 @@
                                 metaText += ` <button class="refresh-btn" onclick="refetchQuestionByIndex(${questionIndex})" title="Generate a fresh AI response by bypassing cache">⚡ Get Fresh Answer</button>`;
                             }
                         }
+                        // Spend for this turn, as a muted continuation of the
+                        // existing meta line rather than new chrome. A cache hit
+                        // costs nothing, so it is reported as free.
+                        const _m = message.meta.metrics;
+                        if (_m && !message.meta.cache_hit && _m.calls > 0) {
+                            const _bits = [QA_FMT_COST(_m.cost_usd),
+                                           QA_FMT_TOKENS((_m.input_tokens || 0) + (_m.output_tokens || 0)) + ' tokens',
+                                           _m.calls + ' call' + (_m.calls === 1 ? '' : 's')];
+                            metaText += (metaText ? ' · ' : '') + _bits.join(' · ') + ' (est.)';
+                        }
 
                         let sourcesHtml = '';
                         // Only show sources if answer is valid (not nothing found)
@@ -10598,6 +11166,99 @@
                 });
             }
         }
+
+        // ── Metric formatters ────────────────────────────────────────────
+        // Hoisted to window so the requirement-analysis module and the three
+        // agent modules share one implementation rather than growing four.
+        function QA_FMT_DURATION(sec) {
+            if (sec === null || sec === undefined || isNaN(sec)) return '\u2014';
+            var s = Math.round(Number(sec));
+            if (s < 60) return s + 's';
+            var m = Math.floor(s / 60);
+            if (m < 60) return m + 'm ' + (s % 60) + 's';
+            return Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+        }
+        function QA_FMT_COST(usd) {
+            if (usd === null || usd === undefined || isNaN(usd)) return '\u2014';
+            var n = Number(usd);
+            if (n === 0) return '$0';
+            // Sub-cent spend is common per call; $0.00 would read as free.
+            if (n < 0.01) return '$' + n.toFixed(4);
+            return '$' + n.toFixed(2);
+        }
+        function QA_FMT_TOKENS(n) {
+            if (n === null || n === undefined || isNaN(n)) return '\u2014';
+            n = Number(n);
+            if (n < 1000) return String(n);
+            if (n < 1000000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+            return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        }
+        function QA_FMT_CALLS(calls, turns) {
+            if (calls === null || calls === undefined || isNaN(calls)) return '\u2014';
+            var label = calls + ' call' + (Number(calls) === 1 ? '' : 's');
+            // One CLI invocation is many API round-trips; showing only calls
+            // understates the work by an order of magnitude.
+            if (turns && Number(turns) > Number(calls)) label += ' (' + turns + ' turns)';
+            return label;
+        }
+        window.QA_FMT_DURATION = QA_FMT_DURATION;
+        window.QA_FMT_COST = QA_FMT_COST;
+        window.QA_FMT_TOKENS = QA_FMT_TOKENS;
+        window.QA_FMT_CALLS = QA_FMT_CALLS;
+
+        // Per-stage detail is appended to the console line rather than added as
+        // a badge on the step chip: the chip is a single-line flex row with the
+        // retry button pinned right, and there is no room for it there.
+        function QA_STEP_SUFFIX(payload) {
+            if (!payload) return '';
+            var bits = [];
+            if (payload.duration_s != null) bits.push(QA_FMT_DURATION(payload.duration_s));
+            if (payload.cost_usd) bits.push(QA_FMT_COST(payload.cost_usd));
+            if (payload.output_tokens) bits.push(QA_FMT_TOKENS(payload.output_tokens) + ' out');
+            if (payload.llm_calls) bits.push(QA_FMT_CALLS(payload.llm_calls, payload.num_turns));
+            if (payload.attempts > 1) bits.push(payload.attempts + ' attempts');
+            return bits.length ? ' — ' + bits.join(' \u00b7 ') : '';
+        }
+
+        // Run totals into the Live Run header tiles. Prefix is the id namespace
+        // of the agent panel ('qa', 'heal', 'adapt').
+        function QA_UPDATE_METRIC_TILES(prefix, metrics) {
+            if (!metrics) return;
+            var set = function (id, value) {
+                var el = document.getElementById(prefix + id);
+                if (el) el.textContent = value;
+            };
+            if (metrics.cost_usd != null) set('LiveCost', QA_FMT_COST(metrics.cost_usd));
+            var tokens = (metrics.input_tokens || 0) + (metrics.output_tokens || 0);
+            if (tokens) set('LiveTokens', QA_FMT_TOKENS(tokens));
+            if (metrics.llm_calls != null) {
+                set('LiveCalls', QA_FMT_CALLS(metrics.llm_calls, metrics.num_turns));
+            }
+        }
+        // Stage breakdown table for the session-detail modal.
+        function QA_STAGE_TABLE(metrics) {
+            if (!metrics) return '';
+            var stages = metrics.stages || [];
+            if (!stages.length) return '';
+            var rows = stages.map(function (st) {
+                return '<tr><td>' + (st.label || st.key || '—') + '</td>'
+                    + '<td>' + QA_FMT_DURATION(st.duration_s) + '</td>'
+                    + '<td>' + QA_FMT_CALLS(st.llm_calls, st.num_turns) + '</td>'
+                    + '<td>' + QA_FMT_TOKENS(st.output_tokens) + '</td>'
+                    + '<td>' + QA_FMT_COST(st.cost_usd) + '</td></tr>';
+            }).join('');
+            var total = '<tr style="font-weight:600;"><td>Total</td>'
+                + '<td>' + QA_FMT_DURATION(metrics.duration_s) + '</td>'
+                + '<td>' + QA_FMT_CALLS(metrics.llm_calls, metrics.num_turns) + '</td>'
+                + '<td>' + QA_FMT_TOKENS(metrics.output_tokens) + '</td>'
+                + '<td>' + QA_FMT_COST(metrics.cost_usd) + '</td></tr>';
+            return '<table class="qa-history-table"><thead><tr><th>Stage</th>'
+                + '<th>Time</th><th>LLM calls</th><th>Output</th><th>Cost</th>'
+                + '</tr></thead><tbody>' + rows + total + '</tbody></table>';
+        }
+        window.QA_STAGE_TABLE = QA_STAGE_TABLE;
+        window.QA_STEP_SUFFIX = QA_STEP_SUFFIX;
+        window.QA_UPDATE_METRIC_TILES = QA_UPDATE_METRIC_TILES;
 
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -10941,7 +11602,8 @@
                             sources: isValidAnswer ? sources : [], // Only include sources for valid answers
                             meta: {
                                 query_time_ms: data.query_time_ms,
-                                cache_hit: data.cache_hit
+                                cache_hit: data.cache_hit,
+                                metrics: data.metrics
                             },
                             isNothingFound: isNothingFound
                         });
@@ -11050,6 +11712,10 @@
             fixed: 'completed', pr_created: 'completed', nothing_to_fix: 'completed',
             needs_review: 'failed', crashed: 'failed', blocked: 'failed',
             unverified: 'queued', not_a_locator: 'queued', skipped: 'cancelled',
+            // adaptation — a run that worked out the answer and correctly declined
+            // to edit anything. QA_STATUS_LABEL already names it; without a pill
+            // class here it fell through to 'queued' and read as still pending.
+            diagnosed: 'cancelled',
         };
         window.QA_STATUS_LABEL = {
             completed: 'completed', failed: 'failed', cancelled: 'cancelled',
@@ -11377,11 +12043,17 @@
                 if (atBottom) el.scrollTop = el.scrollHeight;
             }
 
-            function markStep(key, status) {
+            function markStep(key, status, payload) {
                 const el = document.querySelector('#healProgressSteps .qa-step[data-step="' + key + '"]');
                 if (!el) return;
                 el.classList.remove('running', 'done', 'failed');
                 if (status) el.classList.add(status);
+                // Time and cost for the stage go in the console, not on the chip.
+                const suffix = payload ? QA_STEP_SUFFIX(payload) : '';
+                if (suffix && (status === 'done' || status === 'failed')) {
+                    appendLog((status === 'done' ? '\u2713 ' : '\u2717 ')
+                        + (payload.display || key) + suffix);
+                }
             }
 
             function startElapsed() {
@@ -11491,7 +12163,7 @@
                                 state.lastSeq = Math.max(state.lastSeq, ev.seq);
                             }
                             if (ev.kind === 'stdout') appendLog(d.line || '');
-                            else if (ev.kind === 'step') markStep(d.key, d.status);
+                            else if (ev.kind === 'step') markStep(d.key, d.status, d);
                             else if (ev.kind === 'error') appendLog('[error] ' + (d.message || ''));
                             else if (ev.kind === 'done') finish(d);
                         });
@@ -11518,9 +12190,10 @@
                     if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
                     const d = ev.data || {};
                     if (kind === 'stdout') appendLog(d.line || '');
-                    else if (kind === 'step') markStep(d.key, d.status);
+                    else if (kind === 'step') markStep(d.key, d.status, d);
                     else if (kind === 'error') appendLog('[error] ' + (d.message || ''));
                     else if (kind === 'done') {
+                        QA_UPDATE_METRIC_TILES('heal', (d || {}).metrics);
                         // Close THIS stream, not just whichever one state points at.
                         // finish() only closes state.eventSource, so a stream that
                         // has since been superseded would stay open — and the
@@ -11966,7 +12639,7 @@
                     const hasActions = !!activeSid || queued.length > 0;
                     let html = '<table class="qa-history-table"><thead><tr>' +
                         '<th>Run</th><th>Test</th><th>Started</th>' +
-                        '<th>Status</th><th>Result</th><th>Logs</th><th>PR</th>' +
+                        '<th>Status</th><th>Result</th><th>Time</th><th>Cost</th><th>Logs</th><th>PR</th>' +
                         (hasActions ? '<th>Action</th>' : '<th></th>') +
                         '</tr></thead><tbody>';
 
@@ -11979,7 +12652,8 @@
                             '<td>' + esc(q.module || '—') + '</td>' +
                             '<td style="color:var(--text-light);">—</td>' +
                             '<td><span class="qa-status-pill queued">⏳ To be started</span></td>' +
-                            '<td>—</td><td>—</td><td>—</td><td>' + cancel + '</td></tr>';
+                            '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>' +
+                            '<td>' + cancel + '</td></tr>';
                     });
 
                     _cancelledHealItems.forEach(function (c) {
@@ -11988,7 +12662,7 @@
                             '<td>' + esc(c.module || '—') + '</td>' +
                             '<td style="color:var(--text-light);">—</td>' +
                             '<td><span class="qa-status-pill cancelled">✕ Cancelled</span></td>' +
-                            '<td>—</td><td>—</td><td>—</td><td></td></tr>';
+                            '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td></td></tr>';
                     });
 
                     items.forEach(function (s) {
@@ -12014,6 +12688,8 @@
                             '<td>' + esc(QA_FMT_STARTED(s.started_at)) + '</td>' +
                             '<td><span class="qa-status-pill ' + pill + '">' + esc(label) + '</span></td>' +
                             '<td>' + resultSummary(s) + '</td>' +
+                            '<td>' + esc(QA_FMT_DURATION(s.duration_s)) + '</td>' +
+                            '<td>' + esc(QA_FMT_COST(s.cost_usd)) + '</td>' +
                             '<td>' + logs + '</td>' +
                             '<td>' + pr + '</td>' +
                             '<td>' + action + '</td>' +
@@ -12095,11 +12771,17 @@
                         '</div>' +
                         (d.pr_url ? '<p style="margin:12px 0 0 0;"><a href="' + esc(d.pr_url) +
                                     '" target="_blank" rel="noopener">View PR →</a></p>' : '');
+                    // Stage-level time and cost, above the step reports.
+                    const stageTable = QA_STAGE_TABLE(d.metrics);
+                    const metricsHtml = stageTable
+                        ? '<h4 style="margin:16px 0 6px 0;font-size:13px;">Time &amp; cost</h4>'
+                          + stageTable
+                        : '';
                     const reportsHtml =
                         section('Reproduce', reports.reproduce_md) +
                         section('Fix', reports.fix_md) +
                         section('Ship', reports.ship_md);
-                    body.innerHTML = meta + reportsHtml;
+                    body.innerHTML = meta + metricsHtml + reportsHtml;
                 }).catch(function (e) {
                     body.innerHTML = '<div class="qa-empty-hint">Failed: ' + esc(e && e.message || e) + '</div>';
                 });
@@ -12661,7 +13343,8 @@
                             setStep(key, 'done');
                             const idx = STEPS.indexOf(key);
                             if (idx >= 0) STEPS.slice(0, idx).forEach(function (s) { setStep(s, 'done'); });
-                            appendLine('step', '✓ ' + (payload.display || key));
+                            appendLine('step', '✓ ' + (payload.display || key)
+                                + QA_STEP_SUFFIX(payload));
                             // A step that just succeeded doesn't need its retry button
                             // anymore — clear it explicitly rather than relying only on
                             // attachLiveRun's one-time reset at the start of the run, so
@@ -12675,7 +13358,8 @@
                             clearStepRetryButton(key);
                         } else if (status === 'failed') {
                             setStep(key, 'failed');
-                            appendLine('error', '✗ ' + (payload.display || key));
+                            appendLine('error', '✗ ' + (payload.display || key)
+                                + QA_STEP_SUFFIX(payload));
                             // Reveal this step's own retry button right now — don't
                             // wait for the whole run to finish. run.sh keeps going
                             // past a failed step (e.g. Ship still runs after Run &
@@ -12685,6 +13369,7 @@
                         }
                     }
                 } else if (kind === 'done') {
+                    QA_UPDATE_METRIC_TILES('qa', (payload || {}).metrics);
                     state.terminal = true;
                     stopElapsed();
                     // Only mark remaining (never-touched) steps as done on success.
@@ -12892,7 +13577,7 @@
                     }
 
                     const hasActions = !!activeSessionId || queued.length > 0;
-                    let html = '<table class="qa-history-table"><thead><tr><th>Run</th><th>File</th><th>Started</th><th>Status</th><th>Result</th><th>Logs</th><th>PR</th>'
+                    let html = '<table class="qa-history-table"><thead><tr><th>Run</th><th>File</th><th>Started</th><th>Status</th><th>Result</th><th>Time</th><th>Cost</th><th>Logs</th><th>PR</th>'
                         + (hasActions ? '<th>Action</th>' : '<th></th>')
                         + '</tr></thead><tbody>';
 
@@ -12907,6 +13592,8 @@
                             + '<td style="color:var(--text-light);">—</td>'
                             + '<td><span class="qa-status-pill queued">⏳ To be started</span></td>'
                             + '<td>—</td>'
+                            + '<td>—</td>'   /* Time */
+                            + '<td>—</td>'   /* Cost */
                             + '<td>—</td>'
                             + '<td>—</td>'
                             + '<td>' + cancelBtn + '</td>'
@@ -12921,6 +13608,8 @@
                             + '<td style="color:var(--text-light);">—</td>'
                             + '<td><span class="qa-status-pill cancelled">✕ Cancelled</span></td>'
                             + '<td>—</td>'
+                            + '<td>—</td>'   /* Time */
+                            + '<td>—</td>'   /* Cost */
                             + '<td>—</td>'
                             + '<td>—</td>'
                             + '<td></td>'
@@ -12948,6 +13637,8 @@
                             + '<td><span class="qa-status-pill ' + (QA_PILL_CLASS[status] || 'queued') + '">'
                             + escapeHtml(QA_STATUS_LABEL[status] || status) + '</span></td>'
                             + '<td>' + authoringResult(s) + '</td>'
+                            + '<td>' + escapeHtml(QA_FMT_DURATION(s.duration_s)) + '</td>'
+                            + '<td>' + escapeHtml(QA_FMT_COST(s.cost_usd)) + '</td>'
                             + '<td>' + logs + '</td>'
                             + '<td>' + pr + '</td>'
                             + '<td>' + actionBtn + '</td>'
@@ -12994,6 +13685,12 @@
                     session_id: d.session_id, module: d.module, status: d.status,
                     started_at: d.started_at, ended_at: d.ended_at, pr_url: d.pr_url,
                 }, null, 2)) + '</pre></div>');
+                // Stage-level time and cost, above the raw step dumps.
+                const stageHtml = QA_STAGE_TABLE(d.metrics);
+                if (stageHtml) {
+                    sections.push('<div class="qa-modal-section"><h4>Time &amp; cost</h4>'
+                        + stageHtml + '</div>');
+                }
                 const steps = d.steps || {};
                 // Retrying resumes a session in place — only offer it once the session
                 // is no longer actively running (nothing to resume into otherwise), and
@@ -13873,6 +14570,1283 @@
                 loadCases, renderTable, toggleAll, toggleSelectAll, expandAll, collapseAll,
                 updateWithAI, closeAiModal, acceptAi, acceptAndUpdateTestrail,
                 addSingleToQueue, addToQueue, useThis, runDirectly,
+            };
+        })();
+    </script>
+
+    <script>
+        // ── Adapt to Product Changes ─────────────────────────────────────────
+        // A form, not a text editor. The change note on disk is still the
+        // contract with the agent, but the user picks tests from the catalogue
+        // and describes the change; buildNote() serialises that into the note.
+        // The raw note stays reachable under Advanced because the healing agent
+        // drafts notes into this same queue and a human has to edit them.
+        //
+        // Live Run and History deliberately mirror qaHealing element for element
+        // — same shared helpers, same gestures — so the three agent panels read
+        // as one product.
+        window.qaAdapt = (function () {
+            const BASE = '/api/agents/test-adaptation-agent';
+
+            // Mirrors ADAPTATION_STEPS in qa_agents_server/agents.py, which
+            // carries the other half of this comment. The keys are also the
+            // data-step attributes on #adaptProgressSteps.
+            const STEPS = ['parse_change', 'scope', 'explore', 'adapt', 'ship'];
+            const STEP_LABELS = {
+                parse_change: 'Parse Change', scope: 'Scope', explore: 'Explore',
+                adapt: 'Adapt', ship: 'Ship',
+            };
+
+            const PILL_CLASS = window.QA_PILL_CLASS;
+            const STATUS_LABEL = window.QA_STATUS_LABEL;
+
+            const state = {
+                catalog: [], selected: [], note: '', intent: null,
+                rawOverride: false, intentSeq: 0, intentTimer: null,
+                preamble: [], epilogue: [], affectsRaw: '', outcomeAuto: null,
+                intentCache: {},
+                session: null, eventSource: null, lastSeq: 0, terminal: false,
+                startTs: null, elapsedTimer: null, logs: [], sawOutput: false,
+                headers: {},   // headers a human wrote that the form has no field for
+            };
+
+            let _currentQueue = [];
+            const _cancelledAdaptItems = [];
+
+            function $(id) { return document.getElementById(id); }
+            function esc(v) {
+                if (v == null) return '';
+                return String(v).replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            function fetchJson(url, opts) {
+                return fetch(url, Object.assign({ credentials: 'same-origin' }, opts || {}))
+                    .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); });
+            }
+            async function api(path, opts) {
+                const res = await fetch(BASE + path, Object.assign({
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                }, opts || {}));
+                const text = await res.text();
+                let body = {};
+                try { body = text ? JSON.parse(text) : {}; } catch (e) { body = { raw: text }; }
+                if (!res.ok) throw new Error(body.error || res.statusText);
+                return body;
+            }
+
+            function msg(text, isError) {
+                const box = $('adaptRunMsg');
+                if (box) { box.textContent = text || ''; box.style.color = isError ? '#ef4444' : ''; }
+            }
+            function setError(text) {
+                const el = $('adaptRunError');
+                if (!el) return;
+                el.textContent = text || '';
+                el.style.display = text ? 'block' : 'none';
+            }
+
+            // ── Test picker ──────────────────────────────────────────────────
+            function emptyOptionLabel() {
+                if (window.agentGate && !window.agentGate.isOnline()) {
+                    return '— unavailable while the agent server is offline —';
+                }
+                return '— no tests found —';
+            }
+
+            function visibleClasses() {
+                // Healing hides non-web tests because it only fixes locators.
+                // Adaptation explores an API half too, so hiding them buried 8 of
+                // this repo's 11 classes behind a checkbox. Only a class with
+                // neither marker has nothing here to explore.
+                return (state.catalog || []).filter(function (c) {
+                    return c.web_count > 0 || c.api_count > 0;
+                });
+            }
+
+            function loadCatalog() {
+                return fetchJson(BASE + '/tests').then(function (res) {
+                    state.catalog = (res.ok && res.body && res.body.classes) || [];
+                    renderPicker();
+                }).catch(function () {
+                    state.catalog = [];
+                    renderPicker();
+                });
+            }
+
+            function renderPicker() {
+                const modSel = $('adaptModule');
+                if (!modSel) return;
+                const classes = visibleClasses();
+
+                if (!classes.length) {
+                    const placeholder = '<option value="">' + esc(emptyOptionLabel()) + '</option>';
+                    modSel.innerHTML = placeholder;
+                    if ($('adaptClass')) $('adaptClass').innerHTML = placeholder;
+                    if ($('adaptTest')) $('adaptTest').innerHTML = placeholder;
+                    return;
+                }
+
+                const modules = [];
+                classes.forEach(function (c) {
+                    if (modules.indexOf(c.module) === -1) modules.push(c.module);
+                });
+                modules.sort(function (a, b) { return a.toLowerCase() < b.toLowerCase() ? -1 : 1; });
+
+                const keep = modSel.value;
+                modSel.innerHTML = '<option value="">All modules</option>' +
+                    modules.map(function (m) {
+                        return '<option value="' + esc(m) + '">' + esc(m) + '</option>';
+                    }).join('');
+                if (modules.indexOf(keep) !== -1) modSel.value = keep;
+                renderClasses();
+            }
+
+            function renderClasses() {
+                const sel = $('adaptClass');
+                if (!sel) return;
+                const module = ($('adaptModule') || {}).value || '';
+                const classes = visibleClasses().filter(function (c) {
+                    return !module || c.module === module;
+                });
+                sel.innerHTML = '<option value="">— select a class —</option>' +
+                    classes.map(function (c) {
+                        const n = c.methods.length;
+                        return '<option value="' + esc(c.qualified_name) + '">' +
+                               esc(c.name) + ' (' + n + ' test' + (n === 1 ? '' : 's') + ')</option>';
+                    }).join('');
+                renderMethods();
+            }
+
+            function currentClass() {
+                const qualified = ($('adaptClass') || {}).value || '';
+                return (state.catalog || []).find(function (c) {
+                    return c.qualified_name === qualified;
+                }) || null;
+            }
+
+            function renderMethods() {
+                const sel = $('adaptTest');
+                if (!sel) return;
+                const cls = currentClass();
+                if (!cls) {
+                    sel.innerHTML = '<option value="">— pick a class first —</option>';
+                    renderIntent(null);
+                    return;
+                }
+                sel.innerHTML =
+                    '<option value="__CLASS__">Whole class (every test in it)</option>' +
+                    cls.methods.map(function (m) {
+                        // Read like a test plan, not a list of identifiers.
+                        const label = (m.description || m.name) + (m.enabled ? '' : '  (disabled)');
+                        return '<option value="' + esc(m.name) + '"' +
+                               (m.enabled ? '' : ' style="opacity:.55;"') + '>' +
+                               esc(label) + '</option>';
+                    }).join('');
+                onTestChange();
+            }
+
+            function onModuleChange() { renderClasses(); }
+            function onClassChange() { renderMethods(); onFormChange(); }
+
+            // `Type:` decides which explore halves run (03_explore_web for
+            // web|both, 03_explore_api for api|both), so it is load-bearing — but
+            // the catalogue already knows, per test, which it is. Asking the user
+            // to restate it invites a wrong answer.
+            function deriveType() {
+                const idents = state.selected.length ? state.selected
+                    : (currentClass() ? [currentClass().qualified_name] : []);
+                let web = false, api = false;
+                idents.forEach(function (ident) {
+                    const hash = ident.indexOf('#');
+                    const qualified = hash === -1 ? ident : ident.slice(0, hash);
+                    const cls = (state.catalog || []).find(function (c) {
+                        return c.qualified_name === qualified;
+                    });
+                    if (!cls) return;
+                    if (hash === -1) {
+                        if (cls.web_count) web = true;
+                        if (cls.api_count) api = true;
+                        return;
+                    }
+                    const m = (cls.methods || []).find(function (x) {
+                        return x.name === ident.slice(hash + 1);
+                    });
+                    if (!m) return;
+                    if (m.is_web) web = true;
+                    if (m.is_api) api = true;
+                });
+                if (web && api) return 'both';
+                if (api) return 'api';
+                return 'web';
+            }
+
+            function onTestChange() {
+                onFormChange();
+                const cls = currentClass();
+                const method = ($('adaptTest') || {}).value || '';
+                if (!cls || !method || method === '__CLASS__') {
+                    renderIntent(null, method === '__CLASS__');
+                    return;
+                }
+                scheduleIntent(cls.qualified_name + '#' + method);
+            }
+
+            function addSelected() {
+                const cls = currentClass();
+                if (!cls) { setError('Pick a class first.'); return; }
+                const method = ($('adaptTest') || {}).value || '';
+                const ident = (method && method !== '__CLASS__')
+                    ? cls.qualified_name + '#' + method
+                    : cls.qualified_name;
+                if (state.selected.indexOf(ident) === -1) state.selected.push(ident);
+                setError('');
+                renderSelected();
+                fillOutcome();
+                onFormChange();
+            }
+
+            function removeSelected(ident) {
+                state.selected = state.selected.filter(function (s) { return s !== ident; });
+                renderSelected();
+                onFormChange();
+            }
+
+            function renderSelected() {
+                const wrap = $('adaptSelectedWrap');
+                if (!wrap) return;
+                if (!state.selected.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+                wrap.style.display = '';
+                wrap.innerHTML = state.selected.map(function (ident) {
+                    // The package prefix is the same for every row and costs the
+                    // chip most of its width; the full name is in the note.
+                    const short = ident.split('.').pop();
+                    return '<span class="qa-chip" title="' + esc(ident) + '">' + esc(short) +
+                        '<button type="button" title="Remove" onclick="qaAdapt.removeSelected(\'' +
+                        esc(ident) + '\')">×</button></span>';
+                }).join('');
+            }
+
+            // ── What the selected test does today ────────────────────────────
+            // Debounced: arrow-keying down the Test list would otherwise fire a
+            // request per option.
+            function scheduleIntent(test) {
+                clearTimeout(state.intentTimer);
+                state.intentTimer = setTimeout(function () { loadIntent(test); }, 150);
+            }
+
+            function loadIntent(test) {
+                const seq = ++state.intentSeq;
+                const pane = $('adaptIntentPane');
+                if (pane) pane.innerHTML = '<div class="qa-intent-empty">Reading the test…</div>';
+                fetchJson(BASE + '/tests/intent?test=' + encodeURIComponent(test))
+                    .then(function (res) {
+                        // A slower earlier request must not overwrite a newer answer.
+                        if (seq !== state.intentSeq) return;
+                        if (!res.ok) { renderIntent(null, false, (res.body && res.body.error) || 'could not read this test'); return; }
+                        state.intentCache[test] = res.body;
+                        renderIntent(res.body);
+                        fillOutcome();
+                    })
+                    .catch(function (e) {
+                        if (seq !== state.intentSeq) return;
+                        renderIntent(null, false, e && e.message || 'could not reach the agent server');
+                    });
+            }
+
+            // An empty pane reserving half the width is dead space, and it is
+            // empty exactly when the user has not picked a test yet — i.e. when the
+            // What-changed box could have used the room.
+            function showPane(show) {
+                const pane = $('adaptIntentPane');
+                const grid = document.querySelector('#tabPanelAdapt .qa-adapt-grid');
+                if (pane) pane.style.display = show ? '' : 'none';
+                if (grid) grid.classList.toggle('qa-adapt-grid-single', !show);
+            }
+
+            function renderIntent(data, wholeClass, error) {
+                const pane = $('adaptIntentPane');
+                if (!pane) return;
+                state.intent = data;
+                showPane(!!(data || wholeClass || error));
+                if (error) {
+                    pane.innerHTML = '<div class="qa-intent-empty">' + esc(error) + '</div>';
+                    return;
+                }
+                if (wholeClass) {
+                    pane.innerHTML = '<div class="qa-intent-empty">Pick a single test to see its ' +
+                        'steps — a contract describes one test method.</div>';
+                    return;
+                }
+                if (!data) {
+                    pane.innerHTML = '<div class="qa-intent-empty">Pick a test to see what it does today.</div>';
+                    return;
+                }
+
+                const cls = currentClass();
+                const method = ($('adaptTest') || {}).value || '';
+                const m = cls && (cls.methods || []).find(function (x) { return x.name === method; });
+                const parts = [];
+
+                parts.push('<div class="qa-intent-title">' + esc((cls ? cls.name : '') + '#' + method) +
+                    '<span class="qa-intent-badge">' + esc(data.source || 'derived') + '</span></div>');
+                if (m && m.description) {
+                    parts.push('<div class="qa-intent-desc">“' + esc(m.description) + '”</div>');
+                }
+
+                const proves = data.proves || [];
+                parts.push('<div class="qa-intent-h">Steps today</div>');
+                if (proves.length) {
+                    parts.push(proves.map(function (step, i) {
+                        return '<div class="qa-intent-step">' +
+                            '<span class="qa-intent-step-n">' + (i + 1) + '.</span>' +
+                            '<span>' + esc(step) + '</span>' +
+                            '<button type="button" class="qa-intent-seed" title="Write about this step" ' +
+                            'onclick="qaAdapt.seedStep(' + i + ')">↩</button></div>';
+                    }).join(''));
+                } else {
+                    // Not a failure — this test simply narrates nothing.
+                    parts.push('<div class="qa-intent-empty">No <code>logStep()</code> narration in ' +
+                        'this test, so there is nothing to read back. Its description above is all ' +
+                        'the agent can see statically.</div>');
+                }
+
+                const verifies = data.verifies || [];
+                if (verifies.length) {
+                    parts.push('<div class="qa-intent-h">Verifies</div><ul style="margin:0;padding-left:18px;">' +
+                        verifies.map(function (v) { return '<li>' + esc(v) + '</li>'; }).join('') + '</ul>');
+                }
+
+                if (data.unresolved_count) {
+                    parts.push('<div class="qa-intent-warn">⚠ ' + esc(data.unresolved_count) +
+                        ' call(s) could not be followed — this list may be incomplete.</div>');
+                }
+
+                pane.innerHTML = parts.join('');
+            }
+
+            // Seed a half-written sentence rather than a whole one: the point is
+            // to save the typing, not to guess what changed.
+            function seedStep(i) {
+                const box = $('adaptChanged');
+                const step = ((state.intent || {}).proves || [])[i];
+                if (!box || step == null) return;
+                const existing = box.value.replace(/\s+$/, '');
+                const n = (existing.match(/^\s*\d+[.)]/gm) || []).length + 1;
+                const line = n + '. Step ' + (i + 1) + ' “' + step + '” — ';
+                box.value = (existing ? existing + '\n' : '') + line;
+                box.focus();
+                box.setSelectionRange(box.value.length, box.value.length);
+                onFormChange();
+            }
+
+            // ── Expected outcome ─────────────────────────────────────────────
+            // The field says "unchanged", i.e. it describes what the tests already
+            // achieve — and the catalogue and the intent contract both know that.
+            // Asking a human to retype what the pane beside it is already showing
+            // got the field left blank, which costs the explorer its goal *and*
+            // disarms the destructive-action gate. So derive it, mark it derived,
+            // and let them sharpen it.
+            function outcomeFor(ident) {
+                const cached = state.intentCache[ident];
+                const hash = ident.indexOf('#');
+                const qualified = hash === -1 ? ident : ident.slice(0, hash);
+                const cls = (state.catalog || []).find(function (c) {
+                    return c.qualified_name === qualified;
+                });
+                if (hash !== -1 && cls) {
+                    const m = (cls.methods || []).find(function (x) {
+                        return x.name === ident.slice(hash + 1);
+                    });
+                    // The @Test description states the goal; assertion messages
+                    // state the checks. The goal is the better fit for "what this
+                    // flow is supposed to achieve", so prefer it.
+                    if (m && m.description) return m.description;
+                }
+                if (cached && (cached.verifies || []).length) return cached.verifies.join('; ');
+                if (cls && hash === -1) {
+                    const described = (cls.methods || [])
+                        .map(function (m) { return m.description; }).filter(Boolean);
+                    if (described.length) return described.join('; ');
+                }
+                return '';
+            }
+
+            function deriveOutcome() {
+                const idents = state.selected.length ? state.selected : (function () {
+                    const cls = currentClass();
+                    const method = ($('adaptTest') || {}).value || '';
+                    if (!cls) return [];
+                    return [method && method !== '__CLASS__'
+                        ? cls.qualified_name + '#' + method : cls.qualified_name];
+                })();
+                const parts = [];
+                idents.forEach(function (id) {
+                    const o = outcomeFor(id);
+                    if (o && parts.indexOf(o) === -1) parts.push(o);
+                });
+                return parts.join('; ');
+            }
+
+            // Never overwrite something a human typed: only replace the field
+            // while it still holds exactly what we last put there.
+            function fillOutcome() {
+                const box = $('adaptOutcome');
+                if (!box) return;
+                const current = (box.value || '').trim();
+                if (current && current !== state.outcomeAuto) return;
+                const derived = deriveOutcome();
+                if (!derived) return;
+                box.value = derived;
+                state.outcomeAuto = derived;
+                const badge = $('adaptOutcomeDerived');
+                if (badge) badge.style.display = '';
+                onFormChange();
+            }
+
+            function onOutcomeEdit() {
+                const box = $('adaptOutcome');
+                const badge = $('adaptOutcomeDerived');
+                if (badge && box && (box.value || '').trim() !== state.outcomeAuto) {
+                    badge.style.display = 'none';
+                }
+                onFormChange();
+            }
+
+            // ── Note serialisation ───────────────────────────────────────────
+            // MODULE (the queue filename) and the `Module:` header are different
+            // things: run.sh resolves queue/$MODULE.txt, while the header is a
+            // scope fallback matched against the catalogue's module name. The
+            // header therefore follows the picker, not the filename.
+            function buildNote() {
+                const cls = currentClass();
+                const module = (($('adaptModule') || {}).value) ||
+                               (cls && cls.module) || state.note || '';
+                const type = deriveType();
+                const url = (($('adaptUrl') || {}).value || '').trim();
+                const widen = !!($('adaptWiden') || {}).checked;
+                const changed = (($('adaptChanged') || {}).value || '').trim();
+                const outcome = (($('adaptOutcome') || {}).value || '').trim();
+
+                // `#` lines are a human's (or the healing agent's) commentary —
+                // the banner, the "confirm this was intended" note, the observed-by
+                // footer. They are not headers or items, so nothing else here would
+                // carry them.
+                const lines = (state.preamble || []).slice();
+                if (lines.length) lines.push('');
+                if (module) lines.push('Module: ' + module);
+                lines.push('Type: ' + type);
+                if (url && type !== 'api') lines.push('URL: ' + url);
+                if (state.selected.length) lines.push('Tests: ' + state.selected.join(', '));
+                if (widen) {
+                    const globs = [];
+                    state.selected.forEach(function (ident) {
+                        // A whole class widens to its package; a single method
+                        // widens to every test on its class.
+                        const g = ident.indexOf('#') === -1
+                            ? ident.replace(/\.[^.]+$/, '.*')
+                            : ident.split('#')[0] + '*';
+                        if (globs.indexOf(g) === -1) globs.push(g);
+                    });
+                    // A note can carry `Affects:` with no `Tests:` at all — the
+                    // healing agent's drafts do exactly that. With no chips to
+                    // derive a glob from, re-emit what was written rather than
+                    // dropping the scope on the first keystroke in the form.
+                    if (globs.length) lines.push('Affects: ' + globs.join(', '));
+                    else if (state.affectsRaw) lines.push('Affects: ' + state.affectsRaw);
+                }
+                // Headers a human wrote by hand that this form has no field for.
+                // Dropping them would silently discard their work.
+                Object.keys(state.headers || {}).forEach(function (k) {
+                    lines.push(k + ': ' + state.headers[k]);
+                });
+
+                lines.push('');
+                lines.push('What changed:');
+                lines.push(changed || '1. ');
+                if (outcome) { lines.push(''); lines.push('Expected outcome unchanged: ' + outcome); }
+                if ((state.epilogue || []).length) {
+                    lines.push('');
+                    (state.epilogue || []).forEach(function (l) { lines.push(l); });
+                }
+                return lines.join('\n') + '\n';
+            }
+
+            // The inverse, so picking a saved note repopulates the FORM and not
+            // just the raw textarea. Mirrors parse_headers/parse_items in
+            // agents/test-adaptation-agent/actions/01_parse_change.py.
+            const KNOWN_HEADERS = ['module', 'type', 'url', 'tests', 'affects'];
+            function parseNote(text) {
+                const out = { headers: {}, extra: {}, items: [], outcome: '',
+                              preamble: [], epilogue: [] };
+                const lines = (text || '').split('\n');
+                let seenItem = false;
+                let seenHeader = false;
+                const body = [];
+                lines.forEach(function (raw) {
+                    if (/^\s*#/.test(raw)) {
+                        // Before any header it is a banner; after, a footer.
+                        (seenHeader ? out.epilogue : out.preamble).push(raw.replace(/\s+$/, ''));
+                        return;
+                    }
+                    const numbered = /^\s*(\d+)[.)]\s*(.+)$/.exec(raw);
+                    if (numbered) { seenItem = true; body.push(raw.trim()); return; }
+                    const outcome = /^\s*Expected outcome[^:]*:\s*(.+)$/i.exec(raw);
+                    if (outcome) { out.outcome = outcome[1].trim(); return; }
+                    if (!seenItem) {
+                        const h = /^\s*([A-Za-z][A-Za-z ]*?)\s*:\s*(.+?)\s*$/.exec(raw);
+                        if (h) {
+                            seenHeader = true;
+                            const key = h[1].trim().toLowerCase();
+                            if (KNOWN_HEADERS.indexOf(key) !== -1) out.headers[key] = h[2].trim();
+                            else out.extra[h[1].trim()] = h[2].trim();
+                        }
+                        return;
+                    }
+                    // A wrapped continuation of the previous numbered item.
+                    if (raw.trim() && body.length) body[body.length - 1] += ' ' + raw.trim();
+                });
+                out.items = body;
+                return out;
+            }
+
+            function applyParsedNote(text) {
+                const parsed = parseNote(text);
+                state.headers = parsed.extra;
+                state.preamble = parsed.preamble;
+                state.epilogue = parsed.epilogue;
+                const h = parsed.headers;
+                state.affectsRaw = h.affects || '';
+                if ($('adaptUrl')) $('adaptUrl').value = h.url || '';
+                state.selected = (h.tests || '').split(',')
+                    .map(function (t) { return t.trim(); }).filter(Boolean);
+                if ($('adaptWiden')) $('adaptWiden').checked = !!h.affects;
+                if ($('adaptChanged')) $('adaptChanged').value = parsed.items.join('\n');
+                if ($('adaptOutcome')) $('adaptOutcome').value = parsed.outcome;
+                state.outcomeAuto = parsed.outcome ? null : state.outcomeAuto;
+                if ($('adaptOutcomeDerived')) $('adaptOutcomeDerived').style.display = 'none';
+                if (h.module && $('adaptModule')) {
+                    const match = (state.catalog || []).find(function (c) {
+                        return c.module.toLowerCase() === h.module.toLowerCase();
+                    });
+                    if (match) { $('adaptModule').value = match.module; renderClasses(); }
+                }
+                renderSelected();
+                // A note the healing agent drafted is a claim, not a fact.
+                const isDraft = /^\s*#\s*DRAFT/.test(text || '');
+                const banner = $('adaptDraftBanner');
+                if (banner) banner.style.display = isDraft ? '' : 'none';
+            }
+
+            // The form owns the note until the user edits the raw text, at which
+            // point it stops overwriting them. One direction only — a
+            // bidirectional sync fights whoever is typing.
+            function onFormChange() {
+                if (state.rawOverride) return;
+                const box = $('adaptNoteBody');
+                if (box) box.value = buildNote();
+            }
+            function onRawEdit() {
+                state.rawOverride = true;
+                const notice = $('adaptRawNotice');
+                if (notice) notice.style.display = '';
+            }
+            function resetToForm() {
+                state.rawOverride = false;
+                const notice = $('adaptRawNotice');
+                if (notice) notice.style.display = 'none';
+                onFormChange();
+            }
+
+            function noteText() {
+                const box = $('adaptNoteBody');
+                return (state.rawOverride && box) ? box.value : buildNote();
+            }
+
+            // ── Change notes on disk ─────────────────────────────────────────
+            // The filename is not a decision the user should have to make: run.sh
+            // resolves queue/$MODULE.txt and nothing else reads it. Derive one from
+            // the module they picked, and let them override it under Advanced.
+            function suggestedName() {
+                const typed = (($('adaptNoteName') || {}).value || '').trim();
+                if (typed) return typed;
+                if (state.note) return state.note;
+                const cls = currentClass();
+                const base = ((($('adaptModule') || {}).value) || (cls && cls.module) || 'change')
+                    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                const d = new Date();
+                const p2 = function (n) { return String(n).padStart(2, '0'); };
+                return base + '-' + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' +
+                       p2(d.getHours()) + p2(d.getMinutes());
+            }
+
+            function loadNotes() {
+                return api('/queue').then(function (body) {
+                    const sel = $('adaptNoteSelect');
+                    const items = body.items || [];
+                    if (sel) {
+                        sel.innerHTML = '<option value="__NEW__">＋ New change note</option>' +
+                            items.map(function (i) {
+                                return '<option value="' + esc(i.name) + '">' + esc(i.name) + '</option>';
+                            }).join('');
+                        sel.value = (state.note && items.some(function (i) { return i.name === state.note; }))
+                            ? state.note : '__NEW__';
+                    }
+                    return items;
+                });
+            }
+
+            // The healing agent drafts notes into this queue when it finds a page
+            // rebuilt rather than broken. They are the adaptation panel's inbox.
+            function loadDrafts(items) {
+                const card = $('adaptFromHealingCard');
+                const wrap = $('adaptFromHealingWrap');
+                if (!card || !wrap) return;
+                const drafts = (items || []).filter(function (i) {
+                    return /^\s*#\s*DRAFT/.test(i.preview || '') || /-rebuilt$/.test(i.name || '');
+                });
+                if (!drafts.length) { card.style.display = 'none'; return; }
+                card.style.display = 'block';
+                const count = $('adaptFromHealingCount');
+                if (count) count.textContent = drafts.length;
+                wrap.innerHTML = drafts.map(function (d) {
+                    return '<div class="qa-queue-item"><div><strong>' + esc(d.name) + '</strong>' +
+                        '<div class="qa-card-sub">' + esc(d.preview || '') + '</div></div>' +
+                        '<button type="button" class="qa-btn qa-btn-ghost" ' +
+                        'onclick="qaAdapt.openNote(\'' + esc(d.name) + '\')">Open →</button></div>';
+                }).join('');
+            }
+
+            function openNote(name) {
+                const sel = $('adaptNoteSelect');
+                if (sel) sel.value = name;
+                onNoteChange();
+                const box = $('adaptChanged');
+                if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            async function onNoteChange() {
+                const name = ($('adaptNoteSelect') || {}).value || '__NEW__';
+                state.rawOverride = false;
+                const notice = $('adaptRawNotice');
+                if (notice) notice.style.display = 'none';
+                if (name === '__NEW__') {
+                    state.note = '';
+                    state.headers = {};
+                    state.preamble = []; state.epilogue = []; state.affectsRaw = '';
+                    state.selected = [];
+                    ['adaptNoteName', 'adaptUrl', 'adaptChanged', 'adaptOutcome'].forEach(function (id) {
+                        if ($(id)) $(id).value = '';
+                    });
+                    if ($('adaptWiden')) $('adaptWiden').checked = false;
+                    if ($('adaptDraftBanner')) $('adaptDraftBanner').style.display = 'none';
+                    renderSelected();
+                    onFormChange();
+                    return;
+                }
+                state.note = name;
+                if ($('adaptNoteName')) $('adaptNoteName').value = name;
+                try {
+                    const body = await api('/queue/' + encodeURIComponent(name));
+                    if ($('adaptNoteBody')) $('adaptNoteBody').value = body.content || '';
+                    applyParsedNote(body.content || '');
+                    msg('');
+                } catch (e) { msg('Could not read ' + name + ': ' + e.message, true); }
+            }
+
+            async function saveNote() {
+                const name = suggestedName();
+                const content = noteText();
+                if (!content.trim()) { msg('The note is empty.', true); return; }
+                try {
+                    await api('/queue', {
+                        method: 'POST',
+                        body: JSON.stringify({ name: name, content: content }),
+                    });
+                    state.note = name;
+                    if ($('adaptNoteName')) $('adaptNoteName').value = name;
+                    const items = await loadNotes();
+                    loadDrafts(items);
+                    if ($('adaptNoteSelect')) $('adaptNoteSelect').value = name;
+                    msg('Saved as ' + name + '.txt');
+                } catch (e) { msg('Save failed: ' + e.message, true); }
+            }
+
+            // ── Run depth ────────────────────────────────────────────────────
+            // One ordinal control on the way in, three env flags on the way out.
+            // The server still takes explore_only / apply / auto_push separately —
+            // this is only about not making a human assemble them.
+            const DEPTHS = {
+                explore:  { explore_only: true,  apply: false, auto_push: false },
+                propose:  { explore_only: false, apply: false, auto_push: false },
+                apply:    { explore_only: false, apply: true,  auto_push: false },
+                apply_pr: { explore_only: false, apply: true,  auto_push: true  },
+            };
+
+            function depthPayload() {
+                return DEPTHS[($('adaptDepth') || {}).value] || DEPTHS.propose;
+            }
+
+            // The effective default is whatever config/.env says, expressed as the
+            // matching rung rather than as two checkboxes the user has to reconcile.
+            function applyDefaults() {
+                return fetchJson(BASE + '/config').then(function (res) {
+                    if (!res.ok || !res.body) return;
+                    const sel = $('adaptDepth');
+                    if (!sel) return;
+                    sel.value = !res.body.adapt_apply_default ? 'propose'
+                        : (res.body.auto_push_default ? 'apply_pr' : 'apply');
+                }).catch(function () { /* leave the select as-is */ });
+            }
+
+            // ── Running ──────────────────────────────────────────────────────
+            function setRunBtnLoading(loading) {
+                const btn = $('adaptRunBtn');
+                if (btn) btn.disabled = loading;
+                const label = $('adaptRunBtnLabel');
+                const spin = $('adaptRunBtnSpinner');
+                if (label) label.style.display = loading ? 'none' : '';
+                if (spin) spin.style.display = loading ? '' : 'none';
+            }
+
+            async function run() {
+                setError('');
+                const name = suggestedName();
+                const content = noteText();
+                if (!/^\s*\d+[.)]\s*\S/m.test(content)) {
+                    setError('Describe at least one numbered change before running.');
+                    return;
+                }
+                // A seeded step the user never finished still parses as a change
+                // item, and step 01 would dutifully classify "Step 2 “…” —" as a
+                // product change. Catch it here rather than spending a run on it.
+                if (/^\s*\d+[.)].*—\s*$/m.test(content)) {
+                    setError('One of the change items is unfinished — it still ends '
+                             + 'with a dash. Say what changed about that step.');
+                    return;
+                }
+
+                setRunBtnLoading(true);
+                try {
+                    // The note on disk is what run.sh reads, so save before running
+                    // rather than sending the body — same shape as the authoring panel.
+                    await api('/queue', { method: 'POST',
+                        body: JSON.stringify({ name: name, content: content }) });
+                    state.note = name;
+                    await loadNotes();
+                    if ($('adaptNoteSelect')) $('adaptNoteSelect').value = name;
+
+                    const payload = Object.assign({ module: name }, depthPayload());
+                    const body = await api('/run', { method: 'POST', body: JSON.stringify(payload) });
+                    setRunBtnLoading(false);
+                    if (body.queued) {
+                        // One run slot across all three agents — they drive the
+                        // same automation repo, so they never overlap.
+                        showToast('⏳  Another agent run is in progress — queued at position ' +
+                                  body.position + '.', 'info');
+                        loadHistory();
+                        return;
+                    }
+                    msg('');
+                    openRun(body.session_id, name);
+                } catch (e) {
+                    setRunBtnLoading(false);
+                    setError('Could not start: ' + e.message);
+                }
+            }
+
+            async function retryFrom(step) {
+                if (!state.session) return;
+                try {
+                    const body = await api('/sessions/' + encodeURIComponent(state.session) + '/retry', {
+                        method: 'POST',
+                        body: JSON.stringify({ from_step: step,
+                                               auto_push: depthPayload().auto_push }),
+                    });
+                    if (body.queued) {
+                        showToast('⏳  Queued at position ' + body.position + '.', 'info');
+                        loadHistory();
+                        return;
+                    }
+                    openRun(body.session_id, state.note || '—');
+                } catch (e) { showToast('Could not retry: ' + e.message, 'warning'); }
+            }
+
+            async function cancel() {
+                if (!state.session) return;
+                try {
+                    await api('/run/' + encodeURIComponent(state.session) + '/cancel', { method: 'POST' });
+                    showToast('■ Stopping "' + state.session + '"', 'info');
+                } catch (e) { setError('Cancel failed: ' + e.message); }
+            }
+
+            // ── Live run ─────────────────────────────────────────────────────
+            function appendLog(line) {
+                state.sawOutput = true;
+                state.logs.push(line);
+                const el = $('adaptConsole');
+                if (!el) return;
+                const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+                const target = window.qaBuildFold(el, line, state);
+                if (target) {
+                    const div = document.createElement('div');
+                    window.qaRenderLine(line, BASE).forEach(function (n) { div.appendChild(n); });
+                    target.appendChild(div);
+                }
+                if (atBottom) el.scrollTop = el.scrollHeight;
+            }
+
+            function copyLogs() {
+                const text = (state.logs || []).join('\n');
+                if (!text) return;
+                navigator.clipboard.writeText(text).then(function () {
+                    showToast('⧉  Logs copied', 'info');
+                }).catch(function () { showToast('Could not copy the logs', 'warning'); });
+            }
+
+            function markStep(key, status, payload) {
+                const el = document.querySelector('#adaptProgressSteps .qa-step[data-step="' + key + '"]');
+                if (!el) return;
+                el.classList.remove('running', 'done', 'failed');
+                if (status) el.classList.add(status);
+                // Time and cost for the stage go in the console, not on the chip.
+                const suffix = payload ? QA_STEP_SUFFIX(payload) : '';
+                if (suffix && (status === 'done' || status === 'failed')) {
+                    appendLog((status === 'done' ? '\u2713 ' : '\u2717 ')
+                        + (payload.display || key) + suffix);
+                }
+            }
+
+            function showRetryButtons(show) {
+                document.querySelectorAll('#adaptProgressSteps .qa-step-retry-btn')
+                    .forEach(function (b) { b.style.display = show ? '' : 'none'; });
+            }
+
+            function stopElapsed() {
+                clearInterval(state.elapsedTimer);
+                state.elapsedTimer = null;
+            }
+
+            function startElapsed() {
+                state.startTs = Date.now();
+                stopElapsed();
+                state.elapsedTimer = setInterval(function () {
+                    const s = Math.floor((Date.now() - state.startTs) / 1000);
+                    const el = $('adaptLiveElapsed');
+                    if (el) el.textContent =
+                        String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+                }, 1000);
+            }
+
+            function openRun(sessionId, note, isReplay) {
+                state.session = sessionId;
+                state.lastSeq = 0;
+                state.terminal = false;
+                state.logs = [];
+                state.sawOutput = false;
+                state.buildEl = null; state.buildSummary = null; state.buildLines = 0;
+
+                const card = $('adaptLiveCard');
+                if (card) card.style.display = 'block';
+                if ($('adaptConsole')) $('adaptConsole').innerHTML = '';
+                if ($('adaptResult')) $('adaptResult').innerHTML = '';
+                if ($('adaptLiveElapsed')) $('adaptLiveElapsed').textContent = '00:00';
+                if ($('adaptLiveSession')) $('adaptLiveSession').textContent = sessionId;
+                if ($('adaptLiveNote')) $('adaptLiveNote').textContent = note || '—';
+                if ($('adaptLiveScope')) {
+                    $('adaptLiveScope').textContent = state.selected.length
+                        ? state.selected.length + ' test' + (state.selected.length === 1 ? '' : 's')
+                        : '—';
+                }
+                if ($('adaptLiveResult')) $('adaptLiveResult').innerHTML = '';
+                if ($('adaptLiveStatus')) {
+                    $('adaptLiveStatus').textContent = 'running…';
+                    $('adaptLiveStatus').className = 'qa-live-badge badge-running';
+                }
+                STEPS.forEach(function (k) { markStep(k, null); });
+                showRetryButtons(false);
+                if (isReplay) {
+                    // A replay has no clock to run, but a live run's may still be
+                    // going — opening a past run from the history while one is in
+                    // flight would otherwise leave that timer ticking over this.
+                    stopElapsed();
+                    // The recorded `done` frame the recorded `done` frame
+                    // carries duration_s: null for a run the gate stopped, so
+                    // ticking up from zero would report a four-minute run as
+                    // 00:00. '—' says "not recorded".
+                    if ($('adaptLiveElapsed')) $('adaptLiveElapsed').textContent = '—';
+                    replayHistory();
+                } else {
+                    startElapsed();
+                    connect();
+                }
+            }
+
+            // A finished session's events are already complete, so fetch them in
+            // one request rather than holding a stream open for them.
+            function replayHistory() {
+                fetchJson(BASE + '/sessions/' + encodeURIComponent(state.session) + '/events')
+                    .then(function (res) {
+                        const events = (res.body && res.body.events) || [];
+                        if (!res.ok || !events.length) {
+                            appendLog('[stream] no recorded events for this session');
+                            finish({ status: 'unknown' });
+                            return;
+                        }
+                        events.forEach(function (ev) {
+                            const d = ev.data || {};
+                            if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
+                            if (ev.kind === 'stdout') appendLog(d.line || '');
+                            else if (ev.kind === 'step') markStep(d.key, d.status, d);
+                            else if (ev.kind === 'error') appendLog('[error] ' + (d.message || d.line || ''));
+                            else if (ev.kind === 'done') finish(d);
+                        });
+                    })
+                    .catch(function (e) {
+                        appendLog('[stream] could not load this run: ' + (e && e.message || e));
+                        finish({ status: 'unknown' });
+                    });
+            }
+
+            function connect() {
+                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+                const url = BASE + '/run/' + encodeURIComponent(state.session) +
+                            '/stream?offset=' + state.lastSeq;
+                const es = new EventSource(url, { withCredentials: true });
+                state.eventSource = es;
+
+                // Every frame is {seq, kind, data:{…}} — the payload is nested
+                // under `data`, not spread at the top level. Reading `d.key` off
+                // the frame gave undefined for all of it: the step chips never
+                // left "pending" and the console filled with blank lines.
+                function handle(kind, raw) {
+                    let ev;
+                    try { ev = JSON.parse(raw.data); }
+                    catch (err) { console.warn('qaAdapt: unparsable SSE frame', err); return; }
+                    if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
+                    const d = ev.data || {};
+                    if (kind === 'stdout') appendLog(d.line || '');
+                    else if (kind === 'step') markStep(d.key, d.status, d);
+                    else if (kind === 'error') appendLog('[error] ' + (d.message || d.line || ''));
+                    else if (kind === 'done') {
+                        QA_UPDATE_METRIC_TILES('adapt', (d || {}).metrics);
+                        // Close THIS stream, not just whichever one state points
+                        // at: a superseded stream would stay open, and the browser
+                        // caps connections per origin, so a few orphans stall
+                        // every later request on the page.
+                        es.close();
+                        finish(d);
+                    }
+                }
+                ['stdout', 'step', 'status', 'error', 'done'].forEach(function (kind) {
+                    es.addEventListener(kind, function (raw) { handle(kind, raw); });
+                });
+                es.onerror = function () {
+                    if (state.eventSource !== es) { es.close(); return; }
+                    if (state.terminal) { es.close(); return; }
+                    appendLog('[stream] connection dropped — reconnecting…');
+                };
+            }
+
+            async function finish(d) {
+                state.terminal = true;
+                stopElapsed();
+                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+                setRunBtnLoading(false);
+
+                // Historical replay sends duration_s; the live path sends
+                // duration. Either may be null, in which case whatever is already
+                // showing — the live clock, or '—' for a replay — is left alone.
+                const durSecs = (d && (d.duration_s != null ? d.duration_s : d.duration));
+                if (durSecs != null) {
+                    const ds = Math.round(durSecs);
+                    const el = $('adaptLiveElapsed');
+                    if (el) el.textContent = String(Math.floor(ds / 60)).padStart(2, '0') + ':' +
+                                             String(ds % 60).padStart(2, '0');
+                }
+                showRetryButtons(true);
+
+                try {
+                    const s = await api('/sessions/' + encodeURIComponent(state.session));
+                    renderResult(s, $('adaptResult'));
+                    const status = (s.status || 'unknown').toLowerCase();
+                    const badge = $('adaptLiveStatus');
+                    if (badge) {
+                        badge.textContent = STATUS_LABEL[status] || status;
+                        badge.className = 'qa-live-badge badge-' + (PILL_CLASS[status] || 'cancelled');
+                    }
+                } catch (e) {
+                    appendLog('[error] could not load the result: ' + (e && e.message || e));
+                }
+                loadHistory();
+            }
+
+            // ── Results ──────────────────────────────────────────────────────
+            // Guard rejections and escalations are plain sections, not badges or
+            // tooltips: the detail is what matters and it has to be readable and
+            // copyable, not hovered over.
+            function renderResult(s, target) {
+                if (!target) return;
+                const reports = s.reports || {};
+                const counts = s.counts || {};
+                const parts = [];
+
+                parts.push('<div class="qa-card"><strong>' + esc(s.note || s.module || '') +
+                    '</strong>' + (s.module && s.note && s.module !== s.note
+                        ? ' <span class="qa-card-sub">(' + esc(s.module) + ')</span>' : '') + ' · ' +
+                    esc(s.change_items || 0) + ' change item(s) · ' +
+                    esc(s.tests_in_scope || 0) + ' test(s) in scope · explore: ' +
+                    esc(s.explore_status || '—') + '</div>');
+
+                if ((s.escalations || []).length) {
+                    parts.push('<div class="qa-card"><strong>⚠️ Escalated to a human</strong>' +
+                        '<div class="qa-card-sub">The agent stopped rather than guessing. ' +
+                        'That is the design working.</div><ul>' +
+                        s.escalations.map(function (e) {
+                            return '<li><strong>' + esc(e.what) + '</strong> — ' + esc(e.why) + '</li>';
+                        }).join('') + '</ul></div>');
+                }
+
+                parts.push('<div class="qa-card">applied ' + esc(counts.applied || 0) +
+                    ' · proposed ' + esc(counts.proposed || 0) +
+                    ' · rejected ' + esc(counts.rejected || 0) +
+                    ' · escalated ' + esc(counts.escalated || 0) +
+                    ' · verified ' + esc(counts.verified || 0) + '</div>');
+
+                // Stage-level time and cost, same table as the other two panels.
+                const _stageTable = QA_STAGE_TABLE(s.metrics);
+                if (_stageTable) {
+                    parts.push('<div class="qa-card"><strong>Time &amp; cost</strong>'
+                        + _stageTable + '</div>');
+                }
+
+                if (s.pr_url) {
+                    parts.push('<div class="qa-card"><a href="' + esc(s.pr_url) +
+                        '" target="_blank" rel="noopener">Open the PR</a> — ' +
+                        esc(s.verdict || 'NEEDS-REVIEW') +
+                        '<div class="qa-card-sub">Every adaptation PR needs a human review: ' +
+                        'the agent may change test steps, not just selectors.</div></div>');
+                }
+
+                ['scope', 'explore', 'adapt'].forEach(function (key) {
+                    const md = reports[key];
+                    if (!md) return;
+                    parts.push('<details class="qa-card"><summary>' +
+                        esc(STEP_LABELS[key] || key) + ' report</summary>' +
+                        '<div class="qa-console" style="white-space:pre-wrap;max-height:420px;' +
+                        'overflow:auto;">' + esc(md) + '</div></details>');
+                });
+
+                target.innerHTML = parts.join('');
+            }
+
+            // No counts does not mean no outcome — a run the gate stopped still
+            // has something worth saying.
+            function adaptationResult(s) {
+                const c = s.counts || {};
+                const bits = [];
+                if (c.applied) bits.push(c.applied + ' applied');
+                if (c.proposed) bits.push(c.proposed + ' proposed');
+                if (c.escalated) bits.push(c.escalated + ' escalated');
+                if (c.rejected) bits.push(c.rejected + ' rejected');
+                if (bits.length) return esc(bits.join(' · '));
+                if (s.failure_headline) return esc(s.failure_headline);
+                if (s.skip_reason) return esc(s.skip_reason);
+                return '—';
+            }
+
+            // ── History ──────────────────────────────────────────────────────
+            function loadHistory() {
+                const wrap = $('adaptHistoryWrap');
+                if (!wrap) return;
+                Promise.all([
+                    fetchJson(BASE + '/sessions?limit=20'),
+                    fetchJson(BASE + '/run/queue').catch(function () { return { body: {} }; }),
+                    fetchJson(BASE + '/run/active').catch(function () { return { body: {} }; }),
+                ]).then(function (results) {
+                    const items = (results[0].body && results[0].body.items) || [];
+                    const queued = (results[1].body && results[1].body.queue) || [];
+                    const active = results[2].body || {};
+                    const activeSid = active.active ? active.session_id : null;
+                    _currentQueue = queued;
+
+                    if (!items.length && !queued.length && !_cancelledAdaptItems.length) {
+                        wrap.innerHTML = '<div class="qa-history-empty">No runs yet.</div>';
+                        return;
+                    }
+
+                    const hasActions = !!activeSid || queued.length > 0;
+                    let html = '<table class="qa-history-table"><thead><tr>' +
+                        '<th>Run</th><th>Change note</th><th>Module</th><th>Started</th>' +
+                        '<th>Status</th><th>Result</th><th>Time</th><th>Cost</th><th>Logs</th><th>PR</th>' +
+                        (hasActions ? '<th>Action</th>' : '<th></th>') +
+                        '</tr></thead><tbody>';
+
+                    queued.forEach(function (q) {
+                        html += '<tr style="opacity:0.8;">' +
+                            '<td class="qa-session-id">' + esc(QA_RUN_REF(q.session_id)) + '</td>' +
+                            '<td>' + esc(q.module || '—') + '</td>' +
+                            '<td>—</td>' +
+                            '<td style="color:var(--text-light);">—</td>' +
+                            '<td><span class="qa-status-pill queued">⏳ To be started</span></td>' +
+                            '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>' +
+                            '<td><button class="qa-action-btn qa-action-btn-cancel" ' +
+                            'title="Remove from queue" onclick="event.stopPropagation();' +
+                            'qaAdapt.removeFromQueue(' + q.index + ')">✕ Cancel</button></td></tr>';
+                    });
+
+                    _cancelledAdaptItems.forEach(function (c) {
+                        html += '<tr style="opacity:0.6;">' +
+                            '<td class="qa-session-id">' + esc(QA_RUN_REF(c.session_id)) + '</td>' +
+                            '<td>' + esc(c.module || '—') + '</td>' +
+                            '<td>—</td>' +
+                            '<td style="color:var(--text-light);">—</td>' +
+                            '<td><span class="qa-status-pill cancelled">✕ Cancelled</span></td>' +
+                            '<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td></td></tr>';
+                    });
+
+                    items.forEach(function (s) {
+                        const sid = s.session_id || '';
+                        const status = (s.status || 'unknown').toLowerCase();
+                        const pill = PILL_CLASS[status] || 'queued';
+                        const label = STATUS_LABEL[status] || status;
+                        const pr = s.pr_url
+                            ? '<a href="' + esc(s.pr_url) + '" target="_blank" rel="noopener" ' +
+                              'onclick="event.stopPropagation();" style="color:var(--primary);">link</a>'
+                            : '—';
+                        const logs = '<a href="#" style="color:var(--primary);" ' +
+                            'onclick="event.stopPropagation();event.preventDefault();' +
+                            'qaAdapt.viewLogs(\'' + esc(sid) + '\',\'' + esc(s.note || s.module || '') + '\');">view</a>';
+                        const action = (sid === activeSid)
+                            ? '<button class="qa-action-btn qa-action-btn-stop" title="Stop run" ' +
+                              'onclick="event.stopPropagation();qaAdapt.cancelSession(\'' + esc(sid) + '\')">■ Stop</button>'
+                            : '';
+                        html += '<tr data-session="' + esc(sid) + '">' +
+                            '<td class="qa-session-id">' + esc(QA_RUN_REF(sid)) + '</td>' +
+                            '<td>' + esc(s.note || s.module || '—') + '</td>' +
+                            '<td>' + esc(s.module || '—') + '</td>' +
+                            '<td>' + esc(QA_FMT_STARTED(s.started_at)) + '</td>' +
+                            '<td><span class="qa-status-pill ' + pill + '">' + esc(label) + '</span></td>' +
+                            '<td>' + adaptationResult(s) + '</td>' +
+                            '<td>' + esc(QA_FMT_DURATION(s.duration_s)) + '</td>' +
+                            '<td>' + esc(QA_FMT_COST(s.cost_usd)) + '</td>' +
+                            '<td>' + logs + '</td><td>' + pr + '</td><td>' + action + '</td></tr>';
+                    });
+
+                    wrap.innerHTML = html + '</tbody></table>';
+                    wrap.querySelectorAll('tbody tr[data-session]').forEach(function (tr) {
+                        tr.addEventListener('click', function () { openSession(tr.dataset.session); });
+                    });
+                }).catch(function (e) {
+                    wrap.innerHTML = '<div class="qa-history-empty">Failed to load: ' +
+                        esc(e && e.message || e) + '</div>';
+                });
+            }
+
+            // Replay a finished session into the Live Run card and scroll to it —
+            // the same gesture the healing history uses, rather than a modal.
+            function viewLogs(sessionId, note) {
+                if (!sessionId) return;
+                openRun(sessionId, note || '—', true);
+                const card = $('adaptLiveCard');
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            function cancelSession(sessionId) {
+                fetchJson(BASE + '/run/' + encodeURIComponent(sessionId) + '/cancel',
+                          { method: 'POST' }).then(function () {
+                    showToast('■ Stopping "' + sessionId + '"', 'info');
+                    loadHistory();
+                });
+            }
+
+            function removeFromQueue(index) {
+                const item = (_currentQueue || []).find(function (q) { return q.index === index; });
+                fetchJson(BASE + '/run/queue/' + index, { method: 'DELETE' }).then(function (res) {
+                    if (res.ok && item) {
+                        _cancelledAdaptItems.unshift({
+                            module: item.module || '—',
+                            session_id: item.session_id || '',
+                        });
+                    }
+                    loadHistory();
+                });
+            }
+
+            async function openSession(sessionId) {
+                const modal = $('adaptSessionModal');
+                const detail = $('adaptSessionDetail');
+                if (!modal || !detail) return;
+                detail.innerHTML = '<div class="qa-empty-hint">Loading…</div>';
+                modal.classList.add('active');
+                try {
+                    const s = await api('/sessions/' + encodeURIComponent(sessionId));
+                    renderResult(s, detail);
+                } catch (e) {
+                    detail.innerHTML = '<div class="qa-empty-hint">Could not open ' +
+                        esc(sessionId) + ': ' + esc(e.message) + '</div>';
+                }
+            }
+
+            function closeSession(event) {
+                if (event && event.target !== event.currentTarget) return;
+                const modal = $('adaptSessionModal');
+                if (modal) modal.classList.remove('active');
+            }
+
+            // ── Wiring ───────────────────────────────────────────────────────
+            // Why the lists are empty, in the selects themselves. Hiding the
+            // picker when the catalogue cannot load made the page change shape
+            // between server states, which reads as a second unexplained problem
+            // on top of the offline banner already saying what is wrong.
+            function renderEmpty() {
+                const placeholder = '<option value="">' + esc(emptyOptionLabel()) + '</option>';
+                ['adaptModule', 'adaptClass', 'adaptTest'].forEach(function (id) {
+                    const sel = $(id);
+                    if (sel) sel.innerHTML = placeholder;
+                });
+                const note = $('adaptNoteSelect');
+                if (note && note.options.length <= 1) {
+                    note.innerHTML = '<option value="">— agent server offline —</option>';
+                }
+            }
+
+            let _wired = false;
+            function wireOnce() {
+                if (_wired) return;
+                _wired = true;
+                document.querySelectorAll('#adaptProgressSteps .qa-step-retry-btn')
+                    .forEach(function (btn) {
+                        btn.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            retryFrom(parseInt(btn.dataset.retryStep, 10));
+                        });
+                    });
+            }
+
+            async function init() {
+                wireOnce();
+                try {
+                    const [items] = await Promise.all([loadNotes(), loadCatalog(), applyDefaults()]);
+                    loadDrafts(items);
+                    loadHistory();
+                    onFormChange();
+                    msg('');
+                } catch (e) {
+                    renderEmpty();
+                    msg('Could not reach the agent server: ' + e.message, true);
+                }
+            }
+
+            return {
+                init, renderEmpty, renderPicker,
+                onModuleChange, onClassChange, onTestChange, onFormChange,
+                addSelected, removeSelected, seedStep,
+                onNoteChange, saveNote, openNote, onOutcomeEdit,
+                onRawEdit, resetToForm,
+                run, cancel, copyLogs, loadHistory, viewLogs,
+                cancelSession, removeFromQueue, openSession, closeSession,
             };
         })();
     </script>

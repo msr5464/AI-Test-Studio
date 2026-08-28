@@ -11,6 +11,7 @@ import os
 import tempfile
 from backend.api.auth.routes import require_auth
 from backend.api.agents.proxy import _forward_json
+from backend.services import analytics_service
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -415,6 +416,114 @@ def get_agent_settings():
 def update_agent_settings():
     """Save agent settings to QA-Agent-Network's config/.env. Admin only."""
     return _forward_json('PUT', '/settings')
+
+
+@admin_bp.route('/analytics', methods=['GET'])
+@require_auth(admin_only=True)
+def get_analytics():
+    """Combined time/cost analytics across every AI flow in the Studio.
+
+    Admin-only for the same documented reason as agent-settings: /api/agents/*
+    enforces no auth at all, and spend is not customer-facing data.
+
+    The two halves are returned SEPARATELY and never summed into one figure:
+    agent cost is reported by the Claude CLI (exact), Studio cost is estimated
+    from a token rate card. Time saved is applied here, since this is where the
+    human-minutes baselines live.
+    """
+    window = (request.args.get('window') or '7d').strip()
+    if window not in analytics_service.WINDOWS:
+        return jsonify({'success': False,
+                        'error': "window must be one of "
+                                 + ', '.join(analytics_service.WINDOWS)}), 400
+
+    studio = analytics_service.query(window)
+
+    # The agent half comes from QA-Agent-Network; a dashboard must still render
+    # if that server is down, so a failure degrades to an empty half plus a note.
+    agents, agents_error = {}, None
+    try:
+        response = _forward_json('GET', f'/analytics/summary?window={window}')
+        # _forward_json returns a Response, or (Response, status) on failure —
+        # and its failure bodies are dicts too, so "is a dict" is not enough to
+        # call it a success. Without checking the status and the payload shape,
+        # a stopped agent server renders as a silently empty section.
+        status = response[1] if isinstance(response, tuple) else 200
+        body = response[0] if isinstance(response, tuple) else response
+        payload = body.get_json(silent=True) if hasattr(body, 'get_json') else None
+
+        if status >= 400 or not isinstance(payload, dict) or 'overall' not in payload:
+            detail = ''
+            if isinstance(payload, dict):
+                detail = payload.get('detail') or payload.get('error') or ''
+            if status == 404:
+                # Almost always a running-but-stale agent server: a bare
+                # "not found" gives no clue which of the two servers is missing
+                # the route, and the answer is nearly always that one of them
+                # is still on pre-update code.
+                agents_error = ('Analytics endpoint not found on the QA Agent '
+                                'Network server (404). Restart it '
+                                '(`bash scripts/run-server.sh`) so it picks up '
+                                'the /analytics/summary route.')
+            else:
+                agents_error = detail or f'agent server returned HTTP {status}'
+        else:
+            agents = payload
+    except Exception as exc:
+        agents_error = str(exc)
+
+    baselines = _analytics_baselines()
+    return jsonify({
+        'success': True,
+        'window': window,
+        'baselines': baselines,
+        'agents': agents,
+        'agents_error': agents_error,
+        'studio': studio,
+        'time_saved': _time_saved(agents, studio, baselines),
+    })
+
+
+def _analytics_baselines() -> dict:
+    """Human-minutes-per-outcome, from settings. One home for all four flows."""
+    svc = current_app.config.get('SETTINGS_SERVICE')
+
+    def _get(key, default):
+        try:
+            return float(svc.get(key, default) if svc else default)
+        except (TypeError, ValueError, AttributeError):
+            return float(default)
+    return {
+        'min_per_test_authored': _get('analytics_min_per_test_authored', 120),
+        'min_per_test_fixed': _get('analytics_min_per_test_fixed', 45),
+        'min_per_test_adapted': _get('analytics_min_per_test_adapted', 30),
+        'min_per_test_case_written': _get('analytics_min_per_test_case_written', 15),
+    }
+
+
+def _time_saved(agents: dict, studio: dict, baselines: dict) -> dict:
+    """Estimated human minutes saved, minus the wall time the machine spent."""
+    overall = (agents or {}).get('overall') or {}
+    outcomes = (studio or {}).get('outcomes') or {}
+
+    agent_gross = (
+        int(overall.get('tests_created') or 0) * baselines['min_per_test_authored']
+        + int(overall.get('tests_fixed') or 0) * baselines['min_per_test_fixed']
+        + int(overall.get('items_adapted') or 0) * baselines['min_per_test_adapted']
+    )
+    studio_gross = (
+        (int(outcomes.get('test_cases_generated') or 0)
+         + int(outcomes.get('e2e_tests_generated') or 0))
+        * baselines['min_per_test_case_written']
+    )
+    agent_spent = float(overall.get('duration_s') or 0.0) / 60.0
+    studio_spent = float((studio or {}).get('run_duration_s') or 0.0) / 60.0
+    return {
+        'agents_min': round(agent_gross - agent_spent, 1),
+        'studio_min': round(studio_gross - studio_spent, 1),
+        'total_min': round(agent_gross + studio_gross - agent_spent - studio_spent, 1),
+        'basis': 'estimate',
+    }
 
 
 @admin_bp.route('/sync/schedule', methods=['GET'])

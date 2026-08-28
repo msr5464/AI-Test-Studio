@@ -511,13 +511,17 @@ class BaseRAG:
         
         print("✅ Documents indexed!")
     
-    def query(self, question: str, bypass_cache: bool = False) -> Dict[str, Any]:
+    def query(self, question: str, bypass_cache: bool = False,
+              run_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Query the RAG system with caching and performance tracking.
         
         Args:
             question: User question
             bypass_cache: If True, skip cache and force fresh LLM query
+            run_id: Correlation id so this query's cost joins the run that
+                caused it. Without it these records are orphans — 37 of the 42
+                run_id-less rows in operation_costs.jsonl come from here.
             
         Returns:
             Query result dictionary with answer, sources, and metadata
@@ -612,7 +616,7 @@ class BaseRAG:
         
         # Cache miss - execute query
         # Call the actual query implementation
-        result = self._query_impl(question)
+        result = self._query_impl(question, run_id=run_id)
         
         # Calculate query time
         elapsed_time = (time.time() - start_time) * 1000
@@ -911,7 +915,8 @@ class BaseRAG:
 
         return results[:k]
 
-    def _query_impl(self, question: str) -> Dict[str, Any]:
+    def _query_impl(self, question: str,
+                    run_id: Optional[str] = None) -> Dict[str, Any]:
         """Internal query implementation (moved from query method)."""
         if not self.retriever:
             self._load_vectorstore_if_needed()
@@ -929,7 +934,8 @@ class BaseRAG:
         if search_k != self.retrieval_k or metadata_filter:
             print(f"🎯 Dynamic Retrieval: k={search_k}, filters={metadata_filter}")
 
-        expanded_queries = expand_query(question, self.use_query_expansion, llm=self.llm)
+        expanded_queries = expand_query(question, self.use_query_expansion, llm=self.llm,
+                                    run_id=run_id)
         if len(expanded_queries) > 1:
             print(f"🔍 Expanded queries: {len(expanded_queries)}")
         
@@ -1080,6 +1086,7 @@ class BaseRAG:
                     chat_history = self.memory.messages if hasattr(self.memory, 'messages') else []
                     
                     chain = prompt | self.llm
+                    _t0 = time.time()
                     result = chain.invoke({
                         "context": context,
                         "question": question,
@@ -1087,7 +1094,9 @@ class BaseRAG:
                     })
                     try:
                         from backend.cost_tracker import record_from_langchain_result
-                        record_from_langchain_result("rag.query", result)
+                        record_from_langchain_result("rag.query", result,
+                                                     run_id=run_id,
+                                                     duration_s=time.time() - _t0)
                     except Exception:
                         pass
                     answer = extract_answer_from_llm_result(result)
@@ -1103,10 +1112,13 @@ class BaseRAG:
                     ])
                     
                     chain = prompt | self.llm
+                    _t0 = time.time()
                     result = chain.invoke({"context": context, "question": question})
                     try:
                         from backend.cost_tracker import record_from_langchain_result
-                        record_from_langchain_result("rag.query", result)
+                        record_from_langchain_result("rag.query", result,
+                                                     run_id=run_id,
+                                                     duration_s=time.time() - _t0)
                     except Exception:
                         pass
                     answer = extract_answer_from_llm_result(result)
