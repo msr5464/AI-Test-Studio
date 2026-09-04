@@ -1898,7 +1898,7 @@
                             <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>Analytics</h2>
                             <div class="analytics-windows" id="analyticsWindows">
                                 <button class="settings-tab-btn" data-window="24h" onclick="setAnalyticsWindow('24h', this)">24 hours</button>
-                                <button class="settings-tab-btn active" data-window="7d" onclick="setAnalyticsWindow('7d', this)">7 days</button>
+                                <button class="settings-tab-btn" data-window="7d" onclick="setAnalyticsWindow('7d', this)">7 days</button>
                                 <button class="settings-tab-btn" data-window="30d" onclick="setAnalyticsWindow('30d', this)">30 days</button>
                                 <button class="settings-tab-btn" data-window="all" onclick="setAnalyticsWindow('all', this)">All time</button>
                             </div>
@@ -3585,8 +3585,9 @@
             statusEl.className = 'agent-settings-status';
             statusEl.textContent = '⏳ Loading analytics…';
             try {
-                const response = await fetch(
-                    `${API_BASE}/analytics?window=${encodeURIComponent(analyticsWindow())}`,
+                const qs = _analyticsWindow
+                    ? `?window=${encodeURIComponent(_analyticsWindow)}` : '';
+                const response = await fetch(`${API_BASE}/analytics${qs}`,
                     { credentials: 'include' });
                 const data = await response.json();
                 if (!response.ok) {
@@ -3594,6 +3595,16 @@
                     statusEl.textContent = '❌ ' + (data.error || `HTTP ${response.status}`);
                     body.innerHTML = '';
                     return;
+                }
+                // Reflect the window the server actually used — on first load
+                // that is the configured default, not necessarily 7d.
+                if (data.window) {
+                    _analyticsWindow = data.window;
+                    document.querySelectorAll('#analyticsWindows .settings-tab-btn')
+                        .forEach(function (b) {
+                            b.classList.toggle('active',
+                                b.getAttribute('data-window') === data.window);
+                        });
                 }
                 renderAnalytics(data);
                 statusEl.style.display = 'none';
@@ -3617,8 +3628,13 @@
             parts.push(anTile(anFmtMinutes(saved.total_min), 'Est. time saved'));
             parts.push(anTile(anFmtCost((agents.cost_usd || 0) + (sOverall.cost_usd || 0)),
                               'Total spend'));
-            parts.push(anTile(anFmtDuration((agents.duration_s || 0)
-                              + (studio.run_duration_s || 0)), 'Machine time'));
+            // Approximate time is included but never presented as measured: a
+            // "~" marks any total that leans on inferred durations.
+            const studioApprox = studio.run_duration_approx_s || 0;
+            const machineS = (agents.duration_s || 0) + (studio.run_duration_s || 0)
+                             + studioApprox;
+            parts.push(anTile((studioApprox > 0 ? '~' : '') + anFmtDuration(machineS),
+                              'Machine time'));
             parts.push(anTile(anFmtNum((agents.llm_calls || 0) + (sOverall.calls || 0)),
                               'LLM calls'));
             parts.push('</div>');
@@ -3683,6 +3699,11 @@
             parts.push(anTile(anFmtNum(sOverall.runs || 0), 'Analysis runs'));
             parts.push(anTile(anFmtCost(sOverall.cost_usd), 'Est. cost'));
             parts.push(anTile(anFmtNum(sOverall.calls || 0), 'LLM calls'));
+            const reqTime = (studio.run_duration_s || 0) + studioApprox;
+            if (reqTime > 0) {
+                parts.push(anTile((studioApprox > 0 ? '~' : '') + anFmtDuration(reqTime),
+                                  'Time'));
+            }
             parts.push(anTile(anFmtNum(outcomes.test_cases_generated || 0), 'Test cases generated'));
             parts.push(anTile(anFmtNum(outcomes.e2e_tests_generated || 0), 'E2E tests generated'));
             parts.push(anTile(anFmtMinutes(saved.studio_min), 'Est. time saved'));

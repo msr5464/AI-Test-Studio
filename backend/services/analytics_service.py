@@ -93,6 +93,29 @@ def _group(operation: str) -> str:
 
 # ── Writing ───────────────────────────────────────────────────────────────────
 
+def _run_token_totals(run_id: str) -> Dict[str, Any]:
+    """input/output token totals and the per-model split for one run."""
+    totals = {"input_tokens": 0, "output_tokens": 0, "by_model": {}}
+    if not run_id:
+        return totals
+    for row in _read_jsonl(_costs_file()):
+        if row.get("run_id") != run_id:
+            continue
+        inp = int(row.get("input_tokens") or 0)
+        out = int(row.get("output_tokens") or 0)
+        totals["input_tokens"] += inp
+        totals["output_tokens"] += out
+        model = str(row.get("model") or "unknown")
+        slot = totals["by_model"].setdefault(
+            model, {"cost_usd": 0.0, "input_tokens": 0, "output_tokens": 0, "calls": 0})
+        slot["cost_usd"] = round(
+            slot["cost_usd"] + float(row.get("estimated_cost_usd") or 0.0), 10)
+        slot["input_tokens"] += inp
+        slot["output_tokens"] += out
+        slot["calls"] += 1
+    return totals
+
+
 def record_requirement_run(result: Optional[Dict[str, Any]], *,
                            run_id: str = "", status: str = "completed",
                            source_type: str = "", started_at: Optional[float] = None,
@@ -119,6 +142,10 @@ def record_requirement_run(result: Optional[Dict[str, Any]], *,
             "error": error[:500] if error else "",
             "cost_usd": float(result.get("total_estimated_cost_usd") or 0.0),
             "llm_calls": int(result.get("llm_calls") or 0),
+            # Tokens and the per-model split come from the operation records
+            # this run already wrote, rather than threading two more
+            # accumulators through every LLM helper in the service.
+            **_run_token_totals(run_id or result.get("run_id") or ""),
             "stages": result.get("stage_timings") or [],
             "outcomes": {
                 "requirements_analyzed": int(result.get("requirements_analyzed") or 0),
@@ -217,6 +244,16 @@ def query(window: str = "7d", since: Optional[float] = None,
                 outcomes[key] += value
         run_duration_total += float(run.get("duration_s") or 0.0)
 
+    # Runs with no summary row (everything before 5c) still have a usable
+    # duration: the span of their own LLM-call timestamps. Without this the 250+
+    # runs of existing history contribute no time at all, which was the whole
+    # point of reading them. Kept in a separate field so it is never silently
+    # added to measured time.
+    summarised_ids = {r.get("run_id") for r in selected_runs if r.get("run_id")}
+    approx_spans = approximate_run_durations()
+    approx_total = round(sum(v for rid, v in approx_spans.items()
+                             if rid in run_ids and rid not in summarised_ids), 2)
+
     overall["runs"] = len(run_ids)
     # Runs predating the summary record have no measured duration. Their LLM
     # timestamps still bound them, which is an approximation, not a measurement.
@@ -229,6 +266,9 @@ def query(window: str = "7d", since: Optional[float] = None,
         "runs_summarised": len(selected_runs),
         "runs_duration_approx": max(0, approx),
         "run_duration_s": round(run_duration_total, 2),
+        # Approximate: excludes retrieval, parsing, and anything outside the
+        # first and last LLM call. Every consumer must label it as such.
+        "run_duration_approx_s": approx_total,
         "orphan_calls": orphan_calls,
         "outcomes": dict(outcomes),
         "by_group": dict(by_group),

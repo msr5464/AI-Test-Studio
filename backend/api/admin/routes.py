@@ -431,7 +431,19 @@ def get_analytics():
     from a token rate card. Time saved is applied here, since this is where the
     human-minutes baselines live.
     """
-    window = (request.args.get('window') or '7d').strip()
+    # No explicit window means "use the configured default", so the dashboard
+    # can open on it without having to know it in advance.
+    svc = current_app.config.get('SETTINGS_SERVICE')
+    default_window = '7d'
+    try:
+        if svc:
+            default_window = (svc.get('analytics_default_window', '7d') or '7d').strip()
+    except Exception:
+        default_window = '7d'
+    if default_window not in analytics_service.WINDOWS:
+        default_window = '7d'
+
+    window = (request.args.get('window') or default_window).strip()
     if window not in analytics_service.WINDOWS:
         return jsonify({'success': False,
                         'error': "window must be one of "
@@ -476,6 +488,7 @@ def get_analytics():
     return jsonify({
         'success': True,
         'window': window,
+        'default_window': default_window,
         'baselines': baselines,
         'agents': agents,
         'agents_error': agents_error,

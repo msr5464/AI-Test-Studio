@@ -521,27 +521,41 @@ class RequirementAnalysisService:
         # Per-stage timing and cost. The pipeline already has stage boundaries —
         # report() is called with stage 1, 2 or 3 at 13 sites — so instrumenting
         # report() itself measures them without touching any of those sites.
-        stage_timings: List[Dict[str, Any]] = []
+        # Stages are NOT visited once each: the per-requirement loop reports
+        # stage 3 then stage 2 per requirement, so stage 2 and 3 re-open many
+        # times in one run. Totals are therefore accumulated per stage rather
+        # than appended as fragments — otherwise the last fragment would be
+        # mistaken for the stage's whole cost, understating it by the number of
+        # requirements analysed.
+        stage_totals: Dict[int, Dict[str, Any]] = {}
         stage_state = {"stage": None, "started": run_started,
                        "cost_at_start": 0.0, "calls_at_start": 0}
         _STAGE_LABELS = {1: "Understanding requirements",
                          2: "Analyzing existing coverage",
                          3: "Generating test cases"}
 
-        def _close_stage(now: float) -> None:
-            """Record the stage that just ended, if any."""
+        def _close_stage(now: float) -> Optional[Dict[str, Any]]:
+            """Fold the segment that just ended into its stage's running total.
+
+            Returns that stage's cumulative figures, so the UI shows the total
+            so far rather than the final sliver.
+            """
             current = stage_state["stage"]
             if current is None:
-                return
-            stage_timings.append({
+                return None
+            slot = stage_totals.setdefault(current, {
                 "stage": current,
                 "label": _STAGE_LABELS.get(current, f"Stage {current}"),
-                "duration_s": round(now - stage_state["started"], 2),
-                # run_cost is accumulated by every LLM helper already, so the
-                # delta across the stage boundary is this stage's spend.
-                "cost_usd": round(run_cost[0] - stage_state["cost_at_start"], 6),
-                "llm_calls": run_cost[1] - stage_state["calls_at_start"],
+                "duration_s": 0.0, "cost_usd": 0.0, "llm_calls": 0, "segments": 0,
             })
+            slot["duration_s"] = round(slot["duration_s"] + (now - stage_state["started"]), 2)
+            # run_cost is accumulated by every LLM helper already, so the delta
+            # across this segment is what the stage spent during it.
+            slot["cost_usd"] = round(
+                slot["cost_usd"] + (run_cost[0] - stage_state["cost_at_start"]), 6)
+            slot["llm_calls"] += run_cost[1] - stage_state["calls_at_start"]
+            slot["segments"] += 1
+            return dict(slot)
 
         # Arity is probed once, here — not per call inside a try/except TypeError.
         # That pattern would re-invoke a 4-arg callback that happened to raise
@@ -558,11 +572,9 @@ class RequirementAnalysisService:
             now = time.time()
             closed = None
             if stage != stage_state["stage"]:
-                before = len(stage_timings)
-                _close_stage(now)
-                # Only a stage that actually closed has something to report; the
-                # first call opens stage 1 without closing anything.
-                closed = stage_timings[-1] if len(stage_timings) > before else None
+                # None when nothing was open yet — the first call opens stage 1
+                # without closing anything.
+                closed = _close_stage(now)
                 stage_state.update(stage=stage, started=now,
                                    cost_at_start=run_cost[0],
                                    calls_at_start=run_cost[1])
@@ -1146,11 +1158,18 @@ class RequirementAnalysisService:
         _overall_pct = int(sum(c["final_coverage_pct"] for c in _req_coverages) / max(1, len(_req_coverages)))
         _fully_covered_count = sum(1 for c in _req_coverages if c["final_coverage_pct"] == 100)
 
+        def _token_totals_for_run(rid: str) -> Dict[str, Any]:
+            try:
+                from backend.services.analytics_service import _run_token_totals
+                return _run_token_totals(rid)
+            except Exception:
+                return {"input_tokens": 0, "output_tokens": 0, "by_model": {}}
+
         def _finalise_stages() -> List[Dict[str, Any]]:
             """Close the stage still open at the end of the run."""
             _close_stage(time.time())
             stage_state["stage"] = None      # idempotent if called twice
-            return stage_timings
+            return [stage_totals[k] for k in sorted(stage_totals)]
 
         return {
             "success": True,
@@ -1172,6 +1191,9 @@ class RequirementAnalysisService:
             "llm_calls": run_cost[1],
             "duration_s": round(time.time() - run_started, 2),
             "stage_timings": _finalise_stages(),
+            # Read back from the cost records this run wrote, rather than
+            # threading two more accumulators through every LLM helper.
+            **_token_totals_for_run(run_id),
             "pushed_to_testrail": pushed,
             "summary": {
                 "total_requirements": len(requirements),

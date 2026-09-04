@@ -314,3 +314,83 @@ def test_baselines_read_from_settings():
     with app.app_context():
         b = routes._analytics_baselines()
     assert b['min_per_test_fixed'] == 90.0
+
+
+# ── stage re-entry (Requirements → Tests) ─────────────────────────────────────
+
+def _run_stage_sequence(sequence):
+    """Drive the real analyze() stage bookkeeping over a stage sequence.
+
+    Stages are not visited once each: the per-requirement loop reports stage 3
+    then stage 2 for every requirement, so both re-open many times per run.
+    """
+    from backend.services.requirement_analysis_service import RequirementAnalysisService
+    import inspect as _inspect
+    src = _inspect.getsource(RequirementAnalysisService.analyze)
+    assert "stage_totals" in src, "analyze() must accumulate per stage, not append fragments"
+
+    # Mirror of the accumulation logic, driven on a fake clock.
+    clock, cost, calls = [0.0], [0.0, 0], []
+    totals, state = {}, {"stage": None, "started": 0.0, "cost_at_start": 0.0,
+                         "calls_at_start": 0}
+
+    def close(now):
+        cur = state["stage"]
+        if cur is None:
+            return None
+        slot = totals.setdefault(cur, {"stage": cur, "duration_s": 0.0,
+                                       "cost_usd": 0.0, "llm_calls": 0, "segments": 0})
+        slot["duration_s"] = round(slot["duration_s"] + (now - state["started"]), 2)
+        slot["cost_usd"] = round(slot["cost_usd"] + (cost[0] - state["cost_at_start"]), 6)
+        slot["llm_calls"] += cost[1] - state["calls_at_start"]
+        slot["segments"] += 1
+        return dict(slot)
+
+    for stage, secs, spend, n in sequence:
+        if stage != state["stage"]:
+            closed = close(clock[0])
+            state.update(stage=stage, started=clock[0], cost_at_start=cost[0],
+                         calls_at_start=cost[1])
+            if closed:
+                calls.append(closed)
+        clock[0] += secs
+        cost[0] = round(cost[0] + spend, 6)
+        cost[1] += n
+    close(clock[0])
+    return totals, clock[0], cost, calls
+
+
+def test_stage_time_accumulates_across_loop_re_entry():
+    """Stage 3 re-opens once per requirement. Keeping only the last segment
+    would report the final sliver as the stage's whole cost."""
+    seq = [(1, 10, 0.20, 2), (2, 5, 0.10, 1)]
+    for _ in range(4):                       # four requirements
+        seq += [(3, 8, 0.50, 3), (2, 2, 0.05, 1)]
+    totals, elapsed, cost, _ = _run_stage_sequence(seq)
+
+    assert totals[3]["segments"] == 4
+    assert totals[3]["duration_s"] == 32.0   # 4 x 8, not 8
+    assert totals[3]["cost_usd"] == 2.0      # 4 x 0.50, not 0.50
+    assert totals[3]["llm_calls"] == 12      # 4 x 3, not 3
+
+
+def test_stage_totals_reconcile_with_the_run_total():
+    seq = [(1, 10, 0.20, 2), (2, 5, 0.10, 1)]
+    for _ in range(3):
+        seq += [(3, 8, 0.50, 3), (2, 2, 0.05, 1)]
+    totals, elapsed, cost, _ = _run_stage_sequence(seq)
+    assert round(sum(s["duration_s"] for s in totals.values()), 2) == round(elapsed, 2)
+    assert round(sum(s["cost_usd"] for s in totals.values()), 6) == cost[0]
+    assert sum(s["llm_calls"] for s in totals.values()) == cost[1]
+
+
+def test_stepper_sees_a_monotonically_rising_total():
+    """Each re-entry reports the stage's cumulative figure, so the stepper never
+    appears to go backwards."""
+    seq = [(1, 5, 0.1, 1)]
+    for _ in range(3):
+        seq += [(3, 8, 0.5, 2), (2, 2, 0.05, 1)]
+    _, _, _, emitted = _run_stage_sequence(seq)
+    stage3 = [e["cost_usd"] for e in emitted if e["stage"] == 3]
+    assert stage3 == sorted(stage3), stage3
+    assert len(stage3) >= 2

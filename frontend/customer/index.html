@@ -6199,7 +6199,11 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
             font-size: 12px;
             line-height: 1.5;
-            max-height: 400px;
+            /* A run's logs are the thing people actually read while it works, so
+               give the box a full screenful from the first line rather than
+               letting it grow a row at a time out of a two-line sliver. */
+            min-height: 470px;
+            max-height: 620px;
             overflow-y: auto;
             white-space: pre-wrap;
             word-break: break-word;
@@ -6237,7 +6241,6 @@
             text-underline-offset: 2px;
         }
         .qa-artefact-link:hover { filter: brightness(1.25); }
-        .qa-trace-fold { border-left-color: #f59e0b; }
 
         /* Collapsed build output inside the live console. */
         .qa-build-fold {
@@ -6370,6 +6373,35 @@
 
         .qa-live-meta-item:first-child {
             border-right: 1px solid var(--border);
+        }
+
+        /* Cost / tokens / LLM calls are run TOTALS — the runner only reports
+           them on the `done` frame, so mid-run they can only ever read "—".
+           Three empty tiles read as broken, so the strip only appears once the
+           metrics land (QA_UPDATE_METRIC_TILES adds .metrics-ready).
+           They also read as one line rather than three stacked tiles: a
+           full-width strip of label-and-value pairs costs a single row where
+           the tile grid cost two, and nothing about a total needs a whole
+           card of its own. */
+        .qa-live-totals {
+            grid-column: 1 / -1;
+            display: none;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 2px 26px;
+            padding: 7px 22px;
+            border-top: 1px solid var(--border);
+        }
+
+        .qa-live-meta.metrics-ready .qa-live-totals {
+            display: flex;
+        }
+
+        .qa-live-totals .qa-live-meta-item {
+            flex-direction: row;
+            align-items: baseline;
+            gap: 7px;
+            padding: 0;
         }
 
         .qa-live-meta-label {
@@ -7436,17 +7468,19 @@
                                 <span class="qa-live-meta-label">Module</span>
                                 <span class="qa-live-meta-value" id="qaLiveModule">—</span>
                             </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">Cost</span>
-                                <span class="qa-live-meta-value" id="qaLiveCost">—</span>
-                            </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">Tokens</span>
-                                <span class="qa-live-meta-value" id="qaLiveTokens">—</span>
-                            </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">LLM calls</span>
-                                <span class="qa-live-meta-value" id="qaLiveCalls">—</span>
+                            <div class="qa-live-totals">
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">Cost</span>
+                                    <span class="qa-live-meta-value" id="qaLiveCost">—</span>
+                                </div>
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">Tokens</span>
+                                    <span class="qa-live-meta-value" id="qaLiveTokens">—</span>
+                                </div>
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">LLM calls</span>
+                                    <span class="qa-live-meta-value" id="qaLiveCalls">—</span>
+                                </div>
                             </div>
                         </div>
                         <!-- Progress steps -->
@@ -7685,17 +7719,19 @@
                                 <span class="qa-live-meta-label">Scope</span>
                                 <span class="qa-live-meta-value" id="adaptLiveScope">—</span>
                             </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">Cost</span>
-                                <span class="qa-live-meta-value" id="adaptLiveCost">—</span>
-                            </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">Tokens</span>
-                                <span class="qa-live-meta-value" id="adaptLiveTokens">—</span>
-                            </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">LLM calls</span>
-                                <span class="qa-live-meta-value" id="adaptLiveCalls">—</span>
+                            <div class="qa-live-totals">
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">Cost</span>
+                                    <span class="qa-live-meta-value" id="adaptLiveCost">—</span>
+                                </div>
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">Tokens</span>
+                                    <span class="qa-live-meta-value" id="adaptLiveTokens">—</span>
+                                </div>
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">LLM calls</span>
+                                    <span class="qa-live-meta-value" id="adaptLiveCalls">—</span>
+                                </div>
                             </div>
                         </div>
                         <div class="qa-live-steps-wrap">
@@ -7796,6 +7832,8 @@
                                 <input type="checkbox" id="healShowAll"
                                        onchange="qaHealing.renderPicker()" /> Show non-web tests
                             </label>
+                            <p id="healCatalogSource"
+                               style="font-size:12px;color:var(--text-light);margin:6px 0 0 0;"></p>
                         </div>
 
                         <label class="qa-live-meta-label" for="healTestName">Test to fix</label>
@@ -7851,24 +7889,27 @@
                                 <span class="qa-live-meta-label">Target</span>
                                 <span class="qa-live-meta-value" id="healLiveTarget">—</span>
                             </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">Cost</span>
-                                <span class="qa-live-meta-value" id="healLiveCost">—</span>
-                            </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">Tokens</span>
-                                <span class="qa-live-meta-value" id="healLiveTokens">—</span>
-                            </div>
-                            <div class="qa-live-meta-item">
-                                <span class="qa-live-meta-label">LLM calls</span>
-                                <span class="qa-live-meta-value" id="healLiveCalls">—</span>
+                            <div class="qa-live-totals">
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">Cost</span>
+                                    <span class="qa-live-meta-value" id="healLiveCost">—</span>
+                                </div>
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">Tokens</span>
+                                    <span class="qa-live-meta-value" id="healLiveTokens">—</span>
+                                </div>
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">LLM calls</span>
+                                    <span class="qa-live-meta-value" id="healLiveCalls">—</span>
+                                </div>
                             </div>
                         </div>
                         <div class="qa-live-steps-wrap">
                             <div class="qa-progress-steps" id="healProgressSteps">
                                 <div class="qa-step" data-step="reproduce"><span class="qa-step-icon">1</span>Reproduce</div>
-                                <div class="qa-step" data-step="fix"><span class="qa-step-icon">2</span>Fix</div>
-                                <div class="qa-step" data-step="ship"><span class="qa-step-icon">3</span>Ship</div>
+                                <div class="qa-step" data-step="locate"><span class="qa-step-icon">2</span>Locate</div>
+                                <div class="qa-step" data-step="fix"><span class="qa-step-icon">3</span>Fix</div>
+                                <div class="qa-step" data-step="ship"><span class="qa-step-icon">4</span>Ship</div>
                             </div>
                         </div>
                         <div class="qa-live-console-wrap">
@@ -9031,6 +9072,17 @@
                         block += '<div class="req-req-header"><span class="req-req-chevron"></span><div class="req-req-header-content"><div class="req-id">' + escapeHtml(reqId) + '</div>';
                         if (req.title) block += '<div class="req-title">' + escapeHtml(req.title) + '</div>';
                         var timeBadgeHtml = elapsedS != null ? '<span class="req-time-badge">' + elapsedS + 's</span>' : '';
+                        // Requirements are analysed in parallel, so this is the
+                        // run's spend at the moment this one finished — a
+                        // running total, not this requirement's own cost. The
+                        // label says so rather than implying attribution.
+                        var reqCost = data.run_cost_usd_at_completion;
+                        if (reqCost != null && reqCost > 0) {
+                            timeBadgeHtml += '<span class="req-time-badge" title="Run cost so far'
+                                + ' \u2014 requirements are analysed in parallel, so this is not'
+                                + ' this requirement\u0027s own cost">'
+                                + QA_FMT_COST(reqCost) + ' so far</span>';
+                        }
                         block += '</div><span class="req-count-badge">' + countBadge + '</span>' + timeBadgeHtml + '</div>';
                         block += '<div class="req-req-body">';
                         block += buildDescWithACHtml(req.description, req.title, acceptanceCriteria, relatedSpecs.length);
@@ -9184,6 +9236,10 @@
                                         }
                                         var bits = [QA_FMT_DURATION(cs.duration_s)];
                                         if (cs.cost_usd > 0) bits.push(QA_FMT_COST(cs.cost_usd));
+                                        if (cs.llm_calls > 0) {
+                                            bits.push(cs.llm_calls + ' call'
+                                                + (cs.llm_calls === 1 ? '' : 's'));
+                                        }
                                         timeEl.textContent = bits.join(' \u00b7 ');
                                     }
                                 }
@@ -9446,6 +9502,8 @@
             }
             var calls = data.llm_calls || 0;
             if (calls > 0) metrics.push(['', String(calls), 'LLM calls']);
+            var toks = (data.input_tokens || 0) + (data.output_tokens || 0);
+            if (toks > 0) metrics.push(['', QA_FMT_TOKENS(toks), 'Tokens']);
             if (generated + e2eFlowCount > 0) {
                 metrics.push(['generated', String(generated + e2eFlowCount), 'Tests generated']);
             }
@@ -11221,19 +11279,50 @@
         }
 
         // Run totals into the Live Run header tiles. Prefix is the id namespace
-        // of the agent panel ('qa', 'heal', 'adapt').
+        // of the agent panel ('qa', 'heal', 'adapt'). The tiles stay hidden
+        // until this runs — see .qa-live-metric — because the totals only
+        // exist on the terminal frame, so showing them earlier is three "—"s.
         function QA_UPDATE_METRIC_TILES(prefix, metrics) {
             if (!metrics) return;
+            var shown = false;
             var set = function (id, value) {
                 var el = document.getElementById(prefix + id);
-                if (el) el.textContent = value;
+                if (el) { el.textContent = value; shown = true; }
             };
             if (metrics.cost_usd != null) set('LiveCost', QA_FMT_COST(metrics.cost_usd));
-            var tokens = (metrics.input_tokens || 0) + (metrics.output_tokens || 0);
-            if (tokens) set('LiveTokens', QA_FMT_TOKENS(tokens));
+            // A run that made no LLM calls reports a real zero, not a missing
+            // number — show "0" beside its "$0 / 0 calls" siblings. Testing the
+            // sum for truth left that tile reading "—", the one shape that says
+            // "we don't know" when we do.
+            if (metrics.input_tokens != null || metrics.output_tokens != null) {
+                set('LiveTokens', QA_FMT_TOKENS(
+                    (metrics.input_tokens || 0) + (metrics.output_tokens || 0)));
+            }
             if (metrics.llm_calls != null) {
                 set('LiveCalls', QA_FMT_CALLS(metrics.llm_calls, metrics.num_turns));
             }
+            // Reveal the row only if at least one total was actually reported.
+            // A `done` frame carrying none of them leaves the tiles hidden
+            // rather than showing three "—"s.
+            if (!shown) return;
+            var anchor = document.getElementById(prefix + 'LiveCost')
+                      || document.getElementById(prefix + 'LiveTokens')
+                      || document.getElementById(prefix + 'LiveCalls');
+            var row = anchor && anchor.closest('.qa-live-meta');
+            if (row) row.classList.add('metrics-ready');
+        }
+
+        // Start of a run: put the totals back out of sight and clear whatever
+        // the previous run left in them, so a new run can never show the last
+        // one's cost while it works.
+        function QA_RESET_METRIC_TILES(prefix) {
+            ['LiveCost', 'LiveTokens', 'LiveCalls'].forEach(function (id) {
+                var el = document.getElementById(prefix + id);
+                if (!el) return;
+                el.textContent = '\u2014';
+                var row = el.closest('.qa-live-meta');
+                if (row) row.classList.remove('metrics-ready');
+            });
         }
         // Stage breakdown table for the session-detail modal.
         function QA_STAGE_TABLE(metrics) {
@@ -11259,6 +11348,7 @@
         window.QA_STAGE_TABLE = QA_STAGE_TABLE;
         window.QA_STEP_SUFFIX = QA_STEP_SUFFIX;
         window.QA_UPDATE_METRIC_TILES = QA_UPDATE_METRIC_TILES;
+        window.QA_RESET_METRIC_TILES = QA_RESET_METRIC_TILES;
 
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -11881,54 +11971,17 @@
             // the test's execution log alike. They are one run of one command, so
             // splitting them just moved half the noise back out of the widget.
             // The headline goes in the summary instead — see _buildHeadline.
+            //
+            // Exceptions and stack frames are NOT folded any further. Nesting a
+            // widget on top of a trace hid the one thing a failing run is read
+            // for, so they print as plain console lines wherever they land.
             if (state.buildEl) {
                 state.buildLines += 1;
                 state.buildHeadline = state.buildHeadline || _buildHeadline(_bare(line));
-                return _traceFold(state.buildEl, line, state);
+                return state.buildEl;
             }
-            return _traceFold(consoleEl, line, state);
+            return consoleEl;
         };
-
-        // Stack frames fold too, wherever they appear. The Playwright "Could not
-        // stop tracing" block is 12 lines and fires three times per healing run,
-        // and it survives the build rule because the framework's logger prints it.
-        // The header line always stays visible — only the frames below it fold.
-        const QA_STACK_FRAME = new RegExp(
-            '^\\s*at [\\w.$/<]'                    // java + js frames
-            + '|^\\s*(message|name|stack)=' // playwright error dump (prefix strips the indent)
-            + '|^\\s*\\}\\s*$'                  // its closing brace
-            + '|^\\s*\\.\\.\\. \\d+ more'
-        );
-
-        function _traceFold(target, line, state) {
-            const bare = _bare(line);
-            if (!QA_STACK_FRAME.test(bare)) {
-                state.traceEl = null;            // any normal line ends the run
-                state.traceLast = target;
-                state.traceHeader = bare;
-                return target;
-            }
-            if (!state.traceEl) {
-                // First frame: open a fold next to the header we just printed.
-                const det = document.createElement('details');
-                det.className = 'qa-build-fold qa-trace-fold';
-                const sum = document.createElement('summary');
-                det.appendChild(sum);
-                const body = document.createElement('div');
-                body.className = 'qa-build-body';
-                det.appendChild(body);
-                (state.traceLast || target).appendChild(det);
-                state.traceEl = body;
-                state.traceSummary = sum;
-                state.traceFrames = 0;
-            }
-            state.traceFrames += 1;
-            state.traceSummary.textContent =
-                '⚠  ' + (state.traceHeader || 'stack trace').slice(0, 90) +
-                '   ·  ' + state.traceFrames + ' frame' +
-                (state.traceFrames === 1 ? '' : 's');
-            return state.traceEl;
-        }
 
         function showToast(text, type = 'info') {
             const toast = document.getElementById('toastMessage');
@@ -11997,11 +12050,11 @@
         window.qaHealing = (function () {
             const BASE = '/api/agents/test-healing-agent';
             // Mirrors HEALING_STEPS in qa_agents_server/agents.py — keep in sync.
-            const STEPS = ['reproduce', 'fix', 'ship'];
+            const STEPS = ['reproduce', 'locate', 'fix', 'ship'];
 
             const state = {
                 initialised: false, defaultsApplied: false,
-                eventSource: null, session: null, catalog: [],
+                eventSource: null, session: null, catalog: [], source: null,
                 target: null, lastSeq: 0, startTs: null, elapsedTimer: null,
                 terminal: false, logs: [], sawOutput: false,
             };
@@ -12130,6 +12183,7 @@
                     card.classList.remove('terminal-completed', 'terminal-failed', 'terminal-cancelled');
                 }
                 if ($('healConsole')) $('healConsole').innerHTML = '';
+                QA_RESET_METRIC_TILES('heal');
                 if ($('healLiveElapsed')) $('healLiveElapsed').textContent = '00:00';
                 state.sawOutput = false;
                 state.buildEl = null; state.buildSummary = null; state.buildLines = 0;
@@ -12165,7 +12219,10 @@
                             if (ev.kind === 'stdout') appendLog(d.line || '');
                             else if (ev.kind === 'step') markStep(d.key, d.status, d);
                             else if (ev.kind === 'error') appendLog('[error] ' + (d.message || ''));
-                            else if (ev.kind === 'done') finish(d);
+                            else if (ev.kind === 'done') {
+                                QA_UPDATE_METRIC_TILES('heal', d.metrics);
+                                finish(d);
+                            }
                         });
                     })
                     .catch(function (e) {
@@ -12292,6 +12349,19 @@
                         const s = res.body || {};
                         applyVerdict(s.status || d.status);
                         const bits = [];
+                        if (s.located_deterministically) {
+                            bits.push('<span class="qa-live-badge badge-done">' +
+                                      s.located_deterministically + ' located' +
+                                      (s.locate_mode === 'shadow' ? ' (shadow)' : '') +
+                                      '</span>');
+                        } else if (s.locate_attempted) {
+                            // Nothing located is an outcome with a reason, and the
+                            // most common one on day one is "no baseline recorded
+                            // yet" — which the user can fix by running a green suite.
+                            bits.push('<span class="qa-live-badge">0 located' +
+                                      (QA_TOP_VERDICT(s.locate_verdicts) ? ' · ' +
+                                       QA_TOP_VERDICT(s.locate_verdicts) : '') + '</span>');
+                        }
                         if (s.distinct_fixes) {
                             bits.push('<span class="qa-live-badge badge-done">' + s.distinct_fixes +
                                       ' fix' + (s.distinct_fixes === 1 ? '' : 'es') + ' → ' +
@@ -12441,11 +12511,28 @@
             function loadCatalog() {
                 fetchJson(BASE + '/tests').then(function (res) {
                     state.catalog = (res.ok && res.body && res.body.classes) || [];
+                    state.source = (res.ok && res.body) || null;
                     renderPicker();
+                    renderCatalogSource();
                 }).catch(function () {
                     state.catalog = [];
+                    state.source = null;
                     renderPicker();
+                    renderCatalogSource();
                 });
+            }
+
+            // Which checkout these dropdowns are describing. The picker reads the
+            // automation repo's working tree, not a branch on the remote, so after
+            // a fix run leaves that clone on chore/qa-autofix/... the list is of
+            // that branch's tests — and nothing on the page used to say so.
+            function renderCatalogSource() {
+                const el = $('healCatalogSource');
+                if (!el) return;
+                const src = state.source;
+                if (!src || !src.branch) { el.textContent = ''; return; }
+                el.innerHTML = 'Reading branch <code>' + esc(src.branch) + '</code>' +
+                    (src.dirty ? ' · uncommitted changes included' : '');
             }
 
             // Why the list is empty, in the select itself. Hiding the picker
@@ -12599,6 +12686,17 @@
             const PILL_CLASS = window.QA_PILL_CLASS;
             const STATUS_LABEL = window.QA_STATUS_LABEL;
 
+            // The verdict that accounts for most of a Locate run, in words a
+            // human reads: LOCATOR_DRIFT -> "locator drift", NO_BASELINE ->
+            // "no baseline".
+            function QA_TOP_VERDICT(verdicts) {
+                if (!verdicts) return '';
+                const keys = Object.keys(verdicts);
+                if (!keys.length) return '';
+                keys.sort(function (a, b) { return verdicts[b] - verdicts[a]; });
+                return keys[0].toLowerCase().replace(/_/g, ' ');
+            }
+
             function resultSummary(s) {
                 const bits = [];
                 if (s.distinct_fixes) {
@@ -12607,6 +12705,15 @@
                 }
                 if (s.tests_unverified) bits.push(s.tests_unverified + ' unverified');
                 if (s.tests_failed) bits.push(s.tests_failed + ' failed');
+                // How many locators were resolved without a model call. The point
+                // of the Locate step is that this number climbs while cost falls,
+                // so it belongs next to the fix counts rather than in a tooltip.
+                if (s.located_deterministically) {
+                    bits.push(s.located_deterministically + ' located');
+                } else if (s.locate_attempted && !bits.length) {
+                    bits.push('0 located' + (QA_TOP_VERDICT(s.locate_verdicts)
+                              ? ' · ' + QA_TOP_VERDICT(s.locate_verdicts) : ''));
+                }
                 if (bits.length) return esc(bits.join(' · '));
                 // No counts does not mean no outcome — a test that already passed,
                 // or a run the gate stopped, both have something worth saying.
@@ -12779,6 +12886,7 @@
                         : '';
                     const reportsHtml =
                         section('Reproduce', reports.reproduce_md) +
+                        section('Locate', reports.locate_md) +
                         section('Fix', reports.fix_md) +
                         section('Ship', reports.ship_md);
                     body.innerHTML = meta + metricsHtml + reportsHtml;
@@ -13240,6 +13348,7 @@
                 state.startTs = Date.now();
                 resetStepUI();
                 $('qaConsole').innerHTML = '';
+                QA_RESET_METRIC_TILES('qa');
                 state.buildEl = null; state.buildSummary = null; state.buildLines = 0;
                 $('qaLiveResult').textContent = '';
                 hideStepRetryButtons();
@@ -15450,6 +15559,7 @@
                 const card = $('adaptLiveCard');
                 if (card) card.style.display = 'block';
                 if ($('adaptConsole')) $('adaptConsole').innerHTML = '';
+                QA_RESET_METRIC_TILES('adapt');
                 if ($('adaptResult')) $('adaptResult').innerHTML = '';
                 if ($('adaptLiveElapsed')) $('adaptLiveElapsed').textContent = '00:00';
                 if ($('adaptLiveSession')) $('adaptLiveSession').textContent = sessionId;
@@ -15500,7 +15610,10 @@
                             if (ev.kind === 'stdout') appendLog(d.line || '');
                             else if (ev.kind === 'step') markStep(d.key, d.status, d);
                             else if (ev.kind === 'error') appendLog('[error] ' + (d.message || d.line || ''));
-                            else if (ev.kind === 'done') finish(d);
+                            else if (ev.kind === 'done') {
+                                QA_UPDATE_METRIC_TILES('adapt', d.metrics);
+                                finish(d);
+                            }
                         });
                     })
                     .catch(function (e) {
