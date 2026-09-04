@@ -6228,6 +6228,21 @@
             font-weight: 600;
         }
 
+        /* A run can finish "successfully" and still not produce the thing it
+           exists to produce: a dirty index blocks the branch switch, a push is
+           rejected, the PR never appears. Those lines used to render in the same
+           grey as "Loaded repo conventions", so the one fact worth acting on was
+           the easiest to scroll past. The agents prefix them BLOCKED:. */
+        .qa-console .qa-line-blocked {
+            color: #fbbf24;
+            font-weight: 600;
+            background: rgba(245, 158, 11, 0.10);
+            border-left: 3px solid #f59e0b;
+            padding: 4px 10px;
+            margin: 4px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
         /* ── Live run card redesign ── */
         #qaLiveCard {
             border-left: 3px solid var(--primary);
@@ -11915,6 +11930,14 @@
             return String(line).replace(/^\[\d\d:\d\d:\d\d\]\s*(\[[\w-]+\]\s*)?/, '');
         }
 
+        // The severity contract with the agents (shared/log.py: blocked()).
+        // Deliberately narrow: BLOCKED: means "the run will not produce a PR",
+        // not "something went wrong". Colouring every Warning: line too would
+        // put amber on half the console and this line would stop standing out.
+        window.qaLineClass = function (line) {
+            return /^BLOCKED:/.test(_bare(line)) ? 'qa-line-blocked' : '';
+        };
+
         // A collapsed build should still say WHY it failed, so the one visible
         // line carries the verdict rather than only a line count. First match wins.
         const QA_FAILURE_HINTS = [
@@ -12090,6 +12113,7 @@
                 const target = window.qaBuildFold(el, line, state);
                 if (target) {
                     const div = document.createElement('div');
+                    div.className = window.qaLineClass(line);
                     window.qaRenderLine(line, BASE).forEach(function (n) { div.appendChild(n); });
                     target.appendChild(div);
                 }
@@ -13573,7 +13597,8 @@
                 const target = window.qaBuildFold(con, text, state);
                 if (target) {
                     const div = document.createElement('div');
-                    div.className = 'qa-line-' + cls;
+                    // A BLOCKED line outranks the event kind it arrived as.
+                    div.className = window.qaLineClass(text) || ('qa-line-' + cls);
                     window.qaRenderLine(text, AGENT_BASE).forEach(function (n) { div.appendChild(n); });
                     target.appendChild(div);
                 }
@@ -15500,6 +15525,7 @@
                 const target = window.qaBuildFold(el, line, state);
                 if (target) {
                     const div = document.createElement('div');
+                    div.className = window.qaLineClass(line);
                     window.qaRenderLine(line, BASE).forEach(function (n) { div.appendChild(n); });
                     target.appendChild(div);
                 }
