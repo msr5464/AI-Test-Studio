@@ -5814,6 +5814,105 @@
             box-shadow: 0 0 0 3px var(--primary-light) !important;
         }
 
+        /* ── Combo box: a text field that also offers a list ──────────────────
+           A native <datalist> would have been less code, but its popup is drawn
+           by the browser and takes no CSS at all — it renders as a white
+           system menu that ignores the theme entirely, which looks broken in
+           dark mode. So the list is a real element here, built from the same
+           tokens as .qa-select, and the input stays free text: a branch the
+           server could not enumerate must still be typable. */
+        .qa-combo {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            min-width: 220px;
+        }
+
+        .qa-combo input.qa-input {
+            width: 100%;
+            padding-right: 34px !important;   /* room for the chevron */
+        }
+
+        .qa-combo-toggle {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            background: none;
+            border: 0;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .qa-combo-toggle:hover { color: var(--primary); }
+
+        .qa-combo.is-open .qa-combo-toggle {
+            color: var(--primary);
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .qa-combo-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            /* Sized to the names, not to the input. Branch names here are long
+               enough (feat/qa-autocreate/…) that pinning the list to the field
+               ellipsed every one of them into being indistinguishable. */
+            min-width: 100%;
+            width: max-content;
+            max-width: min(460px, 60vw);
+            z-index: 200;
+            max-height: 240px;
+            overflow-y: auto;
+            padding: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+        }
+
+        .qa-combo-option {
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.35;
+            color: var(--text);
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .qa-combo-option:hover,
+        .qa-combo-option.is-active {
+            background: var(--bg-card-hover);
+        }
+
+        .qa-combo-option.is-selected {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .qa-combo-empty {
+            padding: 8px 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Same compaction the agent panels apply to their other controls. */
+        #tabPanelAgents .qa-combo,
+        #tabPanelHealing .qa-combo,
+        #tabPanelAdapt .qa-combo {
+            min-width: 200px;
+        }
+
         .qa-checkbox {
             display: inline-flex;
             align-items: center;
@@ -7451,6 +7550,22 @@
                             <label class="analyze-option">
                                 <input type="checkbox" id="qaAutoPush" /> Auto-push PR on success
                             </label>
+                            <span class="qa-inline-field">
+                                <label class="qa-live-meta-label" for="qaBaseBranch"
+                                       title="Branch of the automation repo this run is based on, and the base of the PR it raises. Leave it as it is to use the configured default.">Base branch</label>
+                                <span class="qa-combo">
+                                    <input type="text" id="qaBaseBranch" class="qa-input" role="combobox"
+                                           aria-expanded="false" aria-autocomplete="list"
+                                           aria-controls="qaBranchList" autocomplete="off" spellcheck="false" />
+                                    <button type="button" class="qa-combo-toggle" tabindex="-1"
+                                            aria-label="Show branches">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                             stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                    </button>
+                                    <div class="qa-combo-menu" id="qaBranchList" role="listbox" title="" hidden></div>
+                                </span>
+                            </span>
                             <button type="button" class="analyze-btn" id="qaRunBtn" onclick="qaAgents.run()">
                                 <span id="qaRunBtnLabel">🚀 Run Agent</span>
                                 <span id="qaRunBtnSpinner" style="display:none;vertical-align:middle;">
@@ -7689,6 +7804,22 @@
                                     <option value="apply_pr">Apply and raise PR</option>
                                 </select>
                             </label>
+                            <span class="qa-inline-field">
+                                <label class="qa-live-meta-label" for="adaptBaseBranch"
+                                       title="Branch of the automation repo this run is based on, and the base of the PR it raises. Leave it as it is to use the configured default.">Base branch</label>
+                                <span class="qa-combo">
+                                    <input type="text" id="adaptBaseBranch" class="qa-input" role="combobox"
+                                           aria-expanded="false" aria-autocomplete="list"
+                                           aria-controls="adaptBranchList" autocomplete="off" spellcheck="false" />
+                                    <button type="button" class="qa-combo-toggle" tabindex="-1"
+                                            aria-label="Show branches">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                             stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                    </button>
+                                    <div class="qa-combo-menu" id="adaptBranchList" role="listbox" title="" hidden></div>
+                                </span>
+                            </span>
                             <button type="button" class="analyze-btn" id="adaptRunBtn" onclick="qaAdapt.run()">
                                 <span id="adaptRunBtnLabel">▶ Run adaptation</span>
                                 <span id="adaptRunBtnSpinner" style="display:none;vertical-align:middle;">
@@ -7865,6 +7996,22 @@
                             <label class="analyze-option">
                                 <input type="checkbox" id="healAutoPush" /> Auto-push PR on success
                             </label>
+                            <span class="qa-inline-field">
+                                <label class="qa-live-meta-label" for="healBaseBranch"
+                                       title="Branch of the automation repo this run is based on, and the base of the PR it raises. Leave it as it is to use the configured default.">Base branch</label>
+                                <span class="qa-combo">
+                                    <input type="text" id="healBaseBranch" class="qa-input" role="combobox"
+                                           aria-expanded="false" aria-autocomplete="list"
+                                           aria-controls="healBranchList" autocomplete="off" spellcheck="false" />
+                                    <button type="button" class="qa-combo-toggle" tabindex="-1"
+                                            aria-label="Show branches">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                             stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                    </button>
+                                    <div class="qa-combo-menu" id="healBranchList" role="listbox" title="" hidden></div>
+                                </span>
+                            </span>
                             <button type="button" class="analyze-btn" id="healRunBtn" onclick="qaHealing.run()">
                                 <span id="healRunBtnLabel">🔧 Diagnose &amp; Fix</span>
                                 <span id="healRunBtnSpinner" style="display:none;vertical-align:middle;">
@@ -12070,6 +12217,200 @@
         // own EventSource, its own step model and its own result shape (one fix can
         // green several tests), and sharing state with the authoring panel would
         // couple two independent runs together.
+        // ── Base-branch field, shared by all three run panels ──────────────
+        // The box is SEEDED with the configured default rather than left empty
+        // behind a placeholder, so the branch a run will actually use is always
+        // on screen. That costs one subtlety: a seeded value sent on every run
+        // would make every run an explicit override, which is the AUTO_PUSH bug
+        // in reverse (see the comment on GET /config). So payload() omits the
+        // field while it still equals what the server handed us — an untouched
+        // box means "config/.env decides", and an admin changing the default
+        // under an open panel is honoured rather than overridden by a stale seed.
+        window.qaBranchField = (function () {
+            const _defaults = {};   // inputId -> the default the server reported
+            const _branches = {};   // inputId -> every branch the server listed
+            const _wired = {};      // inputId -> combobox handlers attached
+
+            function $(id) { return document.getElementById(id); }
+            function menuFor(input) { return $(input.getAttribute('aria-controls')); }
+            function comboFor(input) { return input.closest('.qa-combo'); }
+
+            function render(input) {
+                const menu = menuFor(input);
+                if (!menu) return;
+                const all = _branches[input.id] || [];
+                const typed = input.value.trim().toLowerCase();
+                // When the box already holds a whole branch name — which it does
+                // on load, because it is seeded with the default — show the full
+                // list rather than the single self-match, so opening it is useful.
+                const exact = all.some(function (b) { return b.toLowerCase() === typed; });
+                const shown = (!typed || exact) ? all : all.filter(function (b) {
+                    return b.toLowerCase().indexOf(typed) !== -1;
+                });
+                let rows;
+                if (shown.length) {
+                    rows = shown.map(function (b) {
+                        const o = document.createElement('div');
+                        o.className = 'qa-combo-option'
+                            + (b.toLowerCase() === typed ? ' is-selected' : '');
+                        o.setAttribute('role', 'option');
+                        o.setAttribute('aria-selected', b.toLowerCase() === typed);
+                        // textContent, never innerHTML: these names come off a remote.
+                        o.textContent = b;
+                        // The rows ellipse long names, so the full one has to be
+                        // reachable on hover — and without this the row inherited
+                        // the field's generic explanation instead.
+                        o.title = b;
+                        return o;
+                    });
+                } else {
+                    const empty = document.createElement('div');
+                    empty.className = 'qa-combo-empty';
+                    empty.textContent = all.length
+                        ? 'No branch matches — it will still be sent as typed'
+                        : 'Branch list unavailable — type a name';
+                    rows = [empty];
+                }
+                menu.replaceChildren.apply(menu, rows);
+            }
+
+            function open(input) {
+                render(input);
+                const menu = menuFor(input);
+                if (!menu) return;
+                menu.hidden = false;
+                input.setAttribute('aria-expanded', 'true');
+                const combo = comboFor(input);
+                if (combo) combo.classList.add('is-open');
+                const sel = menu.querySelector('.qa-combo-option.is-selected');
+                if (sel) sel.scrollIntoView({ block: 'nearest' });
+            }
+
+            function close(input) {
+                const menu = menuFor(input);
+                if (menu) menu.hidden = true;
+                input.setAttribute('aria-expanded', 'false');
+                const combo = comboFor(input);
+                if (combo) combo.classList.remove('is-open');
+            }
+
+            function isOpen(input) {
+                const menu = menuFor(input);
+                return menu && !menu.hidden;
+            }
+
+            function move(input, step) {
+                const menu = menuFor(input);
+                if (!menu) return;
+                const opts = [].slice.call(menu.querySelectorAll('.qa-combo-option'));
+                if (!opts.length) return;
+                let i = opts.findIndex(function (o) { return o.classList.contains('is-active'); });
+                if (i < 0) i = opts.findIndex(function (o) { return o.classList.contains('is-selected'); });
+                i = (i + step + opts.length) % opts.length;
+                opts.forEach(function (o) { o.classList.remove('is-active'); });
+                opts[i].classList.add('is-active');
+                opts[i].scrollIntoView({ block: 'nearest' });
+            }
+
+            function reflectTitle(input) {
+                // What is IN the box, not what the box is for: the label carries
+                // the explanation, and a picked branch is often too long to read.
+                const v = input.value.trim();
+                if (v) { input.title = v; } else { input.removeAttribute('title'); }
+            }
+
+            function commit(input, value) {
+                input.value = value;
+                reflectTitle(input);
+                close(input);
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function wire(inputId) {
+                if (_wired[inputId]) return;
+                const input = $(inputId);
+                const menu = input && menuFor(input);
+                if (!input || !menu) return;
+                _wired[inputId] = true;
+
+                input.addEventListener('input', function () { reflectTitle(input); open(input); });
+                input.addEventListener('focus', function () { open(input); });
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (!isOpen(input)) { open(input); return; }
+                        move(input, e.key === 'ArrowDown' ? 1 : -1);
+                    } else if (e.key === 'Enter') {
+                        const active = menu.querySelector('.qa-combo-option.is-active');
+                        // Only swallow Enter when a suggestion is highlighted —
+                        // otherwise it stays free text the user can just submit.
+                        if (isOpen(input) && active) { e.preventDefault(); commit(input, active.textContent); }
+                        else close(input);
+                    } else if (e.key === 'Escape') {
+                        if (isOpen(input)) { e.stopPropagation(); close(input); }
+                    } else if (e.key === 'Tab') {
+                        close(input);
+                    }
+                });
+                // mousedown, not click: blur fires first otherwise and the menu is
+                // already gone by the time the click lands.
+                menu.addEventListener('mousedown', function (e) {
+                    const opt = e.target.closest('.qa-combo-option');
+                    if (!opt) return;
+                    e.preventDefault();
+                    commit(input, opt.textContent);
+                });
+                const toggle = comboFor(input).querySelector('.qa-combo-toggle');
+                if (toggle) toggle.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    if (isOpen(input)) { close(input); } else { input.focus(); open(input); }
+                });
+                document.addEventListener('mousedown', function (e) {
+                    if (!comboFor(input).contains(e.target)) close(input);
+                });
+                input.addEventListener('blur', function () {
+                    // Deferred so a click landing inside the menu still wins.
+                    setTimeout(function () {
+                        if (!comboFor(input).contains(document.activeElement)) close(input);
+                    }, 0);
+                });
+            }
+
+            async function seed(inputId, listId, base) {
+                const el = $(inputId);
+                if (!el) return;
+                wire(inputId);
+                try {
+                    const cfg = await fetch(base + '/config').then(function (r) { return r.json(); });
+                    const dflt = (cfg && cfg.default_branch) || '';
+                    if (!dflt) throw new Error('no default_branch');
+                    _defaults[inputId] = dflt;
+                    if (!el.value) el.value = dflt;
+                    reflectTitle(el);
+                } catch (e) {
+                    // Guessing 'main' would send a real override whenever the
+                    // guess is wrong. Leave it empty and let the server decide.
+                    delete _defaults[inputId];
+                    el.placeholder = '(uses the configured default)';
+                }
+                try {
+                    const body = await fetch(base + '/branches').then(function (r) { return r.json(); });
+                    _branches[inputId] = (body && Array.isArray(body.branches)) ? body.branches : [];
+                } catch (e) {
+                    _branches[inputId] = [];   // the field is free text; the run still validates
+                }
+            }
+
+            function payload(inputId) {
+                const el = $(inputId);
+                const value = ((el && el.value) || '').trim();
+                if (!value || value === _defaults[inputId]) return {};
+                return { base_branch: value };
+            }
+
+            return { seed: seed, payload: payload };
+        })();
+
         window.qaHealing = (function () {
             const BASE = '/api/agents/test-healing-agent';
             // Mirrors HEALING_STEPS in qa_agents_server/agents.py — keep in sync.
@@ -12153,10 +12494,10 @@
                 // a first attempt fails and a live browser would actually add
                 // something. Force is offered after a run, once the failure shape
                 // is known — see renderResult.
-                const payload = {
+                const payload = Object.assign({
                     test: test.trim(),
                     auto_push: !!($('healAutoPush') || {}).checked,
-                };
+                }, qaBranchField.payload('healBaseBranch'));
                 setRunBtnLoading(true);
 
                 fetchJson(BASE + '/run', {
@@ -12522,6 +12863,7 @@
             // the run and beats config/.env. So it must start showing what .env
             // actually says, and the user overrides from there.
             function applyDefaults() {
+                qaBranchField.seed('healBaseBranch', 'healBranchList', BASE);
                 fetchJson(BASE + '/config').then(function (res) {
                     if (!res.ok || !res.body) return;
                     const box = $('healAutoPush');
@@ -12690,7 +13032,9 @@
                 fetchJson(BASE + '/run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ build_tag: buildTag, auto_push: !!($('healAutoPush') || {}).checked }),
+                    body: JSON.stringify(Object.assign(
+                        { build_tag: buildTag, auto_push: !!($('healAutoPush') || {}).checked },
+                        qaBranchField.payload('healBaseBranch'))),
                 }).then(function (res) {
                     if (!res.ok) {
                         setError((res.body && res.body.error) || 'Failed to start.');
@@ -13270,7 +13614,9 @@
 
                     const body = await apiFetch(AGENT_BASE + '/run', {
                         method: 'POST',
-                        body: JSON.stringify({ module: moduleFile, auto_push: autoPush })
+                        body: JSON.stringify(Object.assign(
+                            { module: moduleFile, auto_push: autoPush },
+                            qaBranchField.payload('qaBaseBranch')))
                     });
                     if (body && body.queued) {
                         // The queue card explains the wait and shows the position;
@@ -13299,7 +13645,9 @@
                 try {
                     const body = await apiFetch(AGENT_BASE + '/run', {
                         method: 'POST',
-                        body: JSON.stringify({ module: moduleFile, auto_push: autoPush })
+                        body: JSON.stringify(Object.assign(
+                            { module: moduleFile, auto_push: autoPush },
+                            qaBranchField.payload('qaBaseBranch')))
                     });
                     if (body && body.queued) {
                         await loadQueue();
@@ -13975,6 +14323,7 @@
                         state.defaultsApplied = true;
                     }
                 } catch (e) { /* leave the box as-is */ }
+                qaBranchField.seed('qaBaseBranch', 'qaBranchList', AGENT_BASE);
             }
 
             async function init() {
@@ -15425,6 +15774,7 @@
             // The effective default is whatever config/.env says, expressed as the
             // matching rung rather than as two checkboxes the user has to reconcile.
             function applyDefaults() {
+                qaBranchField.seed('adaptBaseBranch', 'adaptBranchList', BASE);
                 return fetchJson(BASE + '/config').then(function (res) {
                     if (!res.ok || !res.body) return;
                     const sel = $('adaptDepth');
@@ -15471,7 +15821,8 @@
                     await loadNotes();
                     if ($('adaptNoteSelect')) $('adaptNoteSelect').value = name;
 
-                    const payload = Object.assign({ module: name }, depthPayload());
+                    const payload = Object.assign({ module: name }, depthPayload(),
+                                                  qaBranchField.payload('adaptBaseBranch'));
                     const body = await api('/run', { method: 'POST', body: JSON.stringify(payload) });
                     setRunBtnLoading(false);
                     if (body.queued) {
