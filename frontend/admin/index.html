@@ -1127,9 +1127,22 @@
         .alert-danger {
             background: var(--danger-light) !important;
             color: var(--danger) !important;
-            padding: 12px;
+            padding: 10px 12px;
             border-radius: 8px;
             border: 1px solid var(--danger);
+            font-size: 12px;
+            line-height: 1.45;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            max-height: 95px;
+            overflow-y: auto;
+        }
+
+        .alert-danger strong {
+            display: inline-block;
+            margin-bottom: 3px;
+            font-size: 13px;
         }
 
         #chromadbInfo {
@@ -1534,10 +1547,17 @@
         }
 
         /* Equal-width metric cells that fill the card edge to edge */
+        .sync-grid [id$="Result"] {
+            margin-top: 10px;
+            margin-bottom: 2px;
+        }
+
         .sync-grid [id$="Stats"] {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
             gap: 8px;
+            margin-top: auto;
+            padding-top: 10px;
         }
 
         /* The outer .section already draws a card; the inner .sync-box drawing a
@@ -1822,8 +1842,7 @@
                             </div>
 
                             <div id="syncLogContainer" style="margin-top: 10px;">
-                                <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">Running
-                                    log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span>
+                                <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">Running log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span>
                                 </p>
                                 <div id="syncLog"
                                     style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
@@ -2770,6 +2789,29 @@
 
 
         // TestRail Sync Functions
+        function formatSyncError(errorMsg) {
+            if (!errorMsg) return 'Unknown error occurred';
+            var str = String(errorMsg).trim();
+
+            var apiErrMatch = str.match(/API Error:\s*(.+)$/i);
+            var statusMatch = str.match(/(\d{3}\s+(?:Client Error:\s*)?[A-Za-z\s-]+?)(?=\s+for url|\s+-\s+API|$)/i);
+
+            if (apiErrMatch) {
+                var cleanDetail = apiErrMatch[1].trim();
+                if (statusMatch) {
+                    var status = statusMatch[1].trim().replace(/[\s:-]+$/, '').trim();
+                    return '<span style="font-weight:600;">' + status + ':</span> ' + cleanDetail;
+                }
+                return cleanDetail;
+            }
+
+            if (str.includes('for url: http')) {
+                str = str.replace(/for url:\s*https?:\/\/[^\s]+/i, '').trim();
+            }
+
+            return str;
+        }
+
         function updateSyncLog(logLines) {
             var container = document.getElementById('syncLogContainer');
             var el = document.getElementById('syncLog');
@@ -2876,7 +2918,7 @@
                     } else {
                         var errorMsg = latest ? latest.error : 'Unknown error';
                         result.innerHTML = '<div class="alert-danger">' +
-                            '<strong>❌ Sync failed</strong><br>' + errorMsg + '</div>';
+                            '<strong>❌ Sync failed</strong><br>' + formatSyncError(errorMsg) + '</div>';
                         result.style.display = 'block';
                         document.getElementById('syncStatusText').textContent = '❌ Sync failed';
                     }
@@ -2945,6 +2987,7 @@
 
                     // Update stats whenever we have latest_sync_record (not only when last_sync is set)
                     var rec = status.latest_sync_record;
+                    var syncRes = document.getElementById('syncResult');
                     if (rec && !status.is_syncing) {
                         document.getElementById('syncTestCases').textContent =
                             rec.test_cases_fetched != null ? rec.test_cases_fetched : (rec.test_cases_updated != null ? rec.test_cases_updated : 0);
@@ -2958,6 +3001,15 @@
                         document.getElementById('syncLastTime').textContent = lastSyncTime
                             ? 'Last synced: ' + new Date(lastSyncTime).toLocaleString()
                             : 'Last synced: —';
+                        if (syncRes) {
+                            if (rec.status === 'success') {
+                                syncRes.style.display = 'none';
+                            } else {
+                                syncRes.innerHTML = '<div class="alert-danger"><strong>❌ Sync failed</strong><br>' +
+                                    formatSyncError(rec.error || 'Unknown error') + '</div>';
+                                syncRes.style.display = 'block';
+                            }
+                        }
                     } else if (status.last_sync) {
                         document.getElementById('syncLastTime').textContent =
                             'Last synced: ' + new Date(status.last_sync).toLocaleString();
@@ -2967,12 +3019,14 @@
                             document.getElementById('syncDuration').textContent = '0s';
                             document.getElementById('syncStatusText').textContent = 'Not yet synced';
                         }
+                        if (syncRes) syncRes.style.display = 'none';
                     } else if (!status.is_syncing) {
                         document.getElementById('syncLastTime').textContent = '';
                         document.getElementById('syncTestCases').textContent = '0';
                         document.getElementById('syncProjects').textContent = '0';
                         document.getElementById('syncDuration').textContent = '0s';
                         document.getElementById('syncStatusText').textContent = 'Not yet synced';
+                        if (syncRes) syncRes.style.display = 'none';
                     }
                     // Always update running log (including empty after reset)
                     updateSyncLog(status.sync_log && Array.isArray(status.sync_log) ? status.sync_log : []);
@@ -3045,7 +3099,7 @@
                         result.style.display = 'none';
                     } else {
                         result.innerHTML = '<div class="alert-danger"><strong>❌ Sync failed</strong><br>' +
-                            (latest.error || 'Unknown error') + '</div>';
+                            formatSyncError(latest.error || 'Unknown error') + '</div>';
                         result.style.display = 'block';
                     }
                 }
@@ -3192,7 +3246,7 @@
                 result.innerHTML = `
                     <div class="alert-danger">
                         <strong>❌ Sync failed</strong><br>
-                        ${error.message || 'Network error occurred'}
+                        ${formatSyncError(error.message || 'Network error occurred')}
                     </div>
                 `;
                 result.style.display = 'block';

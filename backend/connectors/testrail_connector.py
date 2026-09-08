@@ -108,7 +108,17 @@ class TestRailConnector:
                     self.use_legacy_path = True
                     return self._make_request(endpoint, params, max_retries)
                 
-                response.raise_for_status()
+                try:
+                    response.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    try:
+                        err_data = response.json()
+                        err_msg = err_data.get('error') or err_data.get('message')
+                        if err_msg:
+                            raise requests.exceptions.HTTPError(f"{str(e)} - API Error: {err_msg}", response=response)
+                    except ValueError:
+                        pass
+                    raise
                 return response.json()
                 
             except requests.exceptions.RequestException as e:
@@ -973,6 +983,7 @@ class TestRailConnector:
         section_id_to_label: Dict[Tuple[int, Optional[int], int], str] = {}
         updated_after = None
         total_projects = len(project_ids)
+        project_errors: List[str] = []
 
         if delta_days and delta_days > 0:
             updated_after = datetime.now() - timedelta(days=delta_days)
@@ -1068,6 +1079,7 @@ class TestRailConnector:
                             
             except Exception as e:
                 print(f"❌ Failed to process Project ID {project_id}: {e}")
+                project_errors.append(f"Project {project_id} failed: {e}")
                 if log_callback:
                     log_callback(f"Project {project_id} failed: {e}")
                 if progress_callback:
@@ -1081,6 +1093,8 @@ class TestRailConnector:
         print(f"\n✅ Total test cases fetched: {len(all_cases)}")
 
         if not all_cases:
+            if project_errors:
+                raise Exception("; ".join(project_errors))
             if log_callback:
                 log_callback("No test cases found (check project IDs and delta_days)")
             print("⚠️  No test cases found")

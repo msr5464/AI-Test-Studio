@@ -65,7 +65,17 @@ class ConfluenceConnector:
                     time.sleep(retry_after)
                     continue
 
-                response.raise_for_status()
+                try:
+                    response.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    try:
+                        err_data = response.json()
+                        err_msg = err_data.get('message') or err_data.get('error')
+                        if err_msg:
+                            raise requests.exceptions.HTTPError(f"{str(e)} - API Error: {err_msg}", response=response)
+                    except ValueError:
+                        pass
+                    raise
                 return response.json()
 
             except requests.exceptions.RequestException as e:
@@ -99,7 +109,18 @@ class ConfluenceConnector:
                     print(f"⏳ Rate limited. Waiting {retry_after} seconds...")
                     time.sleep(retry_after)
                     continue
-                response.raise_for_status()
+                
+                try:
+                    response.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    try:
+                        err_data = response.json()
+                        err_msg = err_data.get('message') or err_data.get('error')
+                        if err_msg:
+                            raise requests.exceptions.HTTPError(f"{str(e)} - API Error: {err_msg}", response=response)
+                    except ValueError:
+                        pass
+                    raise
                 return response.json()
             except requests.exceptions.RequestException as e:
                 if attempt < max_retries - 1:
