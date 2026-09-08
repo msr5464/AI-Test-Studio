@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AI Test Studio — Powered by QA Agent Network</title>
     <meta name="description"
         content="AI Test Studio — Powered by QA Agent Network. Turn requirements into test cases, generate automation code, and chat with your test knowledge base.">
@@ -7144,10 +7147,126 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
+    
+    /* Auth Modal Styling */
+    #authOverlay, #pendingOverlay {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    #authOverlay .card, #pendingOverlay .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+        border-radius: 16px;
+        color: var(--text);
+    }
+    
+    #authOverlay .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 6px;
+        color: var(--text-muted);
+        text-align: left;
+    }
+    
+    #authOverlay .search-input {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    #authOverlay .search-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    #authOverlay .btn-primary {
+        padding: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px var(--primary-light);
+    }
+    
+    #authOverlay .btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px var(--primary-light);
+    }
+    
+    #authOverlay h2 {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text);
+    }
+
     </style>
 </head>
 
 <body data-active-tab="analyze" class="layout-initial">
+
+    
+
+
+    <!-- Auth Overlay -->
+    <div id="authOverlay" style="display: none; position: fixed; inset: 0; background: var(--bg-page); background-image: var(--bg-page-gradient); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+        <div class="card" style="width: 100%; max-width: 420px; padding: 40px; border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--bg-card);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px;">
+                <div style="text-align: left;">
+                    <img src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png" style="height: 56px; width: auto; object-fit: contain; margin-bottom: 12px; filter: brightness(1.25) contrast(1.08);" alt="Logo">
+                    <h2 id="authTitle" style="font-size: 1.5rem; margin-bottom: 8px;">Customer Login</h2>
+                    <p id="authSubtitle" style="color: var(--text-light); font-size: 0.9em; margin: 0;">Powered by QA Agent Network</p>
+                </div>
+                <label class="theme-toggle" title="Toggle theme">
+                    <input type="checkbox" onchange="toggleTheme(this)" aria-label="Light mode">
+                    <span class="theme-slider"></span>
+                </label>
+            </div>
+            
+            <form id="authForm" onsubmit="handleAuthSubmit(event)">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;">Username</label>
+                    <input type="text" id="authUsername" class="search-input" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text);" placeholder="Enter username">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;">Password</label>
+                    <input type="password" id="authPassword" class="search-input" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text);" placeholder="Enter password">
+                </div>
+                <div class="form-group" id="confirmPasswordGroup" style="margin-bottom: 1rem; display: none;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;">Confirm Password</label>
+                    <input type="password" id="authConfirmPassword" class="search-input" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text);" placeholder="Confirm password">
+                </div>
+                <div id="authError" style="color: #ef4444; margin-bottom: 1rem; font-size: 0.9em; display: none; padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px;"></div>
+                <button type="submit" class="btn btn-primary" id="authSubmitBtn" style="width: 100%; margin-top: 0.5rem; justify-content: center; padding: 0.75rem; font-size: 1rem; font-weight: 600; border-radius: 8px; transition: all 0.2s;">Login</button>
+            </form>
+            
+            <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9em;">
+                <a href="#" id="authToggleMode" onclick="toggleAuthMode(event)" style="color: var(--primary); text-decoration: none; font-weight: 500; transition: color 0.2s;">Need an account? Sign up</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pending Approval Screen -->
+    <div id="pendingOverlay" style="display: none; position: fixed; inset: 0; background: var(--bg-main); z-index: 10000; align-items: center; justify-content: center;">
+        <div class="card" style="width: 100%; max-width: 450px; padding: 3rem 2rem; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+            <h2>Pending Approval</h2>
+            <p style="color: var(--text-light); margin: 1rem 0 2rem;">Your account has been created and is waiting for administrator approval. You will gain access once approved.</p>
+            <button onclick="checkAuth(true)" class="btn btn-secondary">Check Status</button>
+            <button onclick="logout()" class="btn btn-ghost" style="margin-top: 1rem; color: #ef4444;">Sign Out</button>
+        </div>
+    </div>
+
     <!-- Toast Message -->
     <div id="toastMessage" class="toast" title="Click to dismiss"></div>
 
@@ -8452,7 +8571,7 @@
             <!-- Ask Mode Input -->
             <div class="input-box" id="askInputBox">
                 <div class="input-row">
-                    <textarea id="questionInputLegacy" class="input-field"
+                    <textarea id="questionInput" class="input-field"
                         placeholder="Ask me anything about your tests, coverage, or documentation..."
                         rows="1"></textarea>
                     <button class="submit-btn" id="submitBtn" onclick="submitQuery()">Ask →</button>
@@ -8510,13 +8629,17 @@
     <script>
         const API_BASE = '/api/customer';
         // Wrap fetch to detect session expiry (401/403)
+        window._isAuthenticated = false;
         const _origFetch = window.fetch;
         let _sessionExpiredShown = false;
         window.fetch = function () {
+            const url = typeof arguments[0] === 'string' ? arguments[0] : (arguments[0] && arguments[0].url ? arguments[0].url : '');
             return _origFetch.apply(this, arguments).then(function (resp) {
                 if ((resp.status === 401 || resp.status === 403) && !_sessionExpiredShown) {
-                    _sessionExpiredShown = true;
-                    showToast('Session expired — please refresh the page.', 'warning');
+                    if (window._isAuthenticated && url.indexOf('/api/auth/logout') === -1) {
+                        _sessionExpiredShown = true;
+                        showToast('Session expired — please refresh the page.', 'warning');
+                    }
                 }
                 return resp;
             });
@@ -8660,13 +8783,19 @@
         // Theme Functions
         // ==========================================
 
-        function toggleTheme() {
-            const toggle = document.getElementById('themeToggle');
+        function toggleTheme(checkbox) {
+            const toggle = checkbox || document.getElementById('themeToggle');
             const theme = toggle.checked ? 'light' : 'dark';
             const html = document.documentElement;
             html.classList.add('theme-switching');
             html.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
+            
+            // Sync all toggles
+            document.querySelectorAll('.theme-toggle input').forEach(function(el) {
+                if (el !== toggle) el.checked = toggle.checked;
+            });
+
             requestAnimationFrame(function () {
                 requestAnimationFrame(function () { html.classList.remove('theme-switching'); });
             });
@@ -8674,8 +8803,9 @@
 
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
-            const toggle = document.getElementById('themeToggle');
-            if (toggle) toggle.checked = (theme === 'light');
+            document.querySelectorAll('.theme-toggle input').forEach(function(el) {
+                el.checked = (theme === 'light');
+            });
         }
 
         function loadTheme() {
@@ -9616,7 +9746,9 @@
                 Object.keys(data.related_tests).forEach(function (reqId) { relatedCount += (data.related_tests[reqId] || []).length; });
             }
             var generated = (s.total_generated_tests != null ? s.total_generated_tests : (s.generated_count || 0));
-            var e2eFlowCount = (s.e2e_workflow_tests_count || 0) + (s.e2e_existing_count || 0);
+            var e2eGeneratedCount = (s.e2e_workflow_tests_count || 0);
+            var e2eFlowCount = e2eGeneratedCount + (s.e2e_existing_count || 0);
+            var totalGeneratedTests = generated + e2eGeneratedCount;
             // Count strong-match existing tests for User Story Tests tab
             var _covMin = window._reqCoverageMinSim || 60;
             var strongExistingCount = 0;
@@ -9640,7 +9772,7 @@
 
             // Build simplified summary (headline only) - final state
             // Check if tests were generated (either story-level or E2E)
-            var hasGeneratedTests = generated > 0 || e2eFlowCount > 0;
+            var hasGeneratedTests = totalGeneratedTests > 0;
             var headlineText = hasGeneratedTests
                 ? '✓ Generated tests for <span class="req-summary-total">' + total + '</span> requirement' + (total === 1 ? '' : 's')
                 : '✓ Found related tests for <span class="req-summary-total">' + total + '</span> requirement' + (total === 1 ? '' : 's');
@@ -9666,8 +9798,8 @@
             if (calls > 0) metrics.push(['', String(calls), 'LLM calls']);
             var toks = (data.input_tokens || 0) + (data.output_tokens || 0);
             if (toks > 0) metrics.push(['', QA_FMT_TOKENS(toks), 'Tokens']);
-            if (generated + e2eFlowCount > 0) {
-                metrics.push(['generated', String(generated + e2eFlowCount), 'Tests generated']);
+            if (totalGeneratedTests > 0) {
+                metrics.push(['generated', String(totalGeneratedTests), 'Tests generated']);
             }
             if (metrics.length) {
                 parts.push('<div class="req-summary-metrics">');
@@ -16340,6 +16472,162 @@
             };
         })();
     </script>
+
+<script>
+        // Auth Management
+        let isSignupMode = false;
+        let currentUser = null;
+
+        function toggleAuthMode(e) {
+            e.preventDefault();
+            isSignupMode = !isSignupMode;
+            document.getElementById('authTitle').textContent = isSignupMode ? 'Create Account' : 'Customer Login';
+            document.getElementById('authSubtitle').textContent = isSignupMode ? 'Sign up to continue' : 'Powered by QA Agent Network';
+            document.getElementById('authSubmitBtn').textContent = isSignupMode ? 'Sign Up' : 'Login';
+            document.getElementById('authToggleMode').textContent = isSignupMode ? 'Already have an account? Log in' : 'Need an account? Sign up';
+            document.getElementById('authError').style.display = 'none';
+            
+            const confirmGroup = document.getElementById('confirmPasswordGroup');
+            const confirmInput = document.getElementById('authConfirmPassword');
+            if (isSignupMode) {
+                confirmGroup.style.display = 'block';
+                confirmInput.required = true;
+            } else {
+                confirmGroup.style.display = 'none';
+                confirmInput.required = false;
+                confirmInput.value = '';
+            }
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('authSubmitBtn');
+            const err = document.getElementById('authError');
+            
+            if (isSignupMode) {
+                const pass = document.getElementById('authPassword').value;
+                const conf = document.getElementById('authConfirmPassword').value;
+                if (pass !== conf) {
+                    err.textContent = 'Passwords do not match';
+                    err.style.display = 'block';
+                    return;
+                }
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Please wait...';
+            err.style.display = 'none';
+
+            const payload = {
+                username: document.getElementById('authUsername').value,
+                password: document.getElementById('authPassword').value
+            };
+
+            const endpoint = isSignupMode ? '/api/auth/signup' : '/api/auth/login';
+            
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    if (isSignupMode) {
+                        isSignupMode = false;
+                        document.getElementById('authPassword').value = '';
+                        document.getElementById('authConfirmPassword').value = '';
+                        document.getElementById('authOverlay').style.display = 'none';
+                        document.getElementById('pendingOverlay').style.display = 'flex';
+                    } else {
+                        await checkAuth();
+                    }
+                } else {
+                    err.textContent = data.error || 'Authentication failed';
+                    err.style.display = 'block';
+                    if (data.status === 'pending_approval') {
+                        document.getElementById('authOverlay').style.display = 'none';
+                        document.getElementById('pendingOverlay').style.display = 'flex';
+                    }
+                }
+            } catch (error) {
+                err.textContent = 'Network error. Please try again.';
+                err.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = isSignupMode ? 'Sign Up' : 'Sign In';
+            }
+        }
+
+        async function checkAuth(isManualCheck = false) {
+            const authEl = document.getElementById('authOverlay');
+            const pendingEl = document.getElementById('pendingOverlay');
+            const appShell = document.querySelector('.app-shell');
+            
+            try {
+                const res = await fetch('/api/auth/me');
+                const data = await res.json().catch(() => ({}));
+                
+                if (res.ok && data.success) {
+                    window._isAuthenticated = true;
+                    currentUser = data.user;
+                    authEl.style.display = 'none';
+                    pendingEl.style.display = 'none';
+                    appShell.style.display = 'flex';
+                    
+                    // Show logout in header
+                    if (!document.getElementById('logoutBtn')) {
+                        const div = document.createElement('div');
+                        div.innerHTML = `<span style="font-size:13px;margin-right:12px;color:var(--text-light);font-weight:500;">${currentUser.username}</span><button id="logoutBtn" onclick="logout()" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.2s;">Logout</button><div class="header-divider" style="margin: 0 16px;"></div>`;
+                        div.style.display = 'flex';
+                        div.style.alignItems = 'center';
+                        document.querySelector('.header-right').prepend(div);
+                    }
+                    if (isManualCheck) {
+                        alert('Your account is approved! Welcome to AI Test Studio.');
+                    }
+                } else {
+                    appShell.style.display = 'none';
+                    if (data.status === 'pending_approval' || (pendingEl && pendingEl.style.display === 'flex' && !authEl.style.display.includes('flex'))) {
+                        authEl.style.display = 'none';
+                        pendingEl.style.display = 'flex';
+                        if (isManualCheck) {
+                            alert('Your account is still pending administrator approval.');
+                        }
+                    } else {
+                        pendingEl.style.display = 'none';
+                        authEl.style.display = 'flex';
+                    }
+                }
+            } catch (e) {
+                console.error("Auth check failed:", e);
+                appShell.style.display = 'none';
+                pendingEl.style.display = 'none';
+                authEl.style.display = 'flex';
+            }
+        }
+
+        async function logout() {
+            if (!confirm('Are you sure you want to log out?')) return;
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.reload();
+        }
+
+        // Initialize auth check before anything else
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelector('.app-shell').style.display = 'none';
+            checkAuth();
+        });
+
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                document.querySelector('.app-shell').style.display = 'none';
+                checkAuth();
+            }
+        });
+</script>
+
 </body>
 
 </html>

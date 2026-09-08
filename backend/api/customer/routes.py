@@ -14,7 +14,7 @@ from pathlib import Path
 from werkzeug.utils import secure_filename
 import tempfile
 
-from flask import Blueprint, request, jsonify, current_app, Response, stream_with_context
+from flask import Blueprint, request, jsonify, current_app, Response, stream_with_context, session
 
 from backend.services.requirement_analysis_service import RequirementAnalysisService
 
@@ -334,6 +334,8 @@ def requirement_analysis_stream():
                     "file" if file_paths else "text")
     rag_service = current_app.config["RAG_SERVICE"]
     svc = RequirementAnalysisService(rag_service=rag_service)
+    
+    current_user_id = session.get("user_id", "default")
 
     def run_analyze():
         try:
@@ -382,6 +384,7 @@ def requirement_analysis_stream():
                     source_type=_source_type,
                     started_at=run_started,
                     error=run_outcome.get("error") or "",
+                    user_id=current_user_id,
                 )
             except Exception:
                 pass

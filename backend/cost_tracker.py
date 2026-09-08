@@ -11,6 +11,16 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
+import threading
+
+_run_context = threading.local()
+
+def set_current_run_id(run_id: str):
+    _run_context.run_id = run_id
+
+def clear_current_run_id():
+    if hasattr(_run_context, 'run_id'):
+        del _run_context.run_id
 
 # Project root: backend/cost_tracker.py -> backend -> project root
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -184,17 +194,32 @@ def record_operation(
     run_id: Optional[str] = None,
     duration_s: Optional[float] = None,
     stage: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> None:
     """
     Append one operation cost record to the operation_costs file (JSONL).
     Safe to call from multiple threads (append-only). If file path is not writable, logs and skips.
     """
+    if not run_id and hasattr(_run_context, 'run_id'):
+        run_id = _run_context.run_id
+
+    if not user_id:
+        try:
+            from flask import session, has_request_context, request
+            if has_request_context():
+                user_id = session.get('user_id') or request.headers.get('X-User-ID')
+        except Exception:
+            pass
+    if not user_id:
+        user_id = "21232f297a57"
+
     if estimated_cost_usd is None and (input_tokens is not None or output_tokens is not None):
         estimated_cost_usd = _estimate_cost_usd(input_tokens, output_tokens, model=model)
     rate_in, rate_out = rates_for_model(model)
     record = {
         "operation": operation,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "user_id": user_id,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "estimated_cost_usd": estimated_cost_usd,
@@ -228,6 +253,7 @@ def record_from_langchain_result(
     run_id: Optional[str] = None,
     duration_s: Optional[float] = None,
     stage: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> Optional[float]:
     """
     Extract usage from a LangChain invoke result, record one operation, and return estimated cost in USD (or None).
@@ -248,6 +274,7 @@ def record_from_langchain_result(
         run_id=run_id,
         duration_s=duration_s,
         stage=stage,
+        user_id=user_id,
     )
     return cost
 

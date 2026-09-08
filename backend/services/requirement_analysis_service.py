@@ -512,7 +512,12 @@ class RequirementAnalysisService:
             uncovered_requirements, generated_tests, e2e_workflow_tests, summary, pushed_to_testrail (if any)
         """
         last_progress = [0.0]  # use list so report() can update
+        import uuid
         run_id = uuid.uuid4().hex
+        
+        from backend.cost_tracker import set_current_run_id, clear_current_run_id
+        set_current_run_id(run_id)
+
         # [total_cost_usd, llm_call_count] — one mutable cell already
         # threaded into every LLM helper, so call volume rides along free.
         run_cost = [0.0, 0]
@@ -1171,7 +1176,7 @@ class RequirementAnalysisService:
             stage_state["stage"] = None      # idempotent if called twice
             return [stage_totals[k] for k in sorted(stage_totals)]
 
-        return {
+        res_out = {
             "success": True,
             "requirements_analyzed": len(requirements),
             "requirements": requirements,
@@ -1187,8 +1192,8 @@ class RequirementAnalysisService:
             "coverage_gap_reason_per_req": coverage_gap_reason_per_req,
             "coverage_per_req": coverage_per_req,
             "run_id": run_id,
-            "total_estimated_cost_usd": round(run_cost[0], 6),
-            "llm_calls": run_cost[1],
+            "total_estimated_cost_usd": _token_totals_for_run(run_id).get("cost_usd") or round(run_cost[0], 6),
+            "llm_calls": _token_totals_for_run(run_id).get("llm_calls") or run_cost[1],
             "duration_s": round(time.time() - run_started, 2),
             "stage_timings": _finalise_stages(),
             # Read back from the cost records this run wrote, rather than
@@ -1212,6 +1217,8 @@ class RequirementAnalysisService:
                 "retrieval_similarity_threshold": retrieval_threshold_pct,
             },
         }
+        clear_current_run_id()
+        return res_out
 
     def _assess_all_tests_batch(
         self,

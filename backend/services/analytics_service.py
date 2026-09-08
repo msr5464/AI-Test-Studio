@@ -95,7 +95,7 @@ def _group(operation: str) -> str:
 
 def _run_token_totals(run_id: str) -> Dict[str, Any]:
     """input/output token totals and the per-model split for one run."""
-    totals = {"input_tokens": 0, "output_tokens": 0, "by_model": {}}
+    totals = {"input_tokens": 0, "output_tokens": 0, "calls": 0, "cost_usd": 0.0, "by_model": {}}
     if not run_id:
         return totals
     for row in _read_jsonl(_costs_file()):
@@ -103,23 +103,27 @@ def _run_token_totals(run_id: str) -> Dict[str, Any]:
             continue
         inp = int(row.get("input_tokens") or 0)
         out = int(row.get("output_tokens") or 0)
+        c_usd = float(row.get("estimated_cost_usd") or 0.0)
         totals["input_tokens"] += inp
         totals["output_tokens"] += out
+        totals["calls"] += 1
+        totals["cost_usd"] = round(totals["cost_usd"] + c_usd, 10)
         model = str(row.get("model") or "unknown")
         slot = totals["by_model"].setdefault(
             model, {"cost_usd": 0.0, "input_tokens": 0, "output_tokens": 0, "calls": 0})
         slot["cost_usd"] = round(
-            slot["cost_usd"] + float(row.get("estimated_cost_usd") or 0.0), 10)
+            slot["cost_usd"] + c_usd, 10)
         slot["input_tokens"] += inp
         slot["output_tokens"] += out
         slot["calls"] += 1
+    totals["llm_calls"] = totals["calls"]
     return totals
 
 
 def record_requirement_run(result: Optional[Dict[str, Any]], *,
                            run_id: str = "", status: str = "completed",
                            source_type: str = "", started_at: Optional[float] = None,
-                           error: str = "") -> bool:
+                           error: str = "", user_id: str = "default") -> bool:
     """Append one Requirements->Tests run summary. Best-effort.
 
     Called from the stream route's `finally`, so it fires on every terminal path
@@ -131,21 +135,21 @@ def record_requirement_run(result: Optional[Dict[str, Any]], *,
         summary = result.get("summary") or {}
         ended = time.time()
         started = started_at or ended - float(result.get("duration_s") or 0.0)
+        resolved_rid = run_id or result.get("run_id") or ""
+        tt = _run_token_totals(resolved_rid)
         record = {
             "schema": 1,
-            "run_id": run_id or result.get("run_id") or "",
+            "run_id": resolved_rid,
+            "user_id": user_id or "default",
             "started_at": started,
             "ended_at": ended,
             "duration_s": result.get("duration_s") or round(ended - started, 2),
             "status": status,
             "source_type": source_type,
             "error": error[:500] if error else "",
-            "cost_usd": float(result.get("total_estimated_cost_usd") or 0.0),
-            "llm_calls": int(result.get("llm_calls") or 0),
-            # Tokens and the per-model split come from the operation records
-            # this run already wrote, rather than threading two more
-            # accumulators through every LLM helper in the service.
-            **_run_token_totals(run_id or result.get("run_id") or ""),
+            "cost_usd": tt.get("cost_usd") if tt.get("cost_usd") else float(result.get("total_estimated_cost_usd") or 0.0),
+            "llm_calls": tt.get("llm_calls") if tt.get("llm_calls") else int(result.get("llm_calls") or 0),
+            **tt,
             "stages": result.get("stage_timings") or [],
             "outcomes": {
                 "requirements_analyzed": int(result.get("requirements_analyzed") or 0),
@@ -185,8 +189,19 @@ def _add(target: Dict[str, Any], row: Dict[str, Any]) -> None:
     target["duration_s"] = round(target["duration_s"] + float(row.get("duration_s") or 0.0), 3)
 
 
+ADMIN_USER_ID = "21232f297a57"
+
+
+def _resolve_row_user(row: Dict[str, Any]) -> str:
+    uid = row.get("user_id")
+    if not uid or uid in ("default", "admin"):
+        return ADMIN_USER_ID
+    return str(uid)
+
+
 def query(window: str = "7d", since: Optional[float] = None,
-          until: Optional[float] = None) -> Dict[str, Any]:
+          until: Optional[float] = None,
+          user_id: Optional[str] = None) -> Dict[str, Any]:
     """Rollups over the Studio's own LLM spend."""
     now = time.time()
     if since is None and WINDOWS.get(window) is not None:
@@ -216,26 +231,37 @@ def query(window: str = "7d", since: Optional[float] = None,
             continue
         if ts > until:
             continue
+        if user_id:
+            row_user = _resolve_row_user(row)
+            if row_user != user_id:
+                continue
         operation = str(row.get("operation") or "unknown")
         _add(overall, row)
-        _add(by_group[_group(operation)], row)
+        grp = _group(operation)
+        _add(by_group[grp], row)
         _add(by_operation[operation], row)
         _add(by_model[str(row.get("model") or "unknown")], row)
         stage = _OPERATION_STAGE.get(operation)
         if stage:
             _add(by_stage[stage], row)
         _add(series[time.strftime("%Y-%m-%d", time.localtime(ts))], row)
-        if row.get("run_id"):
-            run_ids.add(row["run_id"])
-        else:
-            orphan_calls += 1
+        if grp == "requirements":
+            if row.get("run_id"):
+                run_ids.add(row["run_id"])
+            else:
+                orphan_calls += 1
 
     selected_runs = [r for r in runs
                      if (since is None or float(r.get("started_at") or 0) >= since)
-                     and float(r.get("started_at") or 0) <= until]
+                     and float(r.get("started_at") or 0) <= until
+                     and (not user_id or _resolve_row_user(r) == user_id)]
 
     outcomes = defaultdict(int)
     run_duration_total = 0.0
+    run_llm_calls = 0
+    run_cost_usd = 0.0
+    run_input_tokens = 0
+    run_output_tokens = 0
     for run in selected_runs:
         for key, value in (run.get("outcomes") or {}).items():
             if isinstance(value, bool):
@@ -243,6 +269,10 @@ def query(window: str = "7d", since: Optional[float] = None,
             elif isinstance(value, (int, float)):
                 outcomes[key] += value
         run_duration_total += float(run.get("duration_s") or 0.0)
+        run_llm_calls += int(run.get("llm_calls") or 0)
+        run_cost_usd += float(run.get("cost_usd") or 0.0)
+        run_input_tokens += int(run.get("input_tokens") or 0)
+        run_output_tokens += int(run.get("output_tokens") or 0)
 
     # Runs with no summary row (everything before 5c) still have a usable
     # duration: the span of their own LLM-call timestamps. Without this the 250+
@@ -254,10 +284,12 @@ def query(window: str = "7d", since: Optional[float] = None,
     approx_total = round(sum(v for rid, v in approx_spans.items()
                              if rid in run_ids and rid not in summarised_ids), 2)
 
-    overall["runs"] = len(run_ids)
+    overall["runs"] = len(selected_runs)
+    by_group["requirements"]["runs"] = len(selected_runs)
     # Runs predating the summary record have no measured duration. Their LLM
     # timestamps still bound them, which is an approximation, not a measurement.
     approx = len(run_ids) - len(selected_runs)
+    ingest = ingestion_history(since, until) if (not user_id or user_id == ADMIN_USER_ID) else {"syncs": [], "total_duration_s": 0.0, "count": 0}
     return {
         "window": {"from": since, "to": until, "label": _window_label(window)},
         "data_since": data_since,
@@ -266,6 +298,12 @@ def query(window: str = "7d", since: Optional[float] = None,
         "runs_summarised": len(selected_runs),
         "runs_duration_approx": max(0, approx),
         "run_duration_s": round(run_duration_total, 2),
+        "run_totals": {
+            "llm_calls": run_llm_calls,
+            "cost_usd": round(run_cost_usd, 6),
+            "input_tokens": run_input_tokens,
+            "output_tokens": run_output_tokens,
+        },
         # Approximate: excludes retrieval, parsing, and anything outside the
         # first and last LLM call. Every consumer must label it as such.
         "run_duration_approx_s": approx_total,
@@ -275,7 +313,7 @@ def query(window: str = "7d", since: Optional[float] = None,
         "by_operation": dict(by_operation),
         "by_model": dict(by_model),
         "by_stage": {str(k): v for k, v in sorted(by_stage.items())},
-        "ingestion": ingestion_history(since, until),
+        "ingestion": ingest,
         "series": [dict(bucket=b, **v) for b, v in sorted(series.items())],
     }
 
@@ -356,6 +394,60 @@ def approximate_run_durations() -> Dict[str, float]:
         if rid and ts:
             spans[rid].append(ts)
     return {rid: round(max(v) - min(v), 2) for rid, v in spans.items()}
+
+
+def clear_analytics(user_id: Optional[str] = None, window: str = "all"):
+    import time
+    now = time.time()
+    since = None
+    if window in WINDOWS and WINDOWS[window] is not None:
+        since = now - WINDOWS[window]
+
+    costs_path = _costs_file()
+    if costs_path.exists():
+        if (not user_id or user_id == "all") and since is None:
+            costs_path.write_text("")
+        else:
+            rows = _read_jsonl(costs_path)
+            kept = []
+            for r in rows:
+                r_uid = _resolve_row_user(r)
+                if (not user_id or user_id == "all" or r_uid == user_id):
+                    # It's a match on user. Now check time.
+                    ts = _epoch(r.get("timestamp_utc"))
+                    if since is not None and ts < since:
+                        kept.append(r) # older than window, keep it
+                    else:
+                        pass # delete it
+                else:
+                    kept.append(r) # different user, keep it
+
+            with costs_path.open("w", encoding="utf-8") as f:
+                for r in kept:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+                    
+    runs_path = _runs_file()
+    if runs_path.exists():
+        if (not user_id or user_id == "all") and since is None:
+            runs_path.write_text("")
+        else:
+            rows = _read_jsonl(runs_path)
+            kept = []
+            for r in rows:
+                r_uid = _resolve_row_user(r)
+                if (not user_id or user_id == "all" or r_uid == user_id):
+                    # Match on user. Now check time.
+                    ts = float(r.get("started_at") or 0)
+                    if since is not None and ts < since:
+                        kept.append(r) # older, keep
+                    else:
+                        pass # delete
+                else:
+                    kept.append(r) # different user, keep
+
+            with runs_path.open("w", encoding="utf-8") as f:
+                for r in kept:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
 def _window_label(window: str) -> str:

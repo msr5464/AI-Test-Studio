@@ -23,25 +23,16 @@ from typing import Iterable, Tuple
 
 import requests
 from flask import (Blueprint, Response, current_app, jsonify, request,
-                   stream_with_context)
+                   stream_with_context, session)
+from backend.api.auth.routes import require_auth
 
 agents_bp = Blueprint("agents_proxy", __name__)
 
-
-# ⚠️ NO AUTHENTICATION IS ENFORCED HERE.
-#
-# The module docstring above says these routes are gated by require_auth(), but
-# no route carries the decorator and there is no before_request guard — every
-# /api/agents/* endpoint, including POST /run which spawns processes on the host,
-# is reachable without a session.
-#
-# This was tried as a blueprint-wide before_request guard and reverted: the
-# customer UI never authenticates (nothing in frontend/customer/index.html calls
-# /api/auth/login) and no other customer API requires auth either, so enforcing
-# it here 401s the working Tests-to-Automation panel with no way for a user to
-# log in. Closing the gap needs a product decision — add a login flow to the
-# customer UI, bind the app to localhost, or accept the exposure — so it is
-# flagged here rather than changed unilaterally.
+@agents_bp.before_request
+@require_auth(admin_only=False)
+def check_auth():
+    """Enforce authentication on all agent proxy routes."""
+    pass
 
 
 def _upstream_base() -> str:
@@ -69,6 +60,14 @@ def _filter_headers(headers: Iterable[Tuple[str, str]]) -> dict:
     return {k: v for k, v in headers if k.lower() not in _HOP_BY_HOP_HEADERS}
 
 
+def _inject_user_headers(headers: dict) -> dict:
+    """Inject current user context for qa_agents_server."""
+    headers["X-User-ID"] = session.get("user_id", "default")
+    headers["X-User-Name"] = session.get("username", "Unknown")
+    headers["X-User-Role"] = session.get("role", "member")
+    return headers
+
+
 def _unreachable_response() -> Tuple[Response, int]:
     return jsonify({
         "success": False,
@@ -82,13 +81,15 @@ def _unreachable_response() -> Tuple[Response, int]:
 def _forward_json(method: str, path: str):
     """Forward a simple JSON request. Returns a Flask Response."""
     url = f"{_upstream_base()}{path}"
+    outbound_headers = _filter_headers(request.headers.items())
+    outbound_headers = _inject_user_headers(outbound_headers)
     try:
         upstream = requests.request(
             method=method,
             url=url,
             params=request.args,
             json=request.get_json(silent=True) if method in ("POST", "PUT", "PATCH") else None,
-            headers=_filter_headers(request.headers.items()),
+            headers=outbound_headers,
             timeout=_timeout(),
         )
     except requests.Timeout:
@@ -114,11 +115,13 @@ def _forward_json(method: str, path: str):
 def _forward_stream(path: str) -> Response:
     """Forward an SSE (or any streaming) GET request."""
     url = f"{_upstream_base()}{path}"
+    outbound_headers = _filter_headers(request.headers.items())
+    outbound_headers = _inject_user_headers(outbound_headers)
     try:
         upstream = requests.get(
             url,
             params=request.args,
-            headers=_filter_headers(request.headers.items()),
+            headers=outbound_headers,
             stream=True,
             timeout=(10, None),  # connect timeout only; no read timeout
         )

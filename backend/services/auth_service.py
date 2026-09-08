@@ -31,11 +31,14 @@ class AuthService:
             import secrets as _secrets
             default_username = 'admin'
             default_password = _secrets.token_urlsafe(12)
-            self.user_storage.create_user(
+            admin_user = self.user_storage.create_user(
                 username=default_username,
                 password=default_password,
                 role='admin'
             )
+            if admin_user:
+                admin_user.status = 'active'
+                self.user_storage.update_user(admin_user)
             print(f"✅ Created default admin user: {default_username} / {default_password}")
             print(f"⚠️  IMPORTANT: Save this password now — it will not be shown again!")
     
@@ -62,6 +65,13 @@ class AuthService:
             return {
                 'success': False,
                 'error': 'Invalid username or password'
+            }
+            
+        if user.status != 'active':
+            return {
+                'success': False,
+                'error': 'Account pending approval or suspended',
+                'status': user.status
             }
         
         # Update last login
@@ -118,20 +128,16 @@ class AuthService:
         Returns:
             None if authenticated, error dict if not
         """
-        if not self.is_authenticated():
-            return {
-                'success': False,
-                'error': 'Authentication required',
-                'code': 'UNAUTHORIZED'
-            }
+        user = self.get_current_user()
+        if not user:
+            return {'code': 'UNAUTHORIZED', 'error': 'Not authenticated'}
         
-        if admin_only and not self.is_admin():
-            return {
-                'success': False,
-                'error': 'Admin access required',
-                'code': 'FORBIDDEN'
-            }
-        
+        if user.status != 'active':
+            return {'code': 'FORBIDDEN', 'error': 'Account pending approval or suspended'}
+            
+        if admin_only and user.role != 'admin':
+            return {'code': 'FORBIDDEN', 'error': 'Admin access required'}
+            
         return None
     
     def create_user(self, username: str, password: str, role: str = 'customer') -> Dict:
@@ -189,6 +195,7 @@ class AuthService:
                     'user_id': user.user_id,
                     'username': user.username,
                     'role': user.role,
+                    'status': getattr(user, 'status', 'active'),
                     'created_at': user.created_at,
                     'last_login': user.last_login
                 }

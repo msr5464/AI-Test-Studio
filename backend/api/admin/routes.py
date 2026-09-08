@@ -418,6 +418,28 @@ def update_agent_settings():
     return _forward_json('PUT', '/settings')
 
 
+@admin_bp.route('/analytics', methods=['DELETE'])
+@require_auth(admin_only=True)
+def clear_analytics():
+    """Clear analytics and history for a specific user or all users over a specific window."""
+    user_id_param = (request.args.get('user_id') or '').strip() or None
+    window_param = (request.args.get('window') or '7d').strip()
+    
+    # 1. Clear AI-Test-Studio analytics (operations/requirements)
+    analytics_service.clear_analytics(user_id=user_id_param, window=window_param)
+    
+    # 2. Proxy request to QA-Agent-Network to clear agent runs & audit history
+    try:
+        url = f'/analytics/clear?window={window_param}'
+        if user_id_param:
+            url += f'&user_id={user_id_param}'
+        _forward_json('DELETE', url)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    
+    return jsonify({"success": True})
+
+
 @admin_bp.route('/analytics', methods=['GET'])
 @require_auth(admin_only=True)
 def get_analytics():
@@ -449,13 +471,17 @@ def get_analytics():
                         'error': "window must be one of "
                                  + ', '.join(analytics_service.WINDOWS)}), 400
 
-    studio = analytics_service.query(window)
+    user_id_param = (request.args.get('user_id') or '').strip()
+    studio = analytics_service.query(window, user_id=user_id_param or None)
 
     # The agent half comes from QA-Agent-Network; a dashboard must still render
     # if that server is down, so a failure degrades to an empty half plus a note.
     agents, agents_error = {}, None
     try:
-        response = _forward_json('GET', f'/analytics/summary?window={window}')
+        url = f'/analytics/summary?window={window}'
+        if user_id_param:
+            url += f'&user_id={user_id_param}'
+        response = _forward_json('GET', url)
         # _forward_json returns a Response, or (Response, status) on failure —
         # and its failure bodies are dicts too, so "is a dict" is not enough to
         # call it a success. Without checking the status and the payload shape,
@@ -532,9 +558,9 @@ def _time_saved(agents: dict, studio: dict, baselines: dict) -> dict:
     agent_spent = float(overall.get('duration_s') or 0.0) / 60.0
     studio_spent = float((studio or {}).get('run_duration_s') or 0.0) / 60.0
     return {
-        'agents_min': round(agent_gross - agent_spent, 1),
-        'studio_min': round(studio_gross - studio_spent, 1),
-        'total_min': round(agent_gross + studio_gross - agent_spent - studio_spent, 1),
+        'agents_min': max(0.0, round(agent_gross - agent_spent, 1)),
+        'studio_min': max(0.0, round(studio_gross - studio_spent, 1)),
+        'total_min': max(0.0, round(agent_gross + studio_gross - agent_spent - studio_spent, 1)),
         'basis': 'estimate',
     }
 
