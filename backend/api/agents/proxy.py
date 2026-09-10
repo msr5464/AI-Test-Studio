@@ -12,7 +12,7 @@ The browser never talks to the QA-Agent-Network server directly — it calls
   3. Streams the response back (plain JSON or text/event-stream)
 
 Configuration:
-  - QA_AGENT_NETWORK_URL      (default http://localhost:8765)
+  - QA_AGENT_NETWORK_URL      (default http://localhost:6001)
   - QA_AGENT_NETWORK_TIMEOUT  (default 30, seconds; only applies to non-stream)
 """
 
@@ -36,7 +36,7 @@ def check_auth():
 
 
 def _upstream_base() -> str:
-    return os.getenv("QA_AGENT_NETWORK_URL", "http://localhost:8765").rstrip("/")
+    return os.getenv("QA_AGENT_NETWORK_URL", "http://localhost:6001").rstrip("/")
 
 
 def _timeout() -> float:
@@ -56,15 +56,45 @@ _HOP_BY_HOP_HEADERS = {
 }
 
 
+# Headers a client must never be able to set on a proxied request. X-User-* IS
+# the identity qa_agents_server trusts, and X-User-Role is its only admin
+# assertion, so forwarding a client's own copy is impersonation. Cookie and
+# Authorization are stripped because the upstream neither needs nor should log
+# this app's session cookie.
+#
+# This was previously safe only by accident: WSGI normalises an inbound header
+# to "X-User-Id" while the injector writes "X-User-ID" — different dict keys —
+# and requests happened to resolve the collision last-write-wins. Reordering two
+# lines, or swapping requests for httpx, would silently have turned that into a
+# full impersonation hole.
+_CLIENT_CONTROLLED_HEADERS = {
+    "x-user-id", "x-user-name", "x-user-role", "x-proxy-secret",
+    "cookie", "authorization",
+}
+
+
 def _filter_headers(headers: Iterable[Tuple[str, str]]) -> dict:
-    return {k: v for k, v in headers if k.lower() not in _HOP_BY_HOP_HEADERS}
+    return {k: v for k, v in headers
+            if k.lower() not in _HOP_BY_HOP_HEADERS
+            and k.lower() not in _CLIENT_CONTROLLED_HEADERS}
 
 
 def _inject_user_headers(headers: dict) -> dict:
     """Inject current user context for qa_agents_server."""
+    # Drop any casing variant that survived, so ours is unambiguously the only
+    # copy rather than merely the last one written.
+    for key in list(headers):
+        if key.lower() in _CLIENT_CONTROLLED_HEADERS:
+            del headers[key]
     headers["X-User-ID"] = session.get("user_id", "default")
     headers["X-User-Name"] = session.get("username", "Unknown")
     headers["X-User-Role"] = session.get("role", "member")
+    # Proves to qa_agents_server that the identity headers came from this proxy
+    # rather than straight off the network. Optional: unset means the upstream
+    # is relying on binding to localhost instead.
+    secret = (os.getenv("QA_AGENT_PROXY_SECRET") or "").strip()
+    if secret:
+        headers["X-Proxy-Secret"] = secret
     return headers
 
 

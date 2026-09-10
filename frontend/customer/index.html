@@ -6474,6 +6474,86 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         }
 
+        /* Worker-pool occupancy. Shown only while the pool is contended — with
+           one run on a four-worker pool there is nothing to explain, and a
+           permanent "1/4" is noise that trains people to stop reading it. */
+        .qa-capacity {
+            font-size: 11px;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-light);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            padding: 2px 8px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .qa-capacity.saturated {
+            color: #f59e0b;
+            border-color: rgba(245,158,11,0.35);
+            background: rgba(245,158,11,0.10);
+        }
+
+        /* Session switcher. One row of chips, rendered only when this user has
+           more than one run in flight — otherwise there is nothing to switch
+           between and the row stays out of the way entirely. */
+        .qa-run-switcher {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 10px 22px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-subtle, rgba(148,163,184,0.06));
+        }
+        .qa-run-switcher-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: var(--text-light);
+            margin-right: 2px;
+        }
+        .qa-run-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 11px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--card, #fff);
+            color: var(--text-light);
+            transition: all 0.15s;
+            max-width: 260px;
+        }
+        .qa-run-chip:hover { border-color: rgba(6,182,212,0.4); color: var(--text); }
+        .qa-run-chip.selected {
+            border-color: rgba(6,182,212,0.45);
+            background: rgba(6,182,212,0.12);
+            color: var(--primary);
+        }
+        .qa-run-chip .qa-run-chip-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* Reuses the running badge's pulse so a live chip reads the same way the
+           status badge does, rather than introducing a second visual language. */
+        .qa-run-chip .qa-run-chip-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
+            animation: qa-blink 1.2s ease-in-out infinite;
+        }
+        .qa-run-chip.other-agent {
+            border-style: dashed;
+            opacity: 0.85;
+        }
+
         .qa-live-meta {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -7705,8 +7785,11 @@
                             <div class="qa-live-header-icon">📡</div>
                             <span class="qa-live-header-title">Live Run</span>
                             <span class="qa-live-badge badge-running" id="qaLiveStatus">running…</span>
+                            <span class="qa-capacity" id="qaLiveCapacity" style="display:none;"></span>
                             <span class="qa-live-elapsed" id="qaLiveElapsed">00:00</span>
                         </div>
+                        <!-- Session switcher: hidden unless this user has >1 run in flight. -->
+                        <div class="qa-run-switcher" id="qaLiveSwitcher" style="display:none;"></div>
                         <!-- Session / Module meta -->
                         <div class="qa-live-meta">
                             <div class="qa-live-meta-item">
@@ -7969,8 +8052,11 @@
                             <div class="qa-live-header-icon">📡</div>
                             <span class="qa-live-header-title">Live Run</span>
                             <span class="qa-live-badge badge-running" id="adaptLiveStatus">running…</span>
+                            <span class="qa-capacity" id="adaptLiveCapacity" style="display:none;"></span>
                             <span class="qa-live-elapsed" id="adaptLiveElapsed">00:00</span>
                         </div>
+                        <!-- Session switcher: hidden unless this user has >1 run in flight. -->
+                        <div class="qa-run-switcher" id="adaptLiveSwitcher" style="display:none;"></div>
                         <div class="qa-live-meta">
                             <div class="qa-live-meta-item">
                                 <span class="qa-live-meta-label">Session</span>
@@ -8159,8 +8245,11 @@
                             <div class="qa-live-header-icon">📡</div>
                             <span class="qa-live-header-title">Live Run</span>
                             <span class="qa-live-badge badge-running" id="healLiveStatus">running…</span>
+                            <span class="qa-capacity" id="healLiveCapacity" style="display:none;"></span>
                             <span class="qa-live-elapsed" id="healLiveElapsed">00:00</span>
                         </div>
+                        <!-- Session switcher: hidden unless this user has >1 run in flight. -->
+                        <div class="qa-run-switcher" id="healLiveSwitcher" style="display:none;"></div>
                         <div class="qa-live-meta">
                             <div class="qa-live-meta-item">
                                 <span class="qa-live-meta-label">Session</span>
@@ -8841,9 +8930,10 @@
             showTab('analyze');
             var qInput = document.getElementById('questionInput');
             if (qInput) qInput.style.setProperty('font-size', '15px', 'important');
-            // Run health check immediately so sidebar footer shows status on any tab,
-            // and wire the refresh button here so it works from every tab (not just Agents).
-            window.agentGate.start();
+            // The health check itself is started from checkAuth() — /api/agents/health
+            // is behind require_auth, so running it before login just 401s and paints
+            // a red "unreachable" that nothing clears until the next poll.
+            // Wire the refresh button here so it works from every tab (not just Agents).
             var _refreshBtn = document.getElementById('qaHealthRefresh');
             if (_refreshBtn) {
                 _refreshBtn.addEventListener('click', function () { window.agentGate.refresh(); });
@@ -11618,6 +11708,180 @@
                 if (row) row.classList.remove('metrics-ready');
             });
         }
+        // ── Multi-run session switcher + worker-pool capacity ────────────────
+        //
+        // Runs execute in parallel now, so one person can have several in flight
+        // at once. The panels each bound to a single session and read only
+        // `active`/`session_id` from /run/active — which returns whichever run
+        // the registry happened to yield first — so a second concurrent run was
+        // invisible, with no way to reach its logs.
+        //
+        // Written once and driven by panel prefix ('qa' | 'heal' | 'adapt'),
+        // matching QA_RESET_METRIC_TILES above, rather than being pasted into
+        // three panels that would then drift.
+
+        function QA_FMT_RUN_AGE(startedAt) {
+            if (!startedAt) return '';
+            var secs = Math.max(0, Math.floor(Date.now() / 1000 - startedAt));
+            if (secs < 60) return secs + 's';
+            if (secs < 3600) return Math.floor(secs / 60) + 'm';
+            return Math.floor(secs / 3600) + 'h' + Math.floor((secs % 3600) / 60) + 'm';
+        }
+
+        // Occupancy, shown only while it explains something. A permanent "1/4"
+        // on an idle pool is noise, and noise is what teaches people to stop
+        // reading an indicator that will later matter.
+        function QA_RENDER_CAPACITY(prefix, capacity) {
+            var el = document.getElementById(prefix + 'LiveCapacity');
+            if (!el) return;
+            if (!capacity || !capacity.max || capacity.active <= 1) {
+                el.style.display = 'none';
+                return;
+            }
+            el.style.display = '';
+            el.textContent = capacity.active + '/' + capacity.max + ' workers'
+                + (capacity.queued ? ' · ' + capacity.queued + ' queued' : '');
+            el.classList.toggle('saturated', !!capacity.busy);
+            el.title = capacity.busy
+                ? 'All workers are busy — new runs will be queued.'
+                : (capacity.max - capacity.active) + ' worker(s) free.';
+        }
+
+        // `body` is a /run/active response. `onSelect(sessionId, module)` is
+        // called when the user picks a different run on THIS agent; chips for
+        // other agents deep-link to that panel instead, since this panel cannot
+        // render another agent's steps.
+        function QA_RENDER_SWITCHER(prefix, body, currentSessionId, onSelect) {
+            var el = document.getElementById(prefix + 'LiveSwitcher');
+            if (!el) return;
+            var runs = (body && body.runs) || [];
+            var others = (body && body.other_agent_runs) || [];
+
+            // Nothing to switch between: stay entirely out of the way. The row
+            // appears only once it is load-bearing.
+            if (runs.length + others.length < 2) {
+                el.style.display = 'none';
+                el.innerHTML = '';
+                return;
+            }
+
+            var html = '<span class="qa-run-switcher-label">Your runs</span>';
+            runs.forEach(function (r) {
+                var selected = r.session_id === currentSessionId;
+                html += '<button type="button" class="qa-run-chip' + (selected ? ' selected' : '')
+                     + '" data-session="' + QA_ESC_ATTR(r.session_id) + '"'
+                     + ' data-module="' + QA_ESC_ATTR(r.module || '') + '"'
+                     + ' title="' + QA_ESC_ATTR(r.session_id) + '">'
+                     + '<span class="qa-run-chip-dot"></span>'
+                     + '<span class="qa-run-chip-name">' + escapeHtml(r.module || r.session_id) + '</span>'
+                     + '<span style="opacity:.6">' + QA_FMT_RUN_AGE(r.started_at) + '</span>'
+                     + '</button>';
+            });
+            others.forEach(function (r) {
+                // Not clickable into this panel — a healing session rendered
+                // under authoring's step labels is exactly the confusion the
+                // per-agent scoping on /run/active exists to prevent.
+                html += '<span class="qa-run-chip other-agent" title="'
+                     + QA_ESC_ATTR(r.agent + ' · ' + r.session_id) + '">'
+                     + '<span class="qa-run-chip-dot"></span>'
+                     + '<span class="qa-run-chip-name">'
+                     + escapeHtml(QA_AGENT_SHORT(r.agent) + ': ' + (r.module || '')) + '</span>'
+                     + '</span>';
+            });
+            el.innerHTML = html;
+            el.style.display = '';
+
+            Array.prototype.forEach.call(el.querySelectorAll('.qa-run-chip[data-session]'),
+                function (chip) {
+                    chip.addEventListener('click', function () {
+                        var sid = chip.getAttribute('data-session');
+                        if (sid && sid !== currentSessionId && typeof onSelect === 'function') {
+                            onSelect(sid, chip.getAttribute('data-module') || '');
+                        }
+                    });
+                });
+        }
+
+        function QA_AGENT_SHORT(agent) {
+            return String(agent || '')
+                .replace('test-', '').replace('-agent', '');
+        }
+
+        // Deliberately NOT the global escapeHtml() below: that one round-trips
+        // through textContent/innerHTML, which escapes & < > but leaves quotes
+        // intact. Safe for a text node, unsafe for the quoted attribute values
+        // built here — a module name containing a double quote would break out
+        // of the attribute. Module names come from user-supplied filenames.
+        function QA_ESC_ATTR(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;',
+                         '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        // Keeps the switcher and capacity fresh while a panel is showing a run.
+        //
+        // A poll rather than the SSE stream, because the stream carries only the
+        // events of the ONE run it is attached to — by construction it can never
+        // mention the user's other runs, which is exactly what the switcher is
+        // for. Deliberately slow: this is peripheral information, and the
+        // browser caps concurrent connections per origin at six, which replaying
+        // history over SSE has already exhausted here once.
+        var QA_RUN_WATCH = {};
+
+        // Same request semantics as the panels' own apiFetch (same-origin
+        // credentials, no cache, JSON), but callable from global scope.
+        function QA_FETCH_JSON(path) {
+            return fetch(path, {
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: { 'Content-Type': 'application/json' }
+            }).then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            });
+        }
+
+        // onTick (optional) is called after each poll, for panels that have their
+        // own queue card to refresh.
+        function QA_START_RUN_WATCH(prefix, agentBase, currentSessionIdFn, onSelect, onTick) {
+            QA_STOP_RUN_WATCH(prefix);
+            function tick() {
+                // Plain fetch, not the panels' apiFetch: that is declared inside
+                // each panel's IIFE, and this helper is global — so calling it
+                // here threw ReferenceError on every tick, silently leaving the
+                // switcher and capacity permanently blank.
+                QA_FETCH_JSON(agentBase + '/run/active').then(function (body) {
+                    if (!QA_RUN_WATCH[prefix]) return;      // stopped while in flight
+                    QA_RENDER_CAPACITY(prefix, body && body.capacity);
+                    QA_RENDER_SWITCHER(prefix, body, currentSessionIdFn(), onSelect);
+
+                    // Self-limiting: once this user has nothing in flight there
+                    // is nothing to switch to and no occupancy worth reporting,
+                    // so stop rather than polling a left-open tab forever.
+                    // Starting a run re-arms it.
+                    if (typeof onTick === 'function') { try { onTick(body); } catch (e) {} }
+
+                    var live = ((body && body.runs) || []).length
+                             + ((body && body.other_agent_runs) || []).length;
+                    if (!live) QA_STOP_RUN_WATCH(prefix);
+                }).catch(function () { /* transient — the next tick retries */ });
+            }
+            QA_RUN_WATCH[prefix] = setInterval(tick, 5000);
+            tick();
+        }
+
+        function QA_STOP_RUN_WATCH(prefix) {
+            if (QA_RUN_WATCH[prefix]) {
+                clearInterval(QA_RUN_WATCH[prefix]);
+                QA_RUN_WATCH[prefix] = null;
+            }
+            var cap = document.getElementById(prefix + 'LiveCapacity');
+            var sw = document.getElementById(prefix + 'LiveSwitcher');
+            if (cap) cap.style.display = 'none';
+            if (sw) { sw.style.display = 'none'; sw.innerHTML = ''; }
+        }
+
         // Stage breakdown table for the session-detail modal.
         function QA_STAGE_TABLE(metrics) {
             if (!metrics) return '';
@@ -12643,9 +12907,9 @@
                         return;
                     }
                     if (res.body.queued) {
-                        // The run slot is shared with the authoring agent — both
-                        // drive the same automation repo, so they never overlap.
-                        showToast('⏳  Another agent run is in progress — queued at position ' +
+                        // Runs are parallel now; queueing means the worker pool
+                        // is full, not that a single shared slot is taken.
+                        showToast('⏳  All workers are busy — queued at position ' +
                                   res.body.position + '.', 'info');
                         loadHistory();
                         return;
@@ -12693,6 +12957,13 @@
                 }
                 STEPS.forEach(function (k) { markStep(k, null); });
                 startElapsed();
+                if (isReplay) {
+                    QA_STOP_RUN_WATCH('heal');
+                } else {
+                    QA_START_RUN_WATCH('heal', BASE,
+                        function () { return state.session; },
+                        function (sid, moduleName) { openRun(sid, moduleName); });
+                }
                 if (isReplay) { replayHistory(); } else { connect(); }
             }
 
@@ -13866,6 +14137,26 @@
                 $('qaCancelBtn').disabled = false;
                 $('qaCancelBtn').style.display = '';
                 startElapsed();
+                // Switcher + capacity. Live runs only: a replay is a finished
+                // session, and offering to switch away from it to a running one
+                // would silently swap what the panel is showing.
+                if (isReplay) {
+                    QA_STOP_RUN_WATCH('qa');
+                } else {
+                    QA_START_RUN_WATCH('qa', AGENT_BASE,
+                        function () { return state.activeSession; },
+                        function (sid, moduleName) { attachLiveRun(sid, moduleName, 0); },
+                        function (body) {
+                            // Queue positions shift as runs finish; refresh only
+                            // when the count actually changed, so the card is not
+                            // rebuilt every five seconds for nothing.
+                            var n = body && body.capacity ? body.capacity.queued : 0;
+                            if (n !== state._lastQueuedCount) {
+                                state._lastQueuedCount = n;
+                                loadQueue();
+                            }
+                        });
+                }
                 if (isReplay) { replayHistory(); } else { subscribe(); }
             }
 
@@ -14469,6 +14760,10 @@
                 applyAgentDefaults();
                 loadModuleFiles();
                 loadHistory();
+                // The card renders from renderQueue(), which only loadQueue()
+                // calls — so without this a reload showed "Pending Queue 0"
+                // while the API was reporting a queued run.
+                loadQueue();
                 // Re-attach to any active run
                 try {
                     const body = await apiFetch(AGENT_BASE + '/run/active');
@@ -15958,9 +16253,9 @@
                     const body = await api('/run', { method: 'POST', body: JSON.stringify(payload) });
                     setRunBtnLoading(false);
                     if (body.queued) {
-                        // One run slot across all three agents — they drive the
-                        // same automation repo, so they never overlap.
-                        showToast('⏳  Another agent run is in progress — queued at position ' +
+                        // Runs are parallel now; queueing means the worker pool
+                        // is full, not that a single shared slot is taken.
+                        showToast('⏳  All workers are busy — queued at position ' +
                                   body.position + '.', 'info');
                         loadHistory();
                         return;
@@ -16095,9 +16390,13 @@
                     // ticking up from zero would report a four-minute run as
                     // 00:00. '—' says "not recorded".
                     if ($('adaptLiveElapsed')) $('adaptLiveElapsed').textContent = '—';
+                    QA_STOP_RUN_WATCH('adapt');
                     replayHistory();
                 } else {
                     startElapsed();
+                    QA_START_RUN_WATCH('adapt', BASE,
+                        function () { return state.session; },
+                        function (sid, moduleName) { openRun(sid, moduleName); });
                     connect();
                 }
             }
@@ -16587,6 +16886,10 @@
                     if (isManualCheck) {
                         alert('Your account is approved! Welcome to AI Test Studio.');
                     }
+                    // Now that the session is valid, the gated /api/agents/* calls
+                    // will authenticate. start() clears its own timer, so calling it
+                    // again on a re-check is a no-op.
+                    if (window.agentGate) window.agentGate.start();
                 } else {
                     appShell.style.display = 'none';
                     if (data.status === 'pending_approval' || (pendingEl && pendingEl.style.display === 'flex' && !authEl.style.display.includes('flex'))) {

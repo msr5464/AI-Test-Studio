@@ -17,8 +17,29 @@ import tempfile
 from flask import Blueprint, request, jsonify, current_app, Response, stream_with_context, session
 
 from backend.services.requirement_analysis_service import RequirementAnalysisService
+from backend.api.auth.routes import require_auth
 
 customer_bp = Blueprint('customer', __name__)
+
+
+@customer_bp.before_request
+@require_auth(admin_only=False)
+def check_auth():
+    """Enforce authentication on every customer route.
+
+    These were entirely unauthenticated. The UI hides the app shell behind an
+    overlay until login, but that is client-side decoration — curl ignores it —
+    so anyone who could reach the port could run requirement analysis (LLM spend
+    on the server's keys), query the RAG corpus, and create or update TestRail
+    cases using the server's stored TestRail credentials, without an account at
+    all. That also defeated the approval gate: a user sitting in
+    pending_approval had the same access as an approved one.
+
+    Mirrors the pattern already used by the agent proxy blueprint. Decorator
+    order matters: require_auth wraps first so its error response short-circuits
+    the request.
+    """
+    pass
 
 # Max lengths for streamed result to avoid huge SSE payloads that fail to send/parse (bigger docs)
 # Test case content includes preconditions, steps, expected result — use enough to show full case

@@ -35,6 +35,11 @@ class User:
         self.status = status
         self.created_at = datetime.now().isoformat()
         self.last_login = None
+        # Set by the approval route and, until now, thrown away again on every
+        # save: to_dict() did not serialise it, so the audit trail for "who was
+        # approved, and when" was silently lost each time the record was written.
+        self.approved_at = None
+        self.approved_by = None
     
     @staticmethod
     def _generate_user_id(username: str) -> str:
@@ -50,7 +55,9 @@ class User:
             'role': self.role,
             'status': self.status,
             'created_at': self.created_at,
-            'last_login': self.last_login
+            'last_login': self.last_login,
+            'approved_at': getattr(self, 'approved_at', None),
+            'approved_by': getattr(self, 'approved_by', None),
         }
     
     @classmethod
@@ -65,6 +72,8 @@ class User:
         )
         user.created_at = data.get('created_at', user.created_at)
         user.last_login = data.get('last_login')
+        user.approved_at = data.get('approved_at')
+        user.approved_by = data.get('approved_by')
         return user
     
     def verify_password(self, password: str) -> bool:

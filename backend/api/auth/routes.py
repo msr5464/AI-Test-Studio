@@ -247,13 +247,32 @@ def update_user(user_id):
     if status not in ['pending_approval', 'active', 'rejected', 'suspended']:
         return jsonify({'success': False, 'error': 'Invalid status'}), 400
 
+    # Losing the last admin is unrecoverable, not merely inconvenient: on the
+    # next boot _ensure_default_admin finds no admin, tries to create one named
+    # 'admin', finds that username already taken, returns None, and silently
+    # does nothing — leaving the system with no way to administer it. The
+    # equivalent guard already existed in auth_service.update_user_role(), but
+    # no route ever called that method.
+    demoting = user.role == 'admin' and role != 'admin'
+    deactivating = user.role == 'admin' and status != 'active'
+    if demoting or deactivating:
+        remaining = [u for u in auth_service.user_storage.list_users(role='admin')
+                     if u.user_id != user_id and getattr(u, 'status', '') == 'active']
+        if not remaining:
+            return jsonify({
+                'success': False,
+                'error': 'Cannot remove the last active admin — promote another '
+                         'user to admin first.'
+            }), 400
+
     user.role = role
     user.status = status
-    
+
     if status == 'active' and not getattr(user, 'approved_at', None):
         from datetime import datetime
         user.approved_at = datetime.now().isoformat()
-    
+        user.approved_by = session.get('user_id')
+
     auth_service.user_storage.update_user(user)
     return jsonify({'success': True}), 200
 
