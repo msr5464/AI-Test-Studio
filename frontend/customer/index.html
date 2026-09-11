@@ -6062,7 +6062,14 @@
         }
 
         /* ── Agent tab buttons: constrain height to match AI Test Generator (emojis inflate line-height) ── */
-        #tabPanelAgents .analyze-tab {
+        /* Count badge would vanish into the active tab's cyan gradient */
+        #tabPanelHealing .analyze-tab.active .qa-live-badge {
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
+        }
+
+        #tabPanelAgents .analyze-tab,
+        #tabPanelHealing .analyze-tab {
             display: inline-flex;
             align-items: center;
             height: 37px;
@@ -6666,7 +6673,8 @@
             flex-wrap: wrap;
         }
 
-        #qaLiveResult {
+        #qaLiveResult,
+        #adaptLiveResult {
             display: contents; /* let children participate in flex gap directly */
         }
 
@@ -7947,7 +7955,7 @@
                             <div class="qa-intent-pane" id="adaptIntentPane" style="display:none;"></div>
                             <div>
                                 <label class="qa-live-meta-label" for="adaptChanged">What changed</label>
-                                <textarea id="adaptChanged" class="qa-textarea" rows="9" spellcheck="false"
+                                <textarea id="adaptChanged" class="analyze-textarea" rows="9"
                                           style="margin-top:6px;width:100%;"
                                           oninput="qaAdapt.onFormChange()"
                                           placeholder="Describe the change to the PRODUCT, one numbered item each:&#10;&#10;1. After login a &quot;Choose workspace&quot; screen now appears before the dashboard.&#10;2. The 3-step checkout wizard is now 2 steps."></textarea>
@@ -8159,6 +8167,20 @@
                     </div>
 
                     <div class="analyze-box">
+                        <!-- Mode tabs: a test the user names, or a build handed off by triaging -->
+                        <div class="analyze-method" role="tablist" aria-label="Input source">
+                            <button type="button" class="analyze-tab active" data-heal-mode="manual"
+                                role="tab" aria-selected="true"
+                                onclick="qaHealing.switchMode('manual')">✏️ Pick a Test</button>
+                            <button type="button" class="analyze-tab" data-heal-mode="triage"
+                                role="tab" aria-selected="false"
+                                onclick="qaHealing.switchMode('triage')">📥 From Triaging Agent
+                                <span class="qa-live-badge badge-running" id="healQueueCount"
+                                      style="font-size:11px;margin-left:6px;">0</span></button>
+                        </div>
+                        <p id="healTabHint" style="font-size:12px;color:var(--text-muted);margin:6px 0 10px;">Pick a failing test or type its name — the agent diagnoses and fixes the locator.</p>
+
+                        <div id="healManualPane" class="analyze-pane active">
                         <div id="healPickerWrap" style="margin-bottom:14px;">
                             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
                                 <div style="flex:1;min-width:150px;">
@@ -8198,6 +8220,12 @@
                             <code>pkg.Class.method</code>, or a bare <code>Class</code> to fix every
                             failing test in it.
                         </p>
+                        </div>
+
+                        <!-- Handoffs waiting from the triaging agent -->
+                        <div id="healTriagePane" class="analyze-pane">
+                            <div id="healQueueWrap" style="margin-bottom:14px;"></div>
+                        </div>
 
                         <div class="analyze-actions" id="healRunActions">
                             <label class="analyze-option">
@@ -8231,15 +8259,6 @@
                         </div>
                         <p class="qa-local-note" id="healLocalNote" hidden style="font-size:12px;color:var(--text-light);margin:8px 0 0 0;">Runs in your local checkout (uncommitted changes included) — edits are left uncommitted there for you to review and commit.</p>
                         <p id="healRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
-                    </div>
-
-                    <!-- Handoffs waiting from the triaging agent -->
-                    <div class="qa-card" id="healQueueCard" style="display:none;margin-top:18px;">
-                        <h3>📥 From Triaging <span class="qa-live-badge badge-running" id="healQueueCount" style="font-size:11px;">0</span></h3>
-                        <p style="font-size:12px;color:var(--text-light);margin:0 0 12px 0;">
-                            Builds that test-triaging-agent has classified as broken locators.
-                        </p>
-                        <div id="healQueueWrap"></div>
                     </div>
 
                     <!-- Live run -->
@@ -9112,7 +9131,7 @@
 
         // Show analyze input pane (paste/file/url)
         function showAnalyzePane(pane) {
-            document.querySelectorAll('.analyze-tab').forEach(function (btn) {
+            document.querySelectorAll('.analyze-tab[data-pane]').forEach(function (btn) {
                 var isActive = btn.getAttribute('data-pane') === pane;
                 btn.classList.toggle('active', isActive);
                 btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
@@ -13470,19 +13489,41 @@
             function loadQueue() {
                 fetchJson(BASE + '/queue').then(function (res) {
                     const items = (res.body && res.body.items) || [];
-                    const card = $('healQueueCard');
                     const wrap = $('healQueueWrap');
-                    if (!card || !wrap) return;
-                    if (!items.length) { card.style.display = 'none'; return; }
-                    card.style.display = 'block';
+                    if (!wrap) return;
                     if ($('healQueueCount')) $('healQueueCount').textContent = items.length;
+                    if (!items.length) {
+                        wrap.innerHTML = '<p style="font-size:13px;color:var(--text-light);margin:0;">' +
+                                         'Nothing waiting — builds that test-triaging-agent classifies as ' +
+                                         'broken locators show up here.</p>';
+                        return;
+                    }
                     wrap.innerHTML = items.map(function (i) {
-                        return '<div class="qa-live-meta-item" style="justify-content:space-between;">' +
+                        return '<div style="display:flex;align-items:center;justify-content:space-between;' +
+                               'gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">' +
                                '<span class="qa-live-meta-value">' + esc(i.name) + '</span>' +
                                '<button type="button" class="qa-btn qa-btn-ghost" style="padding:4px 10px;font-size:12px;" ' +
                                'onclick="qaHealing.runBuild(\'' + esc(i.name) + '\')">Fix →</button></div>';
                     }).join('');
                 }).catch(function () {});
+            }
+
+            function switchMode(mode) {
+                const triage = mode === 'triage';
+                document.querySelectorAll('#tabPanelHealing [data-heal-mode]').forEach(function (btn) {
+                    const on = btn.dataset.healMode === mode;
+                    btn.classList.toggle('active', on);
+                    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+                });
+                $('healManualPane').classList.toggle('active', !triage);
+                $('healTriagePane').classList.toggle('active', triage);
+                // Each handoff row has its own Fix button; the shared one runs the typed test.
+                $('healRunBtn').style.display = triage ? 'none' : '';
+                $('healTabHint').textContent = triage
+                    ? 'Builds that test-triaging-agent classified as broken locators — pick one to fix.'
+                    : 'Pick a failing test or type its name — the agent diagnoses and fixes the locator.';
+                setError('');
+                if (triage) loadQueue();
             }
 
             function runBuild(buildTag) {
@@ -13753,7 +13794,8 @@
                 if (first) resumeActive();
             }
 
-            return { init: init, run: run, runBuild: runBuild, retryForced: retryForced,
+            return { init: init, run: run, runBuild: runBuild, switchMode: switchMode,
+                     retryForced: retryForced,
                      renderPicker: renderPicker, onModuleChange: onModuleChange,
                      onClassChange: onClassChange, onMethodChange: onMethodChange,
                      cancel: cancel,
@@ -15774,6 +15816,12 @@
                 scheduleIntent(cls.qualified_name + '#' + method);
             }
 
+            // Picking a test shows its steps, but only "＋ Add" put it in scope — a
+            // run with nothing added silently covered the whole module instead.
+            function adoptPick() {
+                if (!state.selected.length && ($('adaptTest') || {}).value && currentClass()) addSelected();
+            }
+
             function addSelected() {
                 const cls = currentClass();
                 if (!cls) { setError('Pick a class first.'); return; }
@@ -16007,8 +16055,18 @@
                 const type = deriveType();
                 const url = (($('adaptUrl') || {}).value || '').trim();
                 const widen = !!($('adaptWiden') || {}).checked;
-                const changed = (($('adaptChanged') || {}).value || '').trim();
+                let changed = (($('adaptChanged') || {}).value || '').trim();
                 const outcome = (($('adaptOutcome') || {}).value || '').trim();
+                // Plain prose is the common case — number each line so the parser
+                // (which only reads numbered items) sees them. Already-numbered
+                // text is left alone; its unnumbered lines are continuations.
+                if (changed && !/^\s*\d+[.)]\s*\S/m.test(changed)) {
+                    changed = changed.split('\n')
+                        .map(function (l) { return l.replace(/^\s*[-*•]\s*/, '').trim(); })
+                        .filter(Boolean)
+                        .map(function (l, i) { return (i + 1) + '. ' + l; })
+                        .join('\n');
+                }
 
                 // `#` lines are a human's (or the healing agent's) commentary —
                 // the banner, the "confirm this was intended" note, the observed-by
@@ -16237,6 +16295,7 @@
             }
 
             async function saveNote() {
+                adoptPick();
                 const name = suggestedName();
                 const content = noteText();
                 if (!content.trim()) { msg('The note is empty.', true); return; }
@@ -16303,6 +16362,7 @@
 
             async function run() {
                 setError('');
+                adoptPick();
                 const name = suggestedName();
                 const content = noteText();
                 if (!/^\s*\d+[.)]\s*\S/m.test(content)) {
@@ -16570,7 +16630,10 @@
 
                 try {
                     const s = await api('/sessions/' + encodeURIComponent(state.session));
-                    renderResult(s, $('adaptResult'));
+                    if ($('adaptLiveResult')) $('adaptLiveResult').innerHTML = resultBadges(s);
+                    const body = resultHtml(s, false);
+                    if ($('adaptResult')) $('adaptResult').innerHTML = body
+                        ? '<div class="qa-card"><h3>📋 Result</h3>' + body + '</div>' : '';
                     const status = (s.status || 'unknown').toLowerCase();
                     const badge = $('adaptLiveStatus');
                     if (badge) {
@@ -16587,59 +16650,81 @@
             // Guard rejections and escalations are plain sections, not badges or
             // tooltips: the detail is what matters and it has to be readable and
             // copyable, not hovered over.
-            function renderResult(s, target) {
-                if (!target) return;
+            // Same shapes as the other agents: badges in the Live Run footer, and a
+            // Healing-style body (meta row, h4 sections, console blocks) for the
+            // result card and the history modal.
+            function resultBadges(s) {
+                const c = s.counts || {};
+                const bits = [];
+                if (c.applied) bits.push('<span class="qa-live-badge badge-completed">' + esc(c.applied) + ' applied</span>');
+                if (c.verified) bits.push('<span class="qa-live-badge badge-completed">' + esc(c.verified) + ' verified</span>');
+                if (c.proposed) bits.push('<span class="qa-live-badge">' + esc(c.proposed) + ' proposed</span>');
+                if (c.escalated) bits.push('<span class="qa-live-badge">⚠️ ' + esc(c.escalated) + ' escalated</span>');
+                if (c.rejected) bits.push('<span class="qa-live-badge badge-failed">' + esc(c.rejected) + ' rejected</span>');
+                if (!bits.length) {
+                    const k = (s.status || '').toLowerCase();
+                    bits.push('<span class="qa-live-badge">' + esc(STATUS_LABEL[k] || s.status || 'no changes') + '</span>');
+                }
+                if (s.pr_url) {
+                    bits.push('<a href="' + esc(s.pr_url) + '" target="_blank" rel="noopener" ' +
+                              'class="qa-result-pr-btn">View PR →</a>');
+                }
+                return bits.join('');
+            }
+
+            function resultHtml(s, withMeta) {
                 const reports = s.reports || {};
-                const counts = s.counts || {};
+                const h4 = function (t) { return '<h4 style="margin:16px 0 6px 0;font-size:13px;">' + t + '</h4>'; };
+                const meta = function (label, value) {
+                    return '<div class="qa-live-meta-item"><span class="qa-live-meta-label">' + label +
+                           '</span><span class="qa-live-meta-value">' + value + '</span></div>';
+                };
                 const parts = [];
 
-                parts.push('<div class="qa-card"><strong>' + esc(s.note || s.module || '') +
-                    '</strong>' + (s.module && s.note && s.module !== s.note
-                        ? ' <span class="qa-card-sub">(' + esc(s.module) + ')</span>' : '') + ' · ' +
-                    esc(s.change_items || 0) + ' change item(s) · ' +
-                    esc(s.tests_in_scope || 0) + ' test(s) in scope · explore: ' +
-                    esc(s.explore_status || '—') + '</div>');
+                if (withMeta) {
+                    parts.push('<div class="qa-live-meta">' +
+                        meta('Change note', esc(s.note || '—')) +
+                        meta('Module', esc(s.module || '—')) +
+                        meta('Scope', esc(s.change_items || 0) + ' change item(s) · ' +
+                                      esc(s.tests_in_scope || 0) + ' test(s)') +
+                        meta('Explore', esc(s.explore_status || '—')) +
+                        meta('Result', adaptationResult(s)) + '</div>');
+                    if (s.pr_url) {
+                        parts.push('<p style="margin:12px 0 0 0;"><a href="' + esc(s.pr_url) +
+                            '" target="_blank" rel="noopener">View PR →</a> ' +
+                            '<span class="qa-card-sub">' + esc(s.verdict || 'NEEDS-REVIEW') +
+                            ' — every adaptation PR needs a human review.</span></p>');
+                    }
+                }
 
-                if ((s.escalations || []).length) {
-                    parts.push('<div class="qa-card"><strong>⚠️ Escalated to a human</strong>' +
-                        '<div class="qa-card-sub">The agent stopped rather than guessing. ' +
-                        'That is the design working.</div><ul>' +
-                        s.escalations.map(function (e) {
+                // One escalation per adapt attempt can repeat the same item verbatim.
+                const seen = {};
+                const escs = (s.escalations || []).filter(function (e) {
+                    const k = e.what + '\n' + e.why;
+                    return seen[k] ? false : (seen[k] = true);
+                });
+                if (escs.length) {
+                    parts.push('<div class="qa-draft-banner"><span>⚠️</span><div>' +
+                        '<strong>Escalated to a human</strong> — the agent stopped rather than guessing.' +
+                        '<ul style="margin:6px 0 0 0;padding-left:18px;">' +
+                        escs.map(function (e) {
                             return '<li><strong>' + esc(e.what) + '</strong> — ' + esc(e.why) + '</li>';
-                        }).join('') + '</ul></div>');
+                        }).join('') + '</ul></div></div>');
                 }
 
-                parts.push('<div class="qa-card">applied ' + esc(counts.applied || 0) +
-                    ' · proposed ' + esc(counts.proposed || 0) +
-                    ' · rejected ' + esc(counts.rejected || 0) +
-                    ' · escalated ' + esc(counts.escalated || 0) +
-                    ' · verified ' + esc(counts.verified || 0) + '</div>');
-
-                // Stage-level time and cost, same table as the other two panels.
-                const _stageTable = QA_STAGE_TABLE(s.metrics);
-                if (_stageTable) {
-                    parts.push('<div class="qa-card"><strong>Time &amp; cost</strong>'
-                        + _stageTable + '</div>');
-                }
-
-                if (s.pr_url) {
-                    parts.push('<div class="qa-card"><a href="' + esc(s.pr_url) +
-                        '" target="_blank" rel="noopener">Open the PR</a> — ' +
-                        esc(s.verdict || 'NEEDS-REVIEW') +
-                        '<div class="qa-card-sub">Every adaptation PR needs a human review: ' +
-                        'the agent may change test steps, not just selectors.</div></div>');
-                }
+                // Live, the console's per-stage "✓ Stage — time · cost" lines already
+                // say this, as in Authoring; only the history modal needs the table.
+                const stageTable = withMeta && QA_STAGE_TABLE(s.metrics);
+                if (stageTable) parts.push(h4('Time &amp; cost') + stageTable);
 
                 ['scope', 'explore', 'adapt'].forEach(function (key) {
-                    const md = reports[key];
-                    if (!md) return;
-                    parts.push('<details class="qa-card"><summary>' +
-                        esc(STEP_LABELS[key] || key) + ' report</summary>' +
-                        '<div class="qa-console" style="white-space:pre-wrap;max-height:420px;' +
-                        'overflow:auto;">' + esc(md) + '</div></details>');
+                    if (!reports[key]) return;
+                    parts.push(h4(esc(STEP_LABELS[key] || key) + ' report') +
+                        '<pre class="qa-console" style="max-height:260px;white-space:pre-wrap;">' +
+                        esc(reports[key]) + '</pre>');
                 });
 
-                target.innerHTML = parts.join('');
+                return parts.join('');
             }
 
             // No counts does not mean no outcome — a run the gate stopped still
@@ -16783,7 +16868,7 @@
                 modal.classList.add('active');
                 try {
                     const s = await api('/sessions/' + encodeURIComponent(sessionId));
-                    renderResult(s, detail);
+                    detail.innerHTML = resultHtml(s, true);
                 } catch (e) {
                     detail.innerHTML = '<div class="qa-empty-hint">Could not open ' +
                         esc(sessionId) + ': ' + esc(e.message) + '</div>';
