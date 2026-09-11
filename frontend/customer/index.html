@@ -7775,6 +7775,7 @@
                                 </span>
                             </button>
                         </div>
+                        <p class="qa-local-note" id="qaLocalNote" hidden style="font-size:12px;color:var(--text-light);margin:8px 0 0 0;">Runs in your local checkout (uncommitted changes included) — edits are left uncommitted there for you to review and commit.</p>
                         <p id="qaRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
                     </div>
 
@@ -8033,6 +8034,7 @@
                             </button>
                         </div>
                         <div id="adaptRunMsg" class="qa-card-sub" style="margin-top:8px;"></div>
+                        <p class="qa-local-note" id="adaptLocalNote" hidden style="font-size:12px;color:var(--text-light);margin:8px 0 0 0;">Runs in your local checkout (uncommitted changes included) — edits are left uncommitted there for you to review and commit.</p>
                         <p id="adaptRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
                     </div>
 
@@ -8227,6 +8229,7 @@
                                 </span>
                             </button>
                         </div>
+                        <p class="qa-local-note" id="healLocalNote" hidden style="font-size:12px;color:var(--text-light);margin:8px 0 0 0;">Runs in your local checkout (uncommitted changes included) — edits are left uncommitted there for you to review and commit.</p>
                         <p id="healRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
                     </div>
 
@@ -12626,6 +12629,7 @@
             const _defaults = {};   // inputId -> the default the server reported
             const _branches = {};   // inputId -> every branch the server listed
             const _wired = {};      // inputId -> combobox handlers attached
+            const _locals = {};     // inputId -> the branch the checkout is on
 
             function $(id) { return document.getElementById(id); }
             function menuFor(input) { return $(input.getAttribute('aria-controls')); }
@@ -12671,6 +12675,9 @@
             }
 
             function open(input) {
+                // Pinned to the local branch: there is nothing to choose, and a
+                // menu that opens over a read-only field reads as a bug.
+                if (input.readOnly) return;
                 render(input);
                 const menu = menuFor(input);
                 if (!menu) return;
@@ -12781,6 +12788,7 @@
                     const dflt = (cfg && cfg.default_branch) || '';
                     if (!dflt) throw new Error('no default_branch');
                     _defaults[inputId] = dflt;
+                    _locals[inputId] = (cfg && cfg.local_branch) || '';
                     if (!el.value) el.value = dflt;
                     reflectTitle(el);
                 } catch (e) {
@@ -12795,6 +12803,43 @@
                 } catch (e) {
                     _branches[inputId] = [];   // the field is free text; the run still validates
                 }
+                // A panel sets its mode from its own /config call, which can land
+                // before this one does. Re-applying here rather than hoping the
+                // two resolve in order is what stops a first paint that offers a
+                // branch choice the run would ignore.
+                if (_mode[inputId]) applyLocalMode(inputId, true, _notes[inputId]);
+            }
+
+            // ── Local-checkout mode ─────────────────────────────────────────
+            // With auto-push off the run executes in the developer's own
+            // checkout, on whatever branch is already there — so a list of remote
+            // branches offers a choice the run will not honour. The field
+            // collapses to that one branch until auto-push comes back on.
+            const _mode = {};
+            const _saved = {};
+            const _notes = {};
+
+            function applyLocalMode(inputId, isLocal, noteId) {
+                const el = $(inputId);
+                _mode[inputId] = !!isLocal;
+                if (noteId) _notes[inputId] = noteId;
+                const note = $(_notes[inputId]);
+                if (note) note.hidden = !isLocal;
+                if (!el) return;
+                // 'HEAD' is a detached checkout, not a branch name worth pinning.
+                const local = _locals[inputId];
+                if (isLocal && local && local !== 'HEAD') {
+                    if (!(inputId in _saved)) _saved[inputId] = el.value;
+                    el.value = local;
+                    el.readOnly = true;
+                    el.title = local + ' — your local checkout';
+                    close(el);
+                } else if (!isLocal && (inputId in _saved)) {
+                    el.value = _saved[inputId];
+                    delete _saved[inputId];
+                    el.readOnly = false;
+                    reflectTitle(el);
+                }
             }
 
             function payload(inputId) {
@@ -12804,7 +12849,7 @@
                 return { base_branch: value };
             }
 
-            return { seed: seed, payload: payload };
+            return { seed: seed, payload: payload, applyLocalMode: applyLocalMode };
         })();
 
         window.qaHealing = (function () {
@@ -13274,7 +13319,17 @@
                         box.checked = !!res.body.auto_push_default;
                         state.defaultsApplied = true;
                     }
-                }).catch(function () { /* leave the box as-is */ });
+                }).catch(function () { /* leave the box as-is */ })
+                  .then(syncLocalMode);
+            }
+
+            // Auto-push off means the run happens in the developer's own
+            // checkout, on the branch already there — so the base-branch picker
+            // has one honest answer and the panel says where the edits will land.
+            function syncLocalMode() {
+                const box = $('healAutoPush');
+                qaBranchField.applyLocalMode('healBaseBranch', !(box && box.checked),
+                                             'healLocalNote');
             }
 
             function loadCatalog() {
@@ -13685,6 +13740,10 @@
             function init() {
                 const first = !state.initialised;
                 state.initialised = true;
+                if (first) {
+                    const box = $('healAutoPush');
+                    if (box) box.addEventListener('change', syncLocalMode);
+                }
                 // Every call refreshes: the first open may have happened while the
                 // server was down, leaving the catalogue and defaults unfetched.
                 applyDefaults();
@@ -14747,6 +14806,16 @@
                     }
                 } catch (e) { /* leave the box as-is */ }
                 qaBranchField.seed('qaBaseBranch', 'qaBranchList', AGENT_BASE);
+                syncLocalMode();
+            }
+
+            // Auto-push off means the run happens in the developer's own
+            // checkout, on the branch already there — so the base-branch picker
+            // has one honest answer and the panel says where the edits will land.
+            function syncLocalMode() {
+                const box = $('qaAutoPush');
+                qaBranchField.applyLocalMode('qaBaseBranch', !(box && box.checked),
+                                             'qaLocalNote');
             }
 
             async function init() {
@@ -14754,6 +14823,8 @@
                     state.initialised = true;
                     $('qaHealthRefresh').addEventListener('click', checkHealth);
                     $('qaModuleSelect').addEventListener('change', function (ev) { previewModule(ev.target.value); });
+                    const pushBox = $('qaAutoPush');
+                    if (pushBox) pushBox.addEventListener('change', syncLocalMode);
                     window.addEventListener('beforeunload', closeStream);
                 }
                 checkHealth();
@@ -16208,7 +16279,16 @@
                     if (!sel) return;
                     sel.value = !res.body.adapt_apply_default ? 'propose'
                         : (res.body.auto_push_default ? 'apply_pr' : 'apply');
-                }).catch(function () { /* leave the select as-is */ });
+                }).catch(function () { /* leave the select as-is */ })
+                  .then(syncLocalMode);
+            }
+
+            // Only `apply_pr` raises a PR; the other three rungs all send
+            // auto_push:false and therefore run in the developer's own checkout.
+            function syncLocalMode() {
+                const depth = ($('adaptDepth') || {}).value;
+                qaBranchField.applyLocalMode('adaptBaseBranch', depth !== 'apply_pr',
+                                             'adaptLocalNote');
             }
 
             // ── Running ──────────────────────────────────────────────────────
@@ -16737,6 +16817,8 @@
             function wireOnce() {
                 if (_wired) return;
                 _wired = true;
+                const depth = $('adaptDepth');
+                if (depth) depth.addEventListener('change', syncLocalMode);
                 document.querySelectorAll('#adaptProgressSteps .qa-step-retry-btn')
                     .forEach(function (btn) {
                         btn.addEventListener('click', function (e) {
