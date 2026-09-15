@@ -362,7 +362,7 @@ REQUIREMENT_PARALLEL_PROCESSING=true          # process requirements in parallel
 #### QA Agent Network (optional)
 ```bash
 # URL of the QA-Agent-Network server (see QA-Agent-Network repo)
-# QA_AGENT_NETWORK_URL=http://localhost:8765
+# QA_AGENT_NETWORK_URL=http://localhost:6001
 # QA_AGENT_NETWORK_TIMEOUT=30
 ```
 

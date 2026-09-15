@@ -45,16 +45,57 @@ def create_app():
                 template_folder='../frontend')
 
     # Configuration
+    #
+    # SECRET_KEY signs the session cookie, and the session cookie is the ONLY
+    # thing separating a visitor from an admin. Every value below is published
+    # in this repository — the code fallback, and the placeholder shipped in
+    # config/env.example — so knowing one is enough to mint a valid admin
+    # cookie: user ids are md5(username)[:12], making the admin's id derivable
+    # too (and QA-Agent-Network hardcodes it as 21232f297a57).
+    #
+    # The previous guard compared only against the CODE fallback while the live
+    # value came from config/.env as the env.example placeholder. The two
+    # differ, so the warning never printed once, and a warning would have been
+    # too weak regardless.
+    _INSECURE_SECRETS = {
+        'dev-secret-key-change-in-production',
+        'your-secret-key-here-change-in-production',
+        'change-me', 'secret', '',
+    }
     _secret = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    if _secret == 'dev-secret-key-change-in-production' and os.getenv('FLASK_DEBUG', 'False').lower() != 'true':
-        print("⚠️  WARNING: Using default SECRET_KEY — set SECRET_KEY env var for production!")
+    _debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    if _secret.strip() in _INSECURE_SECRETS:
+        if not _debug:
+            raise RuntimeError(
+                "SECRET_KEY is unset or set to a publicly known placeholder. "
+                "Session cookies signed with it can be forged by anyone who has "
+                "read this repository, including as an admin. Generate one with "
+                "`python3 -c \"import secrets; print(secrets.token_urlsafe(48))\"` "
+                "and set SECRET_KEY, or set FLASK_DEBUG=true for local development."
+            )
+        print("⚠️  WARNING: placeholder SECRET_KEY — development only, sessions are forgeable")
     app.config['SECRET_KEY'] = _secret
+
+    # Cookie hardening. None of these were set: Secure defaults to False, so the
+    # session rode plaintext HTTP, and SameSite was unset entirely.
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config['SESSION_COOKIE_SECURE'] = (
+        os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true')
     app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('ADMIN_UPLOAD_MAX_SIZE_MB', 50)) * 1024 * 1024
     app.config['PERMANENT_SESSION_LIFETIME'] = 7200  # 2 hours
 
-    # CORS: restrict origins in production (set CORS_ALLOWED_ORIGINS env var)
-    _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '*').split(',')
+    # CORS. The default was '*' WITH supports_credentials=True below, which
+    # Flask-CORS resolves by reflecting the caller's Origin and setting
+    # Access-Control-Allow-Credentials: true — so any site on the internet could
+    # make credentialed, readable requests against a live admin session, and
+    # there is no CSRF token anywhere in this codebase. The key was also absent
+    # from config/env.example, so nobody was ever prompted to set it.
+    _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
     _cors_origins = [o.strip() for o in _cors_origins if o.strip()]
+    if not _cors_origins:
+        _port = os.getenv('PORT', '5001')
+        _cors_origins = [f"http://localhost:{_port}", f"http://127.0.0.1:{_port}"]
     CORS(app, resources={
         r"/api/*": {"origins": _cors_origins, "supports_credentials": True},
         r"/admin/*": {"origins": _cors_origins, "supports_credentials": True},

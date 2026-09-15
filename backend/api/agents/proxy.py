@@ -12,7 +12,7 @@ The browser never talks to the QA-Agent-Network server directly — it calls
   3. Streams the response back (plain JSON or text/event-stream)
 
 Configuration:
-  - QA_AGENT_NETWORK_URL      (default http://localhost:8765)
+  - QA_AGENT_NETWORK_URL      (default http://localhost:6001)
   - QA_AGENT_NETWORK_TIMEOUT  (default 30, seconds; only applies to non-stream)
 """
 
@@ -23,29 +23,20 @@ from typing import Iterable, Tuple
 
 import requests
 from flask import (Blueprint, Response, current_app, jsonify, request,
-                   stream_with_context)
+                   stream_with_context, session)
+from backend.api.auth.routes import require_auth
 
 agents_bp = Blueprint("agents_proxy", __name__)
 
-
-# ⚠️ NO AUTHENTICATION IS ENFORCED HERE.
-#
-# The module docstring above says these routes are gated by require_auth(), but
-# no route carries the decorator and there is no before_request guard — every
-# /api/agents/* endpoint, including POST /run which spawns processes on the host,
-# is reachable without a session.
-#
-# This was tried as a blueprint-wide before_request guard and reverted: the
-# customer UI never authenticates (nothing in frontend/customer/index.html calls
-# /api/auth/login) and no other customer API requires auth either, so enforcing
-# it here 401s the working Tests-to-Automation panel with no way for a user to
-# log in. Closing the gap needs a product decision — add a login flow to the
-# customer UI, bind the app to localhost, or accept the exposure — so it is
-# flagged here rather than changed unilaterally.
+@agents_bp.before_request
+@require_auth(admin_only=False)
+def check_auth():
+    """Enforce authentication on all agent proxy routes."""
+    pass
 
 
 def _upstream_base() -> str:
-    return os.getenv("QA_AGENT_NETWORK_URL", "http://localhost:8765").rstrip("/")
+    return os.getenv("QA_AGENT_NETWORK_URL", "http://localhost:6001").rstrip("/")
 
 
 def _timeout() -> float:
@@ -65,8 +56,46 @@ _HOP_BY_HOP_HEADERS = {
 }
 
 
+# Headers a client must never be able to set on a proxied request. X-User-* IS
+# the identity qa_agents_server trusts, and X-User-Role is its only admin
+# assertion, so forwarding a client's own copy is impersonation. Cookie and
+# Authorization are stripped because the upstream neither needs nor should log
+# this app's session cookie.
+#
+# This was previously safe only by accident: WSGI normalises an inbound header
+# to "X-User-Id" while the injector writes "X-User-ID" — different dict keys —
+# and requests happened to resolve the collision last-write-wins. Reordering two
+# lines, or swapping requests for httpx, would silently have turned that into a
+# full impersonation hole.
+_CLIENT_CONTROLLED_HEADERS = {
+    "x-user-id", "x-user-name", "x-user-role", "x-proxy-secret",
+    "cookie", "authorization",
+}
+
+
 def _filter_headers(headers: Iterable[Tuple[str, str]]) -> dict:
-    return {k: v for k, v in headers if k.lower() not in _HOP_BY_HOP_HEADERS}
+    return {k: v for k, v in headers
+            if k.lower() not in _HOP_BY_HOP_HEADERS
+            and k.lower() not in _CLIENT_CONTROLLED_HEADERS}
+
+
+def _inject_user_headers(headers: dict) -> dict:
+    """Inject current user context for qa_agents_server."""
+    # Drop any casing variant that survived, so ours is unambiguously the only
+    # copy rather than merely the last one written.
+    for key in list(headers):
+        if key.lower() in _CLIENT_CONTROLLED_HEADERS:
+            del headers[key]
+    headers["X-User-ID"] = session.get("user_id", "default")
+    headers["X-User-Name"] = session.get("username", "Unknown")
+    headers["X-User-Role"] = session.get("role", "member")
+    # Proves to qa_agents_server that the identity headers came from this proxy
+    # rather than straight off the network. Optional: unset means the upstream
+    # is relying on binding to localhost instead.
+    secret = (os.getenv("QA_AGENT_PROXY_SECRET") or "").strip()
+    if secret:
+        headers["X-Proxy-Secret"] = secret
+    return headers
 
 
 def _unreachable_response() -> Tuple[Response, int]:
@@ -82,13 +111,15 @@ def _unreachable_response() -> Tuple[Response, int]:
 def _forward_json(method: str, path: str):
     """Forward a simple JSON request. Returns a Flask Response."""
     url = f"{_upstream_base()}{path}"
+    outbound_headers = _filter_headers(request.headers.items())
+    outbound_headers = _inject_user_headers(outbound_headers)
     try:
         upstream = requests.request(
             method=method,
             url=url,
             params=request.args,
             json=request.get_json(silent=True) if method in ("POST", "PUT", "PATCH") else None,
-            headers=_filter_headers(request.headers.items()),
+            headers=outbound_headers,
             timeout=_timeout(),
         )
     except requests.Timeout:
@@ -114,11 +145,13 @@ def _forward_json(method: str, path: str):
 def _forward_stream(path: str) -> Response:
     """Forward an SSE (or any streaming) GET request."""
     url = f"{_upstream_base()}{path}"
+    outbound_headers = _filter_headers(request.headers.items())
+    outbound_headers = _inject_user_headers(outbound_headers)
     try:
         upstream = requests.get(
             url,
             params=request.args,
-            headers=_filter_headers(request.headers.items()),
+            headers=outbound_headers,
             stream=True,
             timeout=(10, None),  # connect timeout only; no read timeout
         )
@@ -204,159 +237,39 @@ def health():
     })
 
 
-# ── Feature file CRUD ────────────────────────────────────────────────────────
-@agents_bp.route("/test-authoring-agent/queue", methods=["GET"])
-def queue_list():
-    return _forward_json("GET", "/agents/test-authoring-agent/queue")
+# ── One forwarder for every agent route ──────────────────────────────────────
+#
+# This used to be ~15 hand-written route decorators per agent, each body a
+# one-line `_forward_json("GET", "/agents/test-authoring-agent/queue")`. Two
+# agents made that 30 near-identical functions, and a third would have made 45 —
+# with the failure mode that a route someone forgot to copy 404s only for the
+# new agent, which is the sort of thing nobody notices until a demo.
+#
+# The upstream server already dispatches on the agent segment, so this only has
+# to pass it through. The allowlist stays: this path reaches an internal service,
+# and forwarding an arbitrary agent name to it is not something to leave open.
+_ALLOWED_AGENTS = {
+    "test-authoring-agent",
+    "test-healing-agent",
+    "test-adaptation-agent",
+}
 
 
-@agents_bp.route("/test-authoring-agent/queue", methods=["POST"])
-def queue_create():
-    return _forward_json("POST", "/agents/test-authoring-agent/queue")
+@agents_bp.route("/<agent>/<path:rest>",
+                 methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+def forward_agent(agent: str, rest: str):
+    if agent not in _ALLOWED_AGENTS:
+        return jsonify({
+            "error": f"unknown agent: {agent}",
+            "known": sorted(_ALLOWED_AGENTS),
+        }), 404
 
+    # No query string here: both forwarders already pass params=request.args,
+    # so appending it would send every parameter twice.
+    path = f"/agents/{agent}/{rest}"
 
-@agents_bp.route("/test-authoring-agent/queue/<name>", methods=["GET"])
-def queue_read(name: str):
-    return _forward_json("GET", f"/agents/test-authoring-agent/queue/{name}")
-
-
-@agents_bp.route("/test-authoring-agent/config", methods=["GET"])
-def authoring_config():
-    return _forward_json("GET", "/agents/test-authoring-agent/config")
-
-
-# ── Run control ──────────────────────────────────────────────────────────────
-@agents_bp.route("/test-authoring-agent/run", methods=["POST"])
-def run_start():
-    return _forward_json("POST", "/agents/test-authoring-agent/run")
-
-
-@agents_bp.route("/test-authoring-agent/run/active", methods=["GET"])
-def run_active():
-    return _forward_json("GET", "/agents/test-authoring-agent/run/active")
-
-
-@agents_bp.route("/test-authoring-agent/sessions/<session_id>/events", methods=["GET"])
-def authoring_session_events(session_id: str):
-    return _forward_json("GET", f"/agents/test-authoring-agent/sessions/{session_id}/events")
-
-
-@agents_bp.route("/test-authoring-agent/run/queue", methods=["GET"])
-def pending_queue_list():
-    return _forward_json("GET", "/agents/test-authoring-agent/run/queue")
-
-
-@agents_bp.route("/test-authoring-agent/run/queue/<int:index>", methods=["DELETE"])
-def pending_queue_remove(index: int):
-    return _forward_json("DELETE", f"/agents/test-authoring-agent/run/queue/{index}")
-
-
-@agents_bp.route("/test-authoring-agent/run/<session_id>/cancel", methods=["POST"])
-def run_cancel(session_id: str):
-    return _forward_json("POST", f"/agents/test-authoring-agent/run/{session_id}/cancel")
-
-
-# ── Stream (SSE) ─────────────────────────────────────────────────────────────
-@agents_bp.route("/test-authoring-agent/run/<session_id>/stream", methods=["GET"])
-def run_stream(session_id: str):
-    return _forward_stream(f"/agents/test-authoring-agent/run/{session_id}/stream")
-
-
-# ── History ──────────────────────────────────────────────────────────────────
-@agents_bp.route("/test-authoring-agent/sessions", methods=["GET"])
-def sessions_list():
-    return _forward_json("GET", "/agents/test-authoring-agent/sessions")
-
-
-@agents_bp.route("/test-authoring-agent/sessions/<session_id>", methods=["GET"])
-def sessions_get(session_id: str):
-    return _forward_json("GET", f"/agents/test-authoring-agent/sessions/{session_id}")
-
-
-@agents_bp.route("/test-authoring-agent/sessions/<session_id>/retry", methods=["POST"])
-def sessions_retry(session_id: str):
-    return _forward_json("POST", f"/agents/test-authoring-agent/sessions/{session_id}/retry")
-
-
-# ── test-healing-agent ───────────────────────────────────────────────────────
-# Same shapes as the authoring routes above. POST /run takes either
-# {"test": "Class#method", "repair": bool, "force": bool} for a standalone run,
-# or {"build_tag": "..."} to pick up a handoff test-triaging-agent already queued.
-_HEALING = "/agents/test-healing-agent"
-
-
-@agents_bp.route("/test-healing-agent/queue", methods=["GET"])
-def healing_queue_list():
-    return _forward_json("GET", f"{_HEALING}/queue")
-
-
-@agents_bp.route("/test-healing-agent/queue/<name>", methods=["GET"])
-def healing_queue_read(name: str):
-    return _forward_json("GET", f"{_HEALING}/queue/{name}")
-
-
-@agents_bp.route("/test-healing-agent/config", methods=["GET"])
-def healing_config():
-    return _forward_json("GET", f"{_HEALING}/config")
-
-
-@agents_bp.route("/test-healing-agent/tests", methods=["GET"])
-def healing_tests_list():
-    return _forward_json("GET", f"{_HEALING}/tests")
-
-
-@agents_bp.route("/test-healing-agent/run", methods=["POST"])
-def healing_run_start():
-    return _forward_json("POST", f"{_HEALING}/run")
-
-
-@agents_bp.route("/test-healing-agent/run/active", methods=["GET"])
-def healing_run_active():
-    return _forward_json("GET", f"{_HEALING}/run/active")
-
-
-# Artefact files (screenshot / DOM / trace / video). Binary, so it cannot go
-# through _forward_json — stream the bytes and keep the upstream content type.
-@agents_bp.route("/test-healing-agent/artifact", methods=["GET"])
-def healing_artifact():
-    return _forward_stream(f"{_HEALING}/artifact")
-
-
-@agents_bp.route("/test-authoring-agent/artifact", methods=["GET"])
-def authoring_artifact():
-    return _forward_stream("/agents/test-authoring-agent/artifact")
-
-
-@agents_bp.route("/test-healing-agent/sessions/<session_id>/events", methods=["GET"])
-def healing_session_events(session_id: str):
-    return _forward_json("GET", f"{_HEALING}/sessions/{session_id}/events")
-
-
-@agents_bp.route("/test-healing-agent/run/queue", methods=["GET"])
-def healing_pending_queue_list():
-    return _forward_json("GET", f"{_HEALING}/run/queue")
-
-
-@agents_bp.route("/test-healing-agent/run/queue/<int:index>", methods=["DELETE"])
-def healing_pending_queue_remove(index: int):
-    return _forward_json("DELETE", f"{_HEALING}/run/queue/{index}")
-
-
-@agents_bp.route("/test-healing-agent/run/<session_id>/cancel", methods=["POST"])
-def healing_run_cancel(session_id: str):
-    return _forward_json("POST", f"{_HEALING}/run/{session_id}/cancel")
-
-
-@agents_bp.route("/test-healing-agent/run/<session_id>/stream", methods=["GET"])
-def healing_run_stream(session_id: str):
-    return _forward_stream(f"{_HEALING}/run/{session_id}/stream")
-
-
-@agents_bp.route("/test-healing-agent/sessions", methods=["GET"])
-def healing_sessions_list():
-    return _forward_json("GET", f"{_HEALING}/sessions")
-
-
-@agents_bp.route("/test-healing-agent/sessions/<session_id>", methods=["GET"])
-def healing_sessions_get(session_id: str):
-    return _forward_json("GET", f"{_HEALING}/sessions/{session_id}")
+    # SSE has to stream; everything else is a plain JSON round-trip. Deciding on
+    # the suffix rather than on a route table keeps the two lists from drifting.
+    if request.method == "GET" and rest.endswith("/stream"):
+        return _forward_stream(path)
+    return _forward_json(request.method, path)

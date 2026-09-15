@@ -44,9 +44,9 @@ All three repos run on the same machine or server and communicate over HTTP and 
 │                                                                             │
 │   /api/agents/*  ──────────── proxy ──────────────────────────────────────► │
 └──────────────────────────────┬──────────────────────────────────────────────┘
-                               │ HTTP :8765
+                               │ HTTP :6001
 ┌──────────────────────────────▼──────────────────────────────────────────────┐
-│                      QA-AGENT-NETWORK  :8765                                │
+│                      QA-AGENT-NETWORK  :6001                                │
 │                                                                             │
 │  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐ │
 │  │  Test Authoring     │  │  Test Triaging       │  │  Test Healing       │ │
@@ -82,7 +82,7 @@ All three repos run on the same machine or server and communicate over HTTP and 
 | Repo | Language | Role | Port |
 |---|---|---|---|
 | **AI-Test-Studio** | Python / Flask | Web UI + orchestration hub + RAG engine | 5001 |
-| **QA-Agent-Network** | Python + Bash | Multi-agent AI pipeline (3 agents + HTTP server) | 8765 |
+| **QA-Agent-Network** | Python + Bash | Multi-agent AI pipeline (3 agents + HTTP server) | 6001 |
 | **Jarvis** | Java / Maven | Automation test execution framework (target repo) | — |
 
 **Physical layout on disk:**
@@ -109,7 +109,7 @@ AI-Test-Studio/
 │   │   ├── auth/routes.py        ← Login, logout, session, brute-force protection
 │   │   ├── admin/routes.py       ← Upload docs, TestRail/Confluence sync, ChromaDB mgmt
 │   │   ├── customer/routes.py    ← Requirement analysis (SSE), RAG query, TestRail push
-│   │   └── agents/proxy.py       ← Reverse proxy: /api/agents/* → QA-Agent-Network :8765
+│   │   └── agents/proxy.py       ← Reverse proxy: /api/agents/* → QA-Agent-Network :6001
 │   ├── services/                 ← RAGService, AuthService, SyncService, SettingsService
 │   ├── rag/                      ← ChromaDB helpers, multi-format doc parsing, embedding cache
 │   └── connectors/               ← TestRail API, Confluence API
@@ -150,11 +150,11 @@ AI-Test-Studio/
 
 ### 3.3 The Agents Proxy (Key Integration Point)
 
-`backend/api/agents/proxy.py` is the bridge between AI-Test-Studio and QA-Agent-Network. Every request to `/api/agents/*` on port 5001 is transparently forwarded to `http://localhost:8765/agents/*`.
+`backend/api/agents/proxy.py` is the bridge between AI-Test-Studio and QA-Agent-Network. Every request to `/api/agents/*` on port 5001 is transparently forwarded to `http://localhost:6001/agents/*`.
 
 ```python
 # All routes under /api/agents/* forward to QA_AGENT_NETWORK_URL
-QA_AGENT_NETWORK_URL = os.getenv("QA_AGENT_NETWORK_URL", "http://localhost:8765")
+QA_AGENT_NETWORK_URL = os.getenv("QA_AGENT_NETWORK_URL", "http://localhost:6001")
 ```
 
 This means AI-Test-Studio does **not** need to know how agents work internally — it just proxies HTTP and streams SSE back to the browser.
@@ -195,7 +195,7 @@ QA-Agent-Network/
 │       ├── run.sh
 │       ├── actions/              ← 01_fix.py, 02_ship.py
 │       └── lib/                  ← code_analyzer.py
-├── qa_agents_server/             ← Flask HTTP server on :8765
+├── qa_agents_server/             ← Flask HTTP server on :6001
 │   ├── app.py                    ← Server factory, CORS config, runner init
 │   ├── routes.py                 ← REST + SSE endpoints
 │   ├── runner.py                 ← Subprocess management + SSE ring buffer
@@ -358,11 +358,11 @@ Jarvis/
 
 ```
 AI-Test-Studio ←──HTTP──→ QA-Agent-Network ←──Filesystem/subprocess──→ Jarvis
-   :5001                      :8765
+   :5001                      :6001
 ```
 
 **Connection 1 — AI-Test-Studio → QA-Agent-Network (HTTP)**
-- Config: `QA_AGENT_NETWORK_URL=http://localhost:8765` in `AI-Test-Studio/config/.env`
+- Config: `QA_AGENT_NETWORK_URL=http://localhost:6001` in `AI-Test-Studio/config/.env`
 - Mechanism: `backend/api/agents/proxy.py` proxies all `/api/agents/*` requests
 - Protocol: HTTP JSON + SSE (Server-Sent Events for live streaming)
 
@@ -448,7 +448,7 @@ Step 1: Engineer writes test steps in plain English → saves to a .txt file
 Step 2: Frontend: POST /api/agents/test-authoring-agent/run
         { "module": "payments", "auto_push": true }
         │
-        ▼ proxy.py forwards to :8765
+        ▼ proxy.py forwards to :6001
 Step 3: qa_agents_server assigns SESSION_ID, spawns run.sh as subprocess
         Live SSE stream available at: GET /run/<session_id>/stream
         │
@@ -639,7 +639,7 @@ CI runs Jarvis tests
 ```env
 # Required
 SECRET_KEY=your-secret-key
-QA_AGENT_NETWORK_URL=http://localhost:8765   ← points to QA-Agent-Network server
+QA_AGENT_NETWORK_URL=http://localhost:6001   ← points to QA-Agent-Network server
 
 # LLM (pick one)
 LLM_PROVIDER=openai
@@ -681,16 +681,18 @@ SLACK_NOTIFY_CHANNEL=#qa-reports
 SLACK_ALERT_CHANNEL=#qa-critical
 
 # MySQL — required by triaging agent only
-DB_HOST=localhost
-DB_USER=qa_user
-DB_PASSWORD=...
-DB_NAME=qa_results
+TRIAGING_DB_HOST=localhost
+TRIAGING_DB_USER=qa_user
+TRIAGING_DB_PASSWORD=...
+TRIAGING_DB_NAME=qa_results
 
 # Agent behaviour
-MAX_FIX_ATTEMPTS=3
+AUTHORING_FIX_RETRY_COUNT=2
+HEALING_RETRY_COUNT=4
+ADAPTATION_RETRY_COUNT=2
 AUTO_PUSH=true
-AUTOCREATE_ENVIRONMENT=staging
-AUTOCREATE_COUNTRY=SG
+AUTHORING_ENVIRONMENT=staging
+AUTHORING_COUNTRY=SG
 ```
 
 ---

@@ -7,6 +7,7 @@ Supports three input methods: upload file, Confluence URL, paste text.
 
 import copy
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -511,15 +512,85 @@ class RequirementAnalysisService:
             uncovered_requirements, generated_tests, e2e_workflow_tests, summary, pushed_to_testrail (if any)
         """
         last_progress = [0.0]  # use list so report() can update
+        import uuid
         run_id = uuid.uuid4().hex
-        run_cost = [0.0]  # total estimated cost for this run (USD)
+        
+        from backend.cost_tracker import set_current_run_id, clear_current_run_id
+        set_current_run_id(run_id)
+
+        # [total_cost_usd, llm_call_count] — one mutable cell already
+        # threaded into every LLM helper, so call volume rides along free.
+        run_cost = [0.0, 0]
+        run_started = time.time()
+
+        # Per-stage timing and cost. The pipeline already has stage boundaries —
+        # report() is called with stage 1, 2 or 3 at 13 sites — so instrumenting
+        # report() itself measures them without touching any of those sites.
+        # Stages are NOT visited once each: the per-requirement loop reports
+        # stage 3 then stage 2 per requirement, so stage 2 and 3 re-open many
+        # times in one run. Totals are therefore accumulated per stage rather
+        # than appended as fragments — otherwise the last fragment would be
+        # mistaken for the stage's whole cost, understating it by the number of
+        # requirements analysed.
+        stage_totals: Dict[int, Dict[str, Any]] = {}
+        stage_state = {"stage": None, "started": run_started,
+                       "cost_at_start": 0.0, "calls_at_start": 0}
+        _STAGE_LABELS = {1: "Understanding requirements",
+                         2: "Analyzing existing coverage",
+                         3: "Generating test cases"}
+
+        def _close_stage(now: float) -> Optional[Dict[str, Any]]:
+            """Fold the segment that just ended into its stage's running total.
+
+            Returns that stage's cumulative figures, so the UI shows the total
+            so far rather than the final sliver.
+            """
+            current = stage_state["stage"]
+            if current is None:
+                return None
+            slot = stage_totals.setdefault(current, {
+                "stage": current,
+                "label": _STAGE_LABELS.get(current, f"Stage {current}"),
+                "duration_s": 0.0, "cost_usd": 0.0, "llm_calls": 0, "segments": 0,
+            })
+            slot["duration_s"] = round(slot["duration_s"] + (now - stage_state["started"]), 2)
+            # run_cost is accumulated by every LLM helper already, so the delta
+            # across this segment is what the stage spent during it.
+            slot["cost_usd"] = round(
+                slot["cost_usd"] + (run_cost[0] - stage_state["cost_at_start"]), 6)
+            slot["llm_calls"] += run_cost[1] - stage_state["calls_at_start"]
+            slot["segments"] += 1
+            return dict(slot)
+
+        # Arity is probed once, here — not per call inside a try/except TypeError.
+        # That pattern would re-invoke a 4-arg callback that happened to raise
+        # TypeError internally, emitting the same progress event twice.
+        _cb_takes_closed = False
+        if progress_callback:
+            try:
+                _cb_takes_closed = len(
+                    inspect.signature(progress_callback).parameters) >= 4
+            except (TypeError, ValueError):
+                _cb_takes_closed = False
 
         def report(stage: int, message: str, progress: float) -> None:
+            now = time.time()
+            closed = None
+            if stage != stage_state["stage"]:
+                # None when nothing was open yet — the first call opens stage 1
+                # without closing anything.
+                closed = _close_stage(now)
+                stage_state.update(stage=stage, started=now,
+                                   cost_at_start=run_cost[0],
+                                   calls_at_start=run_cost[1])
             if progress_callback:
                 try:
                     p = max(last_progress[0], min(1.0, progress))
                     last_progress[0] = p
-                    progress_callback(stage, message, p)
+                    if _cb_takes_closed:
+                        progress_callback(stage, message, p, closed)
+                    else:
+                        progress_callback(stage, message, p)
                 except Exception:
                     pass
 
@@ -945,6 +1016,11 @@ class RequirementAnalysisService:
                             "coverage": _coverage,
                             "acceptance_criteria": acceptance_criteria_per_req.get(req_id, []),
                             "elapsed_s": round(time.time() - _start_time, 1),
+                            # Requirements are processed in parallel, so this is
+                            # the run's spend at completion of this one, not an
+                            # isolated per-requirement cost. Labelled as such in
+                            # the UI rather than presented as attributable.
+                            "run_cost_usd_at_completion": round(run_cost[0], 6),
                         },
                     )
                 except Exception:
@@ -1087,7 +1163,20 @@ class RequirementAnalysisService:
         _overall_pct = int(sum(c["final_coverage_pct"] for c in _req_coverages) / max(1, len(_req_coverages)))
         _fully_covered_count = sum(1 for c in _req_coverages if c["final_coverage_pct"] == 100)
 
-        return {
+        def _token_totals_for_run(rid: str) -> Dict[str, Any]:
+            try:
+                from backend.services.analytics_service import _run_token_totals
+                return _run_token_totals(rid)
+            except Exception:
+                return {"input_tokens": 0, "output_tokens": 0, "by_model": {}}
+
+        def _finalise_stages() -> List[Dict[str, Any]]:
+            """Close the stage still open at the end of the run."""
+            _close_stage(time.time())
+            stage_state["stage"] = None      # idempotent if called twice
+            return [stage_totals[k] for k in sorted(stage_totals)]
+
+        res_out = {
             "success": True,
             "requirements_analyzed": len(requirements),
             "requirements": requirements,
@@ -1103,7 +1192,13 @@ class RequirementAnalysisService:
             "coverage_gap_reason_per_req": coverage_gap_reason_per_req,
             "coverage_per_req": coverage_per_req,
             "run_id": run_id,
-            "total_estimated_cost_usd": round(run_cost[0], 6),
+            "total_estimated_cost_usd": _token_totals_for_run(run_id).get("cost_usd") or round(run_cost[0], 6),
+            "llm_calls": _token_totals_for_run(run_id).get("llm_calls") or run_cost[1],
+            "duration_s": round(time.time() - run_started, 2),
+            "stage_timings": _finalise_stages(),
+            # Read back from the cost records this run wrote, rather than
+            # threading two more accumulators through every LLM helper.
+            **_token_totals_for_run(run_id),
             "pushed_to_testrail": pushed,
             "summary": {
                 "total_requirements": len(requirements),
@@ -1122,6 +1217,8 @@ class RequirementAnalysisService:
                 "retrieval_similarity_threshold": retrieval_threshold_pct,
             },
         }
+        clear_current_run_id()
+        return res_out
 
     def _assess_all_tests_batch(
         self,
@@ -1197,6 +1294,8 @@ Rules:
             c = record_from_langchain_result("requirement_analysis.assess_all_tests_batch", result, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c
+                if len(run_cost) > 1:
+                    run_cost[1] += 1
             raw = result.content if hasattr(result, "content") and result.content is not None else str(result)
             if not isinstance(raw, str):
                 raw = str(raw) if raw is not None else ""
@@ -1257,6 +1356,8 @@ If the existing test and requirement are fundamentally different (different flow
                 c = record_from_langchain_result("requirement_analysis.assess_updates", result, extra={"testrail_id": tid}, run_id=run_id)
                 if run_cost is not None and c is not None:
                     run_cost[0] += c
+                    if len(run_cost) > 1:
+                        run_cost[1] += 1
                 raw = result.content if hasattr(result, "content") else str(result)
                 match = re.search(r"\{[\s\S]*\}", raw)
                 if match:
@@ -1365,6 +1466,8 @@ Rules:
             c = record_from_langchain_result("requirement_analysis.extract_acs", result, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c
+                if len(run_cost) > 1:
+                    run_cost[1] += 1
             raw = result.content if hasattr(result, "content") else str(result)
             arr_match = re.search(r"\[[\s\S]*?\]", raw)
             if arr_match:
@@ -1449,6 +1552,8 @@ Return ONLY valid JSON (no markdown): {{"sufficient": true or false, "uncovered_
             c = record_from_langchain_result("requirement_analysis.coverage_sufficient", result, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c
+                if len(run_cost) > 1:
+                    run_cost[1] += 1
             raw = result.content if hasattr(result, "content") and result.content is not None else str(result)
             if not isinstance(raw, str):
                 raw = str(raw) if raw is not None else ""
@@ -1520,6 +1625,8 @@ Return ONLY valid JSON (no markdown): {{"sufficient": true or false, "reason": "
             c = record_from_langchain_result("requirement_analysis.e2e_coverage_sufficient", result, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c
+                if len(run_cost) > 1:
+                    run_cost[1] += 1
             raw = result.content if hasattr(result, "content") and result.content is not None else str(result)
             if not isinstance(raw, str):
                 raw = str(raw) if raw is not None else ""
@@ -1714,6 +1821,8 @@ If no meaningful E2E workflows can be identified, return {{"impacted_areas": [],
             c = record_from_langchain_result("requirement_analysis.identify_e2e_workflows", result, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c
+                if len(run_cost) > 1:
+                    run_cost[1] += 1
             raw = result.content if hasattr(result, "content") and result.content is not None else str(result)
             if not isinstance(raw, str):
                 raw = str(raw) if raw is not None else ""
@@ -1821,6 +1930,8 @@ JSON:"""),
             c = record_from_langchain_result("requirement_analysis.generate_e2e_test", result, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c
+                if len(run_cost) > 1:
+                    run_cost[1] += 1
             raw = result.content if hasattr(result, "content") and result.content is not None else str(result)
             if not isinstance(raw, str):
                 raw = str(raw) if raw is not None else ""
@@ -1932,6 +2043,8 @@ JSON array ({count} test cases):"""),
             c = record_from_langchain_result("requirement_analysis.generate_e2e_tests_batch", result, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c
+                if len(run_cost) > 1:
+                    run_cost[1] += 1
             raw = result.content if hasattr(result, "content") and result.content is not None else str(result)
             if not isinstance(raw, str):
                 raw = str(raw) if raw is not None else ""
@@ -2249,6 +2362,8 @@ Do not fabricate product details; use only the requirement and prior specs."""),
             c = record_from_langchain_result("requirement_analysis.generate_tests", result, extra={"requirement_id": req_id}, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c
+                if len(run_cost) > 1:
+                    run_cost[1] += 1
             content = result.content if hasattr(result, "content") else str(result)
             import json
             arr_match = re.search(r"\[[\s\S]*\]", content)
@@ -2394,7 +2509,11 @@ Priority exactly one of P0, P1, P2, P3. Steps as a numbered list with newlines (
         invoke_params["company_name"] = _get_company_name()
         try:
             chain = prompt | rag.llm
+            _t0 = time.time()
             result = chain.invoke(invoke_params)
+            record_from_langchain_result(
+                "requirement_analysis.suggest_case_update", result,
+                duration_s=time.time() - _t0)
             raw = getattr(result, "content", None)
             if not isinstance(raw, str):
                 raw = str(raw) if raw is not None else ""
@@ -2451,10 +2570,14 @@ RULES:
 
         try:
             chain = prompt | rag.llm
+            _t0 = time.time()
             result = chain.invoke({
                 "company_name": _get_company_name(),
                 "current_test": current_content[:6000],
             })
+            record_from_langchain_result(
+                "requirement_analysis.improve_for_automation", result,
+                duration_s=time.time() - _t0)
             raw = getattr(result, "content", None)
             if not isinstance(raw, str):
                 raw = str(raw) if raw is not None else ""

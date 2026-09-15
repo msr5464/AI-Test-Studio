@@ -434,6 +434,68 @@ curl -X GET http://localhost:5001/api/admin/documents/uuid-here/download \
 
 ---
 
+### Get Analytics
+
+Time and cost across every AI flow in the Studio, over a selectable window.
+
+**Endpoint:** `GET /api/admin/analytics?window=24h|7d|30d|all`
+
+**Authentication:** Requires admin session. Deliberately served from the admin
+blueprint rather than `/api/agents/*`, which enforces no authentication at all.
+
+The two halves are returned **separately and never summed**, because they are not
+the same kind of number:
+
+| | `agents` | `studio` |
+|---|---|---|
+| Source | QA-Agent-Network `/analytics/summary` | `storage/operation_costs.jsonl` + `storage/requirement_runs.jsonl` |
+| Cost basis | Reported by the Claude CLI — **exact** | **Estimated** from a per-model token rate card |
+| Covers | authoring, healing, adaptation agents | Requirements→Tests, Ask (RAG), knowledge ingestion |
+
+`time_saved` is computed here, from the baselines under Studio Settings →
+Analytics, and applied uniformly to both halves.
+
+**Response:**
+```json
+{
+  "success": true,
+  "window": "7d",
+  "baselines": {"min_per_test_authored": 120, "min_per_test_fixed": 45,
+                "min_per_test_adapted": 30, "min_per_test_case_written": 15},
+  "agents": {"overall": {"runs": 12, "cost_usd": 18.42, "duration_s": 7420,
+                         "tests_created": 4, "tests_fixed": 9},
+             "by_agent": {"test-healing-agent": {"…": 0}}},
+  "agents_error": null,
+  "studio": {
+    "cost_basis": "estimated",
+    "overall": {"calls": 4851, "cost_usd": 51.51, "runs": 248,
+                "input_tokens": 4300000, "output_tokens": 2900000},
+    "outcomes": {"test_cases_generated": 812, "e2e_tests_generated": 96},
+    "by_group": {"requirements": {"…": 0}, "ask": {"…": 0}, "ingestion": {"…": 0}},
+    "by_stage": {"1": {"…": 0}, "2": {"…": 0}, "3": {"…": 0}},
+    "by_model": {"gpt-4o-mini": {"…": 0}},
+    "ingestion": {"count": 2, "total_duration_s": 72.09, "syncs": []},
+    "orphan_calls": 44,
+    "runs_duration_approx": 248,
+    "series": [{"bucket": "2026-08-21", "cost_usd": 1.2, "calls": 40}]
+  },
+  "time_saved": {"agents_min": 615.0, "studio_min": 13980.0,
+                 "total_min": 14595.0, "basis": "estimate"}
+}
+```
+
+**Notes:**
+- `runs_duration_approx` counts runs that predate duration capture. Their timings
+  are inferred from the span of their LLM-call timestamps and must be shown as
+  approximate, never as measurements.
+- `orphan_calls` are cost records with no `run_id`. They count toward spend but
+  cannot be attributed to a run.
+- `agents_error` is set (and `agents` left empty) when the QA-Agent-Network server
+  is unreachable, so the dashboard still renders its Studio half.
+- Invalid `window` returns HTTP 400.
+
+---
+
 ### Get System Statistics
 
 Get system statistics (document count, chunk count, etc.).

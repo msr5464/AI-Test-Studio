@@ -716,7 +716,9 @@ class RAGService:
         
         Args:
             question: User question
-            session_id: Optional session ID for conversation context
+            session_id: Optional session ID for conversation context.
+                Doubles as the cost-correlation id, so the turns of one chat
+                group into a conversation instead of landing as orphan records.
             bypass_cache: If True, skip cache and force fresh LLM query
             use_rag: If True, use RAG with documents; If False, query LLM directly
             
@@ -725,7 +727,8 @@ class RAGService:
         """
         try:
             if use_rag:
-                result = self.rag.query(question, bypass_cache=bypass_cache)
+                result = self.rag.query(question, bypass_cache=bypass_cache,
+                                        run_id=session_id)
                 
                 return {
                     'success': True,
@@ -768,8 +771,11 @@ Instructions:
                 ])
                 
                 chain = prompt | llm
+                _t0 = time.time()
                 result = chain.invoke({"question": question})
-                record_from_langchain_result("rag.direct_query", result)
+                record_from_langchain_result("rag.direct_query", result,
+                                             run_id=session_id,
+                                             duration_s=time.time() - _t0)
                 answer = extract_answer_from_llm_result(result)
                 
                 query_time_ms = int((time.time() - start_time) * 1000)

@@ -205,14 +205,14 @@ bash scripts/run-server.sh
 2. Default admin: **username** `admin` — a random password is printed to the console on first startup. **Save it!** Change it via User Management in admin.
 3. Set **`COMPANY_NAME`** in `config/.env` (or Admin → Settings → LLM) to your organization name — used in AI-generated test prompts.
 4. For **AI Test Generator** and **TestRail/Confluence**: configure the relevant variables in `config/.env`; see [Configuration](#configuration) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#configuration).
-5. For **Tests → Automation**: configure `QA-Agent-Network/config/.env` (copy from `.env.example`) with your Claude API key, GitHub token, Slack token, and MySQL credentials. Set `QA_AGENT_NETWORK_URL` in `config/.env` to point to the agent server (default `http://localhost:8765`).
+5. For **Tests → Automation**: configure `QA-Agent-Network/config/.env` (copy from `.env.example`) with your Claude API key, GitHub token, Slack token, and MySQL credentials. Set `QA_AGENT_NETWORK_URL` in `config/.env` to point to the agent server (default `http://localhost:6001`).
 
 ### URLs (default port 5001)
 
 - **Customer (AI Test Studio):** http://localhost:5001/
 - **Admin:** http://localhost:5001/admin (login required)
 - **API:** http://localhost:5001/api
-- **QA Agent Network server (when running):** http://localhost:8765
+- **QA Agent Network server (when running):** http://localhost:6001
 
 ---
 
@@ -316,7 +316,7 @@ AI-Test-Studio/
 | Ollama not responding | Start Ollama (`ollama serve` or use install script); or set `LLM_PROVIDER=openai` (or `gemini`) and provide API keys. |
 | No documents in RAG | Upload via admin or run TestRail/Confluence sync; ensure ChromaDB path and collection exist. |
 | Requirement analysis / Generate Tests fails | Ensure LLM and ChromaDB are configured in `config/.env` and that TestRail/Confluence sync has populated the vectorstore. |
-| Tests → Automation tab shows connection error | Start the QA Agent Network server: `cd QA-Agent-Network && bash scripts/run-server.sh`. Ensure `QA_AGENT_NETWORK_URL` in `config/.env` points to it (default `http://localhost:8765`). |
+| Tests → Automation tab shows connection error | Start the QA Agent Network server: `cd QA-Agent-Network && bash scripts/run-server.sh`. Ensure `QA_AGENT_NETWORK_URL` in `config/.env` points to it (default `http://localhost:6001`). |
 | Test authoring agent fails / Maven errors | Ensure Java 11+, Maven 3.8+, and Node.js 18+ are installed. Check `QA-Agent-Network/config/.env` for a valid `ANTHROPIC_API_KEY` and GitHub credentials. |
 | TestRail "From TestRail" tab shows no cases | Verify TestRail credentials in `config/.env` and that the selected suite has cases with your configured "Pending Automation" status field values. |
 

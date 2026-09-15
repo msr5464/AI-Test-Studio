@@ -88,6 +88,40 @@ def login():
         return jsonify(result), 401
 
 
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
+    """Self-service signup endpoint."""
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({
+            'success': False,
+            'error': 'Username and password required'
+        }), 400
+
+    auth_service = current_app.config.get('AUTH_SERVICE')
+    if not auth_service:
+        return jsonify({'success': False, 'error': 'Auth service not configured'}), 500
+
+    # Create as member, pending approval
+    user = auth_service.user_storage.create_user(username, password, role='member')
+    if not user:
+        return jsonify({'success': False, 'error': 'Username already exists'}), 400
+        
+    session['user_id'] = user.user_id
+    session['username'] = user.username
+    session['role'] = user.role
+    session.permanent = True
+        
+    return jsonify({
+        'success': True,
+        'status': 'pending_approval',
+        'message': 'Account created, pending admin approval.'
+    }), 201
+
+
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
     """Logout endpoint."""
@@ -103,19 +137,25 @@ def logout():
 
 
 @auth_bp.route('/me', methods=['GET'])
-@require_auth()
 def get_current_user():
     """Get current logged-in user info."""
     auth_service = current_app.config.get('AUTH_SERVICE')
     user = auth_service.get_current_user()
     
     if user:
+        if user.status != 'active':
+            return jsonify({
+                'success': False,
+                'status': user.status,
+                'error': 'Account pending approval or suspended'
+            }), 403
         return jsonify({
             'success': True,
             'user': {
                 'user_id': user.user_id,
                 'username': user.username,
-                'role': user.role
+                'role': user.role,
+                'status': user.status
             }
         }), 200
     else:
@@ -189,29 +229,52 @@ def change_password():
 @auth_bp.route('/users/<user_id>', methods=['PUT'])
 @require_auth(admin_only=True)
 def update_user(user_id):
-    """Update user role (admin only)."""
+    """Update user role or status (admin only)."""
     data = request.get_json()
     role = data.get('role')
-    
-    if not role:
-        return jsonify({
-            'success': False,
-            'error': 'Role is required'
-        }), 400
-    
-    if role not in ['admin', 'customer']:
-        return jsonify({
-            'success': False,
-            'error': 'Role must be "admin" or "customer"'
-        }), 400
+    status = data.get('status')
     
     auth_service = current_app.config.get('AUTH_SERVICE')
-    result = auth_service.update_user_role(user_id, role)
-    
-    if result['success']:
-        return jsonify(result), 200
-    else:
-        return jsonify(result), 400
+    user = auth_service.user_storage.get_user(user_id)
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+    role = role or user.role
+    if role not in ['admin', 'customer', 'member']:
+        return jsonify({'success': False, 'error': 'Role must be admin, customer, or member'}), 400
+        
+    status = status or user.status
+    if status not in ['pending_approval', 'active', 'rejected', 'suspended']:
+        return jsonify({'success': False, 'error': 'Invalid status'}), 400
+
+    # Losing the last admin is unrecoverable, not merely inconvenient: on the
+    # next boot _ensure_default_admin finds no admin, tries to create one named
+    # 'admin', finds that username already taken, returns None, and silently
+    # does nothing — leaving the system with no way to administer it. The
+    # equivalent guard already existed in auth_service.update_user_role(), but
+    # no route ever called that method.
+    demoting = user.role == 'admin' and role != 'admin'
+    deactivating = user.role == 'admin' and status != 'active'
+    if demoting or deactivating:
+        remaining = [u for u in auth_service.user_storage.list_users(role='admin')
+                     if u.user_id != user_id and getattr(u, 'status', '') == 'active']
+        if not remaining:
+            return jsonify({
+                'success': False,
+                'error': 'Cannot remove the last active admin — promote another '
+                         'user to admin first.'
+            }), 400
+
+    user.role = role
+    user.status = status
+
+    if status == 'active' and not getattr(user, 'approved_at', None):
+        from datetime import datetime
+        user.approved_at = datetime.now().isoformat()
+        user.approved_by = session.get('user_id')
+
+    auth_service.user_storage.update_user(user)
+    return jsonify({'success': True}), 200
 
 
 @auth_bp.route('/users/<user_id>', methods=['DELETE'])
