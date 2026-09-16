@@ -154,16 +154,22 @@ class UserStorage:
         Returns:
             Created user or None if username already exists
         """
+        # Hash before taking the locks (pbkdf2:sha256 for Python 3.9 compatibility): at
+        # 600k iterations it held _mem_lock long enough to stall every authenticated
+        # request, since each one reads the user through the same lock.
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
         with self._mem_lock:
             with FileLock(str(self._lock_path), timeout=10):
                 self._load_users()
                 # Check if username already exists
                 if self.get_user_by_username_no_lock(username):
                     return None
-                
-                # Create user with hashed password (using pbkdf2:sha256 for Python 3.9 compatibility)
-                password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+
                 user = User(username=username, password_hash=password_hash, role=role)
+                # Ids are md5(username)[:12]: a different name that collides must not
+                # overwrite that account (the admin's id is fixed and publicly known).
+                if user.user_id in self._users:
+                    return None
                 self._users[user.user_id] = user
                 self._save_users()
                 return user

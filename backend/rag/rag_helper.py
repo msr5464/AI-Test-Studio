@@ -10,7 +10,6 @@ import time
 import sys
 import re
 import hashlib
-import shutil
 from pathlib import Path
 from typing import List, Optional, Any
 from langchain_core.documents import Document
@@ -428,24 +427,12 @@ class ChromaDBHelper:
             return False
         
         try:
-            # Normalize file path for comparison
-            file_path_normalized = str(Path(file_path).absolute())
-            
-            # Get all documents from collection
-            collection = vectorstore._collection
-            results = collection.get()
-            
-            # Check if any document matches the file path
-            if results.get('metadatas'):
-                for metadata in results['metadatas']:
-                    if metadata:
-                        stored_path = metadata.get('file_path')
-                        if stored_path:
-                            # Normalize stored path for comparison
-                            stored_path_normalized = str(Path(stored_path).absolute())
-                            if stored_path_normalized == file_path_normalized:
-                                return True
-            return False
+            # file_path metadata is always stored absolute (add_file_metadata_to_documents),
+            # so filter in Chroma instead of fetching every chunk to compare in Python.
+            ids = vectorstore._collection.get(
+                where={"file_path": str(Path(file_path).absolute())}, limit=1, include=[]
+            ).get('ids')
+            return bool(ids)
         except Exception:
             # If there's an error, assume documents don't exist to be safe
             return False
@@ -467,24 +454,12 @@ class ChromaDBHelper:
             return 0 if return_count else None
         
         try:
-            # Normalize file path for comparison
-            file_path_normalized = str(Path(file_path).absolute())
-            
-            # Get all documents from collection
+            # file_path metadata is always stored absolute (add_file_metadata_to_documents),
+            # so filter in Chroma instead of fetching every chunk to compare in Python.
             collection = vectorstore._collection
-            results = collection.get()
-            
-            # Find document IDs that match the file path
-            ids_to_delete = []
-            if results.get('ids') and results.get('metadatas'):
-                for idx, metadata in enumerate(results['metadatas']):
-                    if metadata:
-                        stored_path = metadata.get('file_path')
-                        if stored_path:
-                            # Normalize stored path for comparison
-                            stored_path_normalized = str(Path(stored_path).absolute())
-                            if stored_path_normalized == file_path_normalized:
-                                ids_to_delete.append(results['ids'][idx])
+            ids_to_delete = collection.get(
+                where={"file_path": str(Path(file_path).absolute())}, include=[]
+            ).get('ids') or []
             
             # Delete matching documents
             if ids_to_delete:
@@ -501,10 +476,13 @@ class ChromaDBHelper:
             return 0 if return_count else None
     
     @staticmethod
-    def get_or_create_vectorstore(documents, embeddings, persist_directory: str, collection_name: str, show_log: bool = True, _retried: bool = False):
+    def get_or_create_vectorstore(documents, embeddings, persist_directory: str, collection_name: str, show_log: bool = True):
         """
         Get existing ChromaDB collection or create a new one with persistent storage.
-        On ChromaDB compaction/corruption errors, removes the persist directory and retries once.
+
+        Open errors are raised, never "repaired" by deleting the persist directory:
+        that used to wipe every synced document on any chromadb InternalError (e.g. a
+        read-only database), while the metadata files still claimed the data existed.
 
         Args:
             documents: List of Document objects to add
@@ -512,7 +490,6 @@ class ChromaDBHelper:
             persist_directory: Directory to persist ChromaDB data
             collection_name: Name of ChromaDB collection
             show_log: If True, print collection status. Default: True
-            _retried: Internal flag to avoid infinite retry (do not set manually)
 
         Returns:
             ChromaDB vectorstore instance
@@ -528,72 +505,29 @@ class ChromaDBHelper:
         persist_path = Path(persist_directory)
         persist_path.mkdir(parents=True, exist_ok=True, mode=0o755)
 
-        def _is_chromadb_corruption(exc: BaseException) -> bool:
-            try:
-                import chromadb.errors
-                if isinstance(exc, chromadb.errors.InternalError):
-                    return True
-            except Exception:
-                pass
-            return "compaction" in str(exc).lower() or "hnsw" in str(exc).lower()
-
-        def _delete_persist_and_retry():
-            if _retried:
-                return None
-            if show_log:
-                print("⚠️ ChromaDB data appears corrupted (compaction error). Removing persist directory and retrying once...")
-            try:
-                if persist_path.exists():
-                    shutil.rmtree(persist_path)
-                persist_path.mkdir(parents=True, exist_ok=True, mode=0o755)
-            except Exception as e:
-                if show_log:
-                    print(f"⚠️ Could not remove ChromaDB directory: {e}")
-                return None
-            return ChromaDBHelper.get_or_create_vectorstore(
-                documents, embeddings, persist_directory, collection_name, show_log=show_log, _retried=True
-            )
-
         try:
-            existing_vectorstore = Chroma(
+            # Chroma() gets or creates the collection, so a fresh install needs no fallback.
+            vectorstore = Chroma(
                 persist_directory=str(persist_path),
                 collection_name=collection_name,
                 embedding_function=embeddings
             )
-            count = existing_vectorstore._collection.count()
-            if show_log:
-                print(f"📂 Loaded existing ChromaDB collection '{collection_name}' ({count} documents)")
-            if documents and len(documents) > 0:
-                existing_vectorstore.add_documents(documents)
-            return existing_vectorstore
+            count = vectorstore._collection.count()
         except Exception as e:
-            if _is_chromadb_corruption(e):
-                ret = _delete_persist_and_retry()
-                if ret is not None:
-                    return ret
-            # Collection doesn't exist or create failed; create new one
-            if show_log:
-                print(f"📂 Creating new ChromaDB collection '{collection_name}'")
-            try:
-                if documents and len(documents) > 0:
-                    return Chroma.from_documents(
-                        documents=documents,
-                        embedding=embeddings,
-                        persist_directory=str(persist_path),
-                        collection_name=collection_name
-                    )
-                return Chroma(
-                    persist_directory=str(persist_path),
-                    collection_name=collection_name,
-                    embedding_function=embeddings
-                )
-            except Exception as e2:
-                if _is_chromadb_corruption(e2):
-                    ret = _delete_persist_and_retry()
-                    if ret is not None:
-                        return ret
-                raise
-    
+            # This can fail while the app starts, before the admin UI is reachable,
+            # so the recovery steps must not depend on it.
+            raise RuntimeError(
+                f"Could not open ChromaDB at {persist_path}: {e}. If the data is corrupted: "
+                f"stop the app, move '{persist_path}' aside, restart, then re-run the "
+                f"TestRail/Confluence syncs."
+            ) from e
+        if show_log:
+            print(f"📂 Loaded ChromaDB collection '{collection_name}' ({count} documents)")
+        # Outside the try: a failed add must surface, not fall into a second add.
+        if documents:
+            vectorstore.add_documents(documents)
+        return vectorstore
+
     @staticmethod
     def inspect_collection(vectorstore, show_data: bool = True):
         """

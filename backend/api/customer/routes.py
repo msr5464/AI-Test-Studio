@@ -782,7 +782,9 @@ def testrail_improve_for_automation():
         return jsonify({'success': False, 'error': 'testrail_id or title required'}), 400
 
     try:
-        svc = RequirementAnalysisService()
+        # The shared service: with no argument it builds a whole new RAGService per click
+        # (embedding model, Chroma open, document load).
+        svc = RequirementAnalysisService(rag_service=current_app.config["RAG_SERVICE"])
         result, error = svc.improve_for_automation(
             testrail_id=testrail_id,
             title=title,

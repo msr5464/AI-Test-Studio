@@ -169,3 +169,36 @@ def test_testrail_pushes_are_recorded_on_their_run_for_its_owner_only():
         {"action": "created", "testrail_id": "C9001", "target": {"kind": "generated", "req_id": "REQ-1", "index": 0}},
         {"action": "updated", "testrail_id": "C101", "target": {"kind": "existing", "testrail_id": "C101"}},
     ]
+
+
+@pytest.mark.parametrize("cancel_mid_run", [False, True])
+def test_cancel_after_tests_are_generated_stops_the_testrail_push(monkeypatch, cancel_mid_run):
+    """A Cancel that lands late (here: during the E2E step, after tests were
+    generated) must still stop the run from creating cases in TestRail."""
+    from unittest.mock import MagicMock, patch
+    from backend.services.requirement_analysis_service import RequirementAnalysisService as Service
+
+    monkeypatch.setenv("REQUIREMENT_ENRICH_WITH_CONTEXT", "false")
+    monkeypatch.setenv("TESTRAIL_PUSH_ENABLED", "true")
+    rag = MagicMock()
+    rag.find_related_specs.return_value = []
+    rag.find_related_tests.return_value = []
+    cancel = threading.Event()
+
+    def critical_tests(*args, **kwargs):
+        if cancel_mid_run:
+            cancel.set()
+        return []
+
+    with patch.object(Service, "_extract_acceptance_criteria", return_value=["User can log in"]), \
+            patch.object(Service, "_generate_tests_for_requirement",
+                         return_value=[{"title": "Log in with fingerprint", "priority": "P0"}]), \
+            patch.object(Service, "_fetch_critical_product_tests", side_effect=critical_tests) as e2e_step, \
+            patch.object(Service, "_identify_e2e_workflows", return_value=[]), \
+            patch.object(Service, "_push_generated_tests_to_testrail", return_value=[]) as push:
+        Service(rag_service=rag).analyze(text="REQ-001: User can log in with a fingerprint.",
+                                         generate_new_tests=True, push_to_testrail=True,
+                                         target_section_id=5, cancel_event=cancel)
+
+    assert e2e_step.called                  # the cancel really landed after generation
+    assert push.called is not cancel_mid_run

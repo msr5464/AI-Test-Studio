@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import os
 from typing import Iterable, Tuple
+from urllib.parse import unquote
 
 import requests
 from flask import (Blueprint, Response, current_app, jsonify, request,
@@ -88,7 +89,11 @@ def _inject_user_headers(headers: dict) -> dict:
             del headers[key]
     headers["X-User-ID"] = session.get("user_id", "default")
     headers["X-User-Name"] = session.get("username", "Unknown")
-    headers["X-User-Role"] = session.get("role", "member")
+    # The stored role, not the copy put in the session at login: sessions refresh on
+    # every request, so a demoted admin would otherwise stay "admin" upstream.
+    auth_service = current_app.config.get("AUTH_SERVICE")
+    user = auth_service.get_current_user() if auth_service else None
+    headers["X-User-Role"] = user.role if user else "member"
     # Proves to qa_agents_server that the identity headers came from this proxy
     # rather than straight off the network. Optional: unset means the upstream
     # is relying on binding to localhost instead.
@@ -263,6 +268,13 @@ def forward_agent(agent: str, rest: str):
             "error": f"unknown agent: {agent}",
             "known": sorted(_ALLOWED_AGENTS),
         }), 404
+
+    # requests normalises dot segments, so "../../settings" would leave
+    # /agents/<agent>/ and reach server-wide routes like /settings, which only
+    # the admin blueprint is meant to proxy. WSGI decodes %2e%2e once; unquote
+    # catches a double-encoded %252e too, which requests turns back into "..".
+    if any(unquote(segment) in (".", "..") for segment in rest.split("/")):
+        return jsonify({"error": "invalid path"}), 404
 
     # No query string here: both forwarders already pass params=request.args,
     # so appending it would send every parameter twice.

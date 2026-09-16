@@ -11,6 +11,7 @@
     <meta name="description"
         content="AI Test Studio — Powered by QA Agent Network. Turn requirements into test cases, generate automation code, and chat with your test knowledge base.">
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.15/dist/purify.min.js" async></script>
     <style>
         /* ==========================================
            THEME SYSTEM - Dark & Light Mode
@@ -7163,7 +7164,8 @@
     <header class="site-header">
         <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Toggle navigation"
             aria-expanded="false">☰</button>
-        <a href="/" class="site-logo">
+        <a href="/test-generator" class="site-logo"
+            onclick="if (event.metaKey || event.ctrlKey || event.shiftKey) return true; showTab('analyze'); return false;">
             <img id="appLogo"
                 src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png"
                 alt="Logo">
@@ -8745,6 +8747,16 @@
         applyMarkedOptions();
         window.addEventListener('load', applyMarkedOptions);
 
+        // LLM output is steered by retrieved Confluence/TestRail text and marked does
+        // not sanitise, so markdown only reaches innerHTML through DOMPurify. Both
+        // scripts load async: until both are ready, fall back to escaped plain text.
+        function renderMarkdown(text) {
+            if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+                return DOMPurify.sanitize(marked.parse(text));
+            }
+            return escapeHtml(text);
+        }
+
         // ==========================================
         // Theme Functions
         // ==========================================
@@ -8803,8 +8815,8 @@
         // Load settings on page load
         document.addEventListener('DOMContentLoaded', function () {
             loadTheme();
-            // Activate default panel via the router so sidebar state is consistent
-            showTab('analyze');
+            // Open the page the URL names, via the router so sidebar state is consistent
+            showTab(tabFromPath(), true);
             var qInput = document.getElementById('questionInput');
             if (qInput) qInput.style.setProperty('font-size', '15px', 'important');
             // The health check itself is started from checkAuth() — /api/agents/health
@@ -8906,9 +8918,39 @@
         })();
 
         // Data-driven nav router — adding a new panel only needs a nav-item + a tab-panel, no JS changes
-        function showTab(tab) {
+        // One URL per page, so a reload keeps you on it, it can be bookmarked, and
+        // Back/Forward move between pages. Keep in sync with the routes in backend/app.py.
+        var TAB_PATHS = {
+            analyze: '/test-generator',
+            agents: '/authoring-agent',
+            healing: '/healing-agent',
+            adapt: '/adaptation-agent',
+            ask: '/talk-to-tests'
+        };
+
+        // Unknown paths ("/", "/customer") open the default page.
+        function tabFromPath() {
+            for (var tab in TAB_PATHS) {
+                if (TAB_PATHS[tab] === location.pathname) return tab;
+            }
+            return 'analyze';
+        }
+
+        // Back/Forward. Only switch when the page changed: hash-only entries (the
+        // History table's href="#" links) must not re-run the page's init.
+        window.addEventListener('popstate', function () {
+            var tab = tabFromPath();
+            if (tab !== document.body.getAttribute('data-active-tab')) showTab(tab, true);
+        });
+
+        // replace: rewrite the current history entry instead of adding one (initial
+        // load and Back/Forward); a nav click adds one.
+        function showTab(tab, replace) {
             currentMode = tab === 'analyze' ? 'req' : (tab === 'ask' ? 'ask' : 'agents');
             document.body.setAttribute('data-active-tab', tab);
+            if (TAB_PATHS[tab] && location.pathname !== TAB_PATHS[tab]) {
+                history[replace ? 'replaceState' : 'pushState'](null, '', TAB_PATHS[tab]);
+            }
 
             // Sidebar active state
             document.querySelectorAll('.nav-item[data-nav]').forEach(function (btn) {
@@ -9436,7 +9478,7 @@
                     ? ' <a href="' + escapeHtml(ds.confluence_url) + '" target="_blank" class="req-doc-link">Open in Confluence &#8599;</a>' : '';
                 var summaryHtml = '';
                 if (ds.summary) {
-                    summaryHtml = '<div class="req-doc-ai-summary">' + marked.parse(ds.summary) + '</div>';
+                    summaryHtml = '<div class="req-doc-ai-summary">' + renderMarkdown(ds.summary) + '</div>';
                 }
                 $('reqDocSummary').innerHTML = '<div class="req-doc-summary-banner">'
                     + '<div class="req-doc-summary-top">'
@@ -11456,12 +11498,7 @@
                             `;
                         }
 
-                        let answerHtml = message.content;
-                        if (typeof marked !== 'undefined') {
-                            answerHtml = marked.parse(answerHtml);
-                        } else {
-                            answerHtml = escapeHtml(answerHtml);
-                        }
+                        const answerHtml = renderMarkdown(message.content);
 
                         answerDiv.innerHTML = `
                             <div class="message-answer">
@@ -11917,10 +11954,13 @@
         window.QA_UPDATE_METRIC_TILES = QA_UPDATE_METRIC_TILES;
         window.QA_RESET_METRIC_TILES = QA_RESET_METRIC_TILES;
 
+        // Also escapes quotes: results put escaped LLM fields inside attributes
+        // (data-priority="…"), where the textContent trick left " unescaped.
         function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            if (text == null) return '';
+            return String(text).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
         }
 
         /** Detect if an element starts a test case block: h3 or "Test Case N:" or "Test Scenario N:" text. */
