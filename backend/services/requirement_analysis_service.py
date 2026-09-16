@@ -303,6 +303,26 @@ def _compute_coverage_metrics(
     }
 
 
+# ── Live Run console formatting ───────────────────────────────────────────────
+
+def _clip(text: Any, limit: int) -> str:
+    """One line of at most `limit` characters."""
+    flat = " ".join(str(text or "").split())
+    return flat if len(flat) <= limit else flat[: limit - 1] + "…"
+
+
+def _pct(score: Any) -> str:
+    """A similarity score as a percentage; scores arrive as 0-1 or 0-100."""
+    value = float(score or 0)
+    return f"{round(value * 100 if value <= 1 else value)}%"
+
+
+def _console_list(items: List[Any], render, limit: int) -> str:
+    """Indented continuation lines for one console entry, capped at `limit` items."""
+    lines = "".join(f"\n    {render(item)}" for item in items[:limit])
+    return lines + (f"\n    … and {len(items) - limit} more" if len(items) > limit else "")
+
+
 def _load_env():
     """Load .env for config."""
     env_path = _ROOT / "config" / ".env"
@@ -491,6 +511,7 @@ class RequirementAnalysisService:
         doc_summary_callback: Optional[Any] = None,
         requirement_step_callback: Optional[Any] = None,
         cancel_event: Optional[threading.Event] = None,
+        log_callback: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Run full requirement analysis pipeline.
@@ -506,6 +527,7 @@ class RequirementAnalysisService:
             use_section_of_related: If True, push each requirement's generated tests into the section of its first related test; fallback to target_section_id when no related tests
             progress_callback: Optional callable(stage: int, message: str, progress: float 0-1) for UI progress
             requirement_result_callback: Optional callable(req_id: str, data: dict) called after each requirement is done (for streaming UI)
+            log_callback: Optional callable(event: dict) for the Live Run console: phase boundaries and log lines
 
         Returns:
             Analysis result: requirements_analyzed, related_tests, tests_needing_update,
@@ -594,6 +616,52 @@ class RequirementAnalysisService:
                 except Exception:
                     pass
 
+        # ── Live Run console ──────────────────────────────────────────────
+        # Six phases, the steps the page shows, in the order the pipeline runs
+        # them. Each closes with its own time and spend. report()'s three stages
+        # are coarser and feed progress and the stage_timings cost accounting.
+        _PHASES = {1: ("extract", "Extract Requirements"), 2: ("criteria", "Derive Acceptance Criteria"),
+                   3: ("find-tests", "Find Related Tests"), 4: ("coverage", "Check Coverage"),
+                   5: ("write-tests", "Write Missing Tests"), 6: ("e2e", "Build E2E Tests")}
+        _phase: Dict[str, Any] = {"index": None, "started": 0.0, "cost": 0.0, "calls": 0}
+
+        def _console(event: Dict[str, Any]) -> None:
+            if log_callback:
+                try:
+                    log_callback({"ts": round(time.time(), 3), **event})
+                except Exception:
+                    pass
+
+        def log(message: Any) -> None:
+            """One console entry. A callable message is formatted inside the guard,
+            so a log line can never break the analysis it describes."""
+            if not log_callback:
+                return
+            try:
+                text = message() if callable(message) else message
+            except Exception:
+                return
+            _console({"type": "log", "phase": _phase["index"], "text": text})
+
+        def end_phase() -> None:
+            if _phase["index"] is None:
+                return
+            _console({
+                "type": "phase", "state": "done", "index": _phase["index"],
+                "total": len(_PHASES), "key": _PHASES[_phase["index"]][0], "name": _PHASES[_phase["index"]][1],
+                "duration_s": round(time.time() - _phase["started"], 1),
+                "cost_usd": round(run_cost[0] - _phase["cost"], 6),
+                "llm_calls": run_cost[1] - _phase["calls"],
+            })
+            _phase["index"] = None
+
+        def start_phase(index: int) -> None:
+            end_phase()
+            _phase.update(index=index, started=time.time(), cost=run_cost[0], calls=run_cost[1])
+            _console({"type": "phase", "state": "start", "index": index, "total": len(_PHASES),
+                      "key": _PHASES[index][0], "name": _PHASES[index][1]})
+
+        start_phase(1)
         from backend.rag.rag_settings import get_config
         config = get_config()
         report(1, "Analysing requirements", 0.05)
@@ -607,19 +675,28 @@ class RequirementAnalysisService:
 
         if _is_multi:
             print(f"[Multi-source] Loading from {len(_file_paths_all)} file(s) + {len(_confluence_urls_all)} URL(s)")
+            log(lambda: "Reading " + ", ".join(filter(None, [
+                "pasted text" if text else "",
+                f"{len(_file_paths_all)} uploaded file(s)" if _file_paths_all else "",
+                f"{len(_confluence_urls_all)} Confluence page(s)" if _confluence_urls_all else "",
+            ])) + "…")
             requirements, spec_text = self._collect_requirements_from_sources(
                 text=text, file_paths=_file_paths_all, confluence_urls=_confluence_urls_all,
             )
             print(f"[Multi-source] Loaded {len(requirements)} requirements total")
+            log(lambda: f"Extracted {len(requirements)} requirement(s) from {len(spec_text.split()):,} words")
             report(1, "Analysing requirements", 0.25)
         else:
             # Single-source path (unchanged behaviour)
+            log(lambda: "Reading " + ("pasted text" if text else "the uploaded file" if _file_paths_all
+                                      else f"Confluence page {_confluence_urls_all[0]}") + "…")
             spec_text = self.parse_input(
                 text=text,
                 file_path=_file_paths_all[0] if _file_paths_all else None,
                 confluence_url=_confluence_urls_all[0] if _confluence_urls_all else None,
             )
             report(1, "Analysing requirements", 0.15)
+            log(lambda: f"Read {len(spec_text.split()):,} words")
 
             # Cache key: SHA-256 of the first 50k chars of spec_text.
             # Same document → same cache hit → identical requirements across runs → deterministic scores.
@@ -627,26 +704,37 @@ class RequirementAnalysisService:
             if _spec_hash in _requirements_cache:
                 requirements = copy.deepcopy(_requirements_cache[_spec_hash])
                 print(f"[analyze] Requirements cache hit ({len(requirements)} reqs) for spec hash {_spec_hash[:12]}")
+                log(lambda: f"Same document as an earlier run — reusing its {len(requirements)} extracted requirement(s)")
             else:
                 requirements = extract_requirements(spec_text)
+                log(lambda: f"Extracted {len(requirements)} requirement(s)")
                 # Optionally enrich requirement titles with document context using LLM
                 enrich_with_context = os.getenv("REQUIREMENT_ENRICH_WITH_CONTEXT", "true").lower() in ("true", "1", "yes")
                 if enrich_with_context and requirements and self.rag_service and self.rag_service.rag:
                     rag = self.rag_service.rag
                     if rag.llm:
                         report(1, "Enriching requirements with document context", 0.20)
+                        log("Rewriting requirement titles with document context (AI)…")
                         requirements = enrich_requirements_with_context(requirements, spec_text, rag.llm)
                         # Also clean up descriptions to remove raw HTML, API specs, internal notes
                         report(1, "Cleaning up requirement descriptions", 0.22)
+                        log("Cleaning up requirement descriptions (AI)…")
                         requirements = clean_descriptions_with_llm(requirements, rag.llm)
                 _cache_put(_spec_hash, copy.deepcopy(requirements))
                 print(f"[analyze] Requirements cached ({len(requirements)} reqs) for spec hash {_spec_hash[:12]}")
         
+        if requirements:
+            log(lambda: "Requirements:" + _console_list(
+                requirements, lambda r: f"{r.get('id', '')}: {_clip(r.get('title') or r.get('description'), 110)}", 25))
+        else:
+            log("✗ No requirements found in the input")
         report(1, "Summarising document", 0.25)
 
         # Run doc summary in a background thread so it doesn't block the per-req loop.
         # The LLM call for summary is independent of requirement analysis.
         if doc_summary_callback:
+            log("Summarising the document in the background (AI)…")
+
             def _run_doc_summary():
                 try:
                     lines = [l for l in spec_text.splitlines() if l.strip()]
@@ -724,44 +812,81 @@ class RequirementAnalysisService:
         _session_vectorstore = self.rag_service.load_fresh_vectorstore_once()
         # Per-requirement acceptance criteria extracted by LLM (used by Gate 1, Gate 2, and generation)
         acceptance_criteria_per_req: Dict[str, List[str]] = {}
-        report(2, "Fetching context from Confluence & TestRail (0 of %d requirements)" % total_reqs if total_reqs else "Fetching context from Confluence & TestRail", 0.30)
-
-        # --- Per-requirement parallel processing ---
-        # Each requirement is independent: find specs → extract ACs → find tests →
-        # assess → gate2 → generate. Running them in parallel cuts wall-clock time
-        # from (N × ~80s) to (~80s) regardless of requirement count.
         _req_lock = threading.Lock()
         _completed_reqs = [0]
 
-        def _process_one_req(idx: int, req: Dict) -> None:
-            _start_time = time.time()
+        # --- Steps 2-5: derive acceptance criteria → find related tests → check coverage → write missing tests ---
+        # Every requirement finishes a step before the next step starts, so each step
+        # is a real phase with its own log section, time and spend. Within a step the
+        # requirements still run in parallel, which is where the wall-clock time goes.
+        def _cancelled() -> bool:
+            return cancel_event is not None and cancel_event.is_set()
 
-            def _cancelled() -> bool:
-                return cancel_event is not None and cancel_event.is_set()
+        def _emit_step(req_id: str, name: str) -> None:
+            if requirement_step_callback:
+                try:
+                    requirement_step_callback(req_id, name)
+                except Exception:
+                    pass
 
-            def _emit_step(name: str) -> None:
-                if requirement_step_callback:
-                    try:
-                        requirement_step_callback(req_id, name)
-                    except Exception:
-                        pass
+        def _rlog(c: Dict[str, Any], message: Any) -> None:
+            log(lambda: f"{c['req_id']} · " + (message() if callable(message) else message))
 
+        contexts: List[Dict[str, Any]] = []
+        for req in requirements:
             req_id = req.get("id", "")
             req_title = (req.get("title") or "").strip()
             req_desc = (req.get("description") or "").strip()
             # Canonical format must match chunk prefix in ChromaDB so retrieval finds generated tests
             _body = (f"{req_id}: " if req_id else "") + req_title + ("\n" + req_desc if req_desc else "")
-            req_text = ("Requirement: " + _body.strip()) if _body.strip() else ""
             _desc_snippet = req_desc[:150].strip() if req_desc else ""
-            _retrieval_query = (
-                f"Requirement: {(req_id + ': ') if req_id else ''}{req_title}"
-                + (f"\n{_desc_snippet}" if _desc_snippet else "")
-            )
+            contexts.append({
+                "req": req, "req_id": req_id, "title": req_title, "desc": req_desc,
+                "req_text": ("Requirement: " + _body.strip()) if _body.strip() else "",
+                "query": (f"Requirement: {(req_id + ': ') if req_id else ''}{req_title}"
+                          + (f"\n{_desc_snippet}" if _desc_snippet else "")),
+                "tests": [], "priorities": [], "failed": False, "elapsed": 0.0, "step_started": 0.0,
+            })
+
+        # Check parallel processing setting (Admin Settings → Requirements → Parallel Processing)
+        _parallel_enabled = os.getenv("REQUIREMENT_PARALLEL_PROCESSING", "true").lower() in ("true", "1", "yes")
+
+        def _run_step(step, c: Dict[str, Any]) -> None:
             if _cancelled():
                 return
+            with _llm_concurrency_sem:
+                c["step_started"] = time.time()
+                try:
+                    step(c)
+                except Exception as _exc:
+                    c["failed"] = True
+                    print(f"[analyze] {c['req_id']} failed: {_exc}")
+                    log(f"✗ {c['req_id']} failed: {_exc}")
+                finally:
+                    c["elapsed"] += time.time() - c["step_started"]
+
+        def _for_each_requirement(step) -> None:
+            """Run one step for every requirement still in play, in parallel when enabled.
+            A requirement that fails a step is logged and left out of the steps after it."""
+            active = [c for c in contexts if not c["failed"]]
+            if _parallel_enabled and len(active) > 1:
+                with ThreadPoolExecutor(max_workers=min(len(active), _LLM_SEM_VALUE)) as _executor:
+                    for _future in as_completed([_executor.submit(_run_step, step, c) for c in active]):
+                        _future.result()
+            else:
+                for c in active:
+                    if _cancelled():
+                        break
+                    _run_step(step, c)
+
+        # Step 2: related Confluence specs, then acceptance criteria written with them as context.
+        def _derive_acceptance_criteria(c: Dict[str, Any]) -> None:
+            req_id, req_title, req_desc = c["req_id"], c["title"], c["desc"]
+            _retrieval_query = c["query"]
+            log(lambda: f"{req_id} ▸ {_clip(req_title or req_desc, 100)}")
             # 1. Retrieve Confluence specs first (basic query, before ACs are known) so they can
             #    enrich AC extraction with domain context documented in Confluence.
-            _emit_step("Finding related specs")
+            _emit_step(req_id, "Finding related specs")
             specs = self.rag_service.find_related_specs(_retrieval_query, k=10)
             if _source_confluence_page_ids:
                 _before = len(specs)
@@ -775,217 +900,245 @@ class RequirementAnalysisService:
                     print(f"[Specs] {req_id}: excluded {_before - len(specs)} chunk(s) from source page(s) {_source_confluence_page_ids}")
             related_specs_per_req[req_id] = specs
             print(f"[Specs] {req_id}: {len(specs)} Confluence chunk(s) retrieved — now extracting ACs with Confluence context")
+            _rlog(c, lambda: f"Related specs: {len(specs)} Confluence chunk(s)" + (
+                f", best match {_pct(max((s.get('similarity_score') or 0) for s in specs))}" if specs else ""))
             if _cancelled():
                 return
             # 2. Extract acceptance criteria with Confluence specs as context: drives Gate 1 threshold,
             #    Gate 2 prompt, and generation target count. Confluence docs may surface ACs not written
             #    in the requirement ticket itself.
-            _emit_step("Extracting acceptance criteria")
+            _emit_step(req_id, "Extracting acceptance criteria")
             _high_sim_specs = [s for s in specs if (s.get("similarity_score") or 0) >= 0.65]
+            _rlog(c, "Extracting acceptance criteria (AI)…")
             _acs = self._extract_acceptance_criteria(req_title, req_desc, specs_context=_high_sim_specs, run_id=run_id, run_cost=run_cost)
             acceptance_criteria_per_req[req_id] = _acs
-            if _cancelled():
-                return
+            _rlog(c, lambda: f"Acceptance criteria: {len(_acs)}" + _console_list(
+                list(enumerate(_acs, 1)), lambda item: f"{item[0]}. {_clip(item[1], 120)}", 8))
+
+        # Step 3: related TestRail tests, searched with the requirement and its criteria.
+        def _find_related_tests(c: Dict[str, Any]) -> None:
+            req_id = c["req_id"]
+            _acs = acceptance_criteria_per_req.get(req_id, [])
+            _retrieval_query = c["query"]
             # 3. Augment retrieval query with ACs so vector search finds tests that cover specific criteria,
             #    not just the high-level title. Cap at 4 ACs and 120 chars each to keep query focused.
-            _emit_step("Finding related tests")
+            _emit_step(req_id, "Finding related tests")
             if _acs:
                 _ac_snippet = "; ".join(ac[:120] for ac in _acs[:4])
                 _retrieval_query += f"\nAcceptance criteria: {_ac_snippet}"
             _retrieval_k = 15 if generate_p2_p3_tests else 10
             tests = self.rag_service.find_related_tests(_retrieval_query, k=_retrieval_k, vectorstore=_session_vectorstore)
             related_tests[req_id] = tests
+            _rlog(c, lambda: f"Related tests: {len(tests)} found" + _console_list(
+                tests, lambda t: f"{t.get('testrail_id') or '—'}  {_pct(t.get('similarity_score'))}  "
+                                 f"{t.get('priority') or '—'}  {_clip(t.get('title'), 90)}", 5)
+                 if tests else "Related tests: none above the similarity threshold")
+            c["tests"] = tests
 
-            if tests:
-                # LLM batch-assessment of all retrieved tests: determines per-test relevance and update need.
-                # Falls back to similarity-band logic if the batch call fails.
-                _emit_step("Assessing test coverage")
-                print(f"[assess-batch] {req_id}: reviewing all {len(tests)} test(s) with LLM...")
-                _batch_assessments = self._assess_all_tests_batch(req_text, tests, run_id=run_id, run_cost=run_cost)
-
-                if _batch_assessments:
-                    _assess_map: Dict[str, Dict] = {}
-                    for i, a in enumerate(_batch_assessments):
-                        _tid = a.get("testrail_id") or (tests[i].get("testrail_id") if i < len(tests) else None)
-                        if _tid:
-                            _assess_map[str(_tid)] = a
-
-                    _ok_ids: List[str] = []
-                    _needing: List[Dict] = []
-                    _irrelevant_count = 0
-
-                    for t in tests:
-                        _tid = str(t.get("testrail_id") or "N/A")
-                        _a = _assess_map.get(_tid, {})
-                        _status = (_a.get("status") or "relevant_ok").lower()
-
-                        # Check for blank content FIRST — regardless of LLM classification.
-                        # Blank tests should always show suggestions, even if LLM said "irrelevant".
-                        _content = (t.get("content") or "")
-                        _meta_steps = (t.get("steps") or "").strip()
-                        _meta_expected = (t.get("expected_result") or "").strip()
-                        _meta_precond = (t.get("preconditions") or "").strip()
-                        _is_blank = not _meta_steps and not _meta_expected and not _meta_precond and "step" not in _content.lower()
-
-                        if _is_blank:
-                            _needing.append({**t, "status": "needs_update",
-                                              "suggested_changes": ["Add detailed test steps", "Add expected results", "Add preconditions"],
-                                              "reason": "Test case has no steps, expected results, or preconditions — needs content to be actionable",
-                                              "confidence": 0.9})
-                        elif _status == "irrelevant":
-                            _irrelevant_count += 1
-                            continue  # Excluded from coverage and from update list
-                        elif _status in ("needs_update", "partial"):
-                            _needing.append({**t, "status": _status,
-                                              "suggested_changes": _a.get("suggested_changes") or [],
-                                              "reason": _a.get("reason") or "",
-                                              "confidence": _a.get("confidence") or 0.0})
-                        else:  # relevant_ok
-                            _ok_ids.append(_tid)
-
-                    tests_ok[req_id] = _ok_ids
-                    tests_needing_update[req_id] = _needing
-                    if _irrelevant_count:
-                        print(f"[assess-batch] {req_id}: {len(_ok_ids)} ok, {len(_needing)} need update, {_irrelevant_count} irrelevant (excluded)")
-                    else:
-                        print(f"[assess-batch] {req_id}: {len(_ok_ids)} ok, {len(_needing)} need update")
-                else:
-                    # Fallback: similarity bands (used if batch LLM call fails)
-                    print(f"[assess-batch] {req_id}: batch failed — falling back to similarity bands")
-                    def _norm_similarity_pct(t: Dict) -> float:
-                        s = t.get("similarity_score")
-                        if s is None:
-                            return -1.0
-                        return (s * 100.0) if s <= 1.0 else float(s)
-                    need_update_band = []
-                    reuse_band = []
-                    for t in tests:
-                        spct = _norm_similarity_pct(t)
-                        if spct < 0:
-                            reuse_band.append(t)
-                            continue
-                        if retrieval_threshold_pct <= spct <= needs_update_similarity_ceiling_pct:
-                            need_update_band.append(t)
-                        else:
-                            reuse_band.append(t)
-                    tests_ok[req_id] = [t.get("testrail_id") or "N/A" for t in reuse_band]
-                    _ASSESS_CAP = 3
-                    assess_band = need_update_band[:_ASSESS_CAP]
-                    skip_band = need_update_band[_ASSESS_CAP:]
-                    if skip_band:
-                        tests_ok[req_id].extend(t.get("testrail_id") or "N/A" for t in skip_band)
-                    needing_from_llm, ok_ids_from_band = self._assess_updates(req_text, assess_band, run_id=run_id, run_cost=run_cost)
-                    tests_needing_update[req_id] = [e for e in needing_from_llm if (e.get("status") or "ok") != "ok"]
-                    tests_ok[req_id].extend(ok_ids_from_band)
-
-                # --- GATE 1: per-priority count check (deterministic) ---
-                _all_test_ids = [str(t.get("testrail_id") or "") for t in tests if t.get("testrail_id")]
-                generate_priorities = _compute_generate_priorities(
-                    tests, generate_p2_p3_tests, ok_ids=_all_test_ids,
-                )
-
-                # --- GATE 2: LLM content coverage check (always runs when tests exist) ---
-                gate2_sufficient = False
-                gate2_reason = ""
-                if tests:
-                    _emit_step("Checking coverage gap")
-                    gate2_sufficient, gate2_reason = self._is_coverage_sufficient(
-                        req_text, tests,
-                        acceptance_criteria=acceptance_criteria_per_req.get(req_id),
-                        specs_context=(related_specs_per_req.get(req_id) or [])[:2],
-                        run_id=run_id, run_cost=run_cost,
-                    )
-
-                # --- DECISION: 4-way matrix ---
-                _g1_pass = not generate_priorities
-                _g2_pass = gate2_sufficient
-
-                if _g1_pass and _g2_pass:
-                    # Both pass: enough tests per priority AND content covers ACs
-                    print(f"[DECISION] {req_id}: Gate1 PASS, Gate2 PASS ({gate2_reason}) → skipping generation")
-
-                elif _g1_pass and not _g2_pass:
-                    # Enough tests by count but LLM found content gaps.
-                    # Trust Gate 1 — don't generate. Show Gate 2's feedback as suggestions instead.
-                    # This prevents infinite re-generation when the LLM keeps finding new uncovered ACs.
-                    _g2_label = f"Gate2 LLM FAIL ({gate2_reason})" if tests else "Gate2 SKIPPED"
-                    print(f"[DECISION] {req_id}: Gate1 PASS, {_g2_label} → not generating (Gate1 sufficient, showing suggestions only)")
-                    # Add the uncovered ACs as suggestions on existing tests
-                    if gate2_reason and tests_needing_update.get(req_id):
-                        tests_needing_update[req_id][0].setdefault("suggested_changes", []).append(
-                            f"Coverage gap noted by AI: {gate2_reason}"
-                        )
-
-                elif not _g1_pass and _g2_pass:
-                    # Content is covered but priority distribution is uneven
-                    # → suggest priority changes on existing tests instead of generating new ones
-                    _missing = ", ".join(generate_priorities)
-                    print(f"[DECISION] {req_id}: Gate1 FAIL ({_missing}), Gate2 PASS ({gate2_reason}) → suggesting priority updates (not generating)")
-                    # Add priority suggestions to needs-update tests
-                    for _t in tests:
-                        _tp = (_t.get("priority") or "").strip().upper()
-                        _tid = str(_t.get("testrail_id") or "")
-                        if _tp and _tp not in generate_priorities and _tid:
-                            # This test has a priority that's already covered — suggest changing to an under-covered one
-                            for _nu in tests_needing_update.get(req_id, []):
-                                if str(_nu.get("testrail_id") or "") == _tid:
-                                    _nu.setdefault("suggested_changes", []).append(
-                                        f"Consider changing priority from {_tp} to {generate_priorities[0]} (under-covered)"
-                                    )
-                                    break
-                    generate_priorities = []  # Don't generate — just suggest
-
-                else:
-                    # Both fail: real content gaps + priority gaps → generate
-                    _g1_detail = ", ".join(generate_priorities)
-                    _g2_label = f"Gate2 LLM FAIL ({gate2_reason})" if tests else "Gate2 SKIPPED (0 tests)"
-                    print(f"[DECISION] {req_id}: Gate1 FAIL ({_g1_detail}), {_g2_label} → generating {', '.join(generate_priorities)}")
-
-                # Generate if priorities still need coverage
-                if generate_priorities:
-                    coverage_gap_reason_per_req[req_id] = f"Need more tests for: {', '.join(generate_priorities)}."
-                    with _req_lock:
-                        uncovered_requirements.append(req_id)
-                    if generate_new_tests:
-                        _emit_step("Generating tests")
-                        report(3, "Generating tests", 0.60)
-                        gen_list = self._generate_tests_for_requirement(
-                            req, tests,
-                            specs_context=related_specs_per_req.get(req_id, []),
-                            reuse_test_ids=tests_ok.get(req_id, []),
-                            update_test_infos=tests_needing_update.get(req_id, []),
-                            coverage_gap_reason=coverage_gap_reason_per_req.get(req_id, ""),
-                            generate_p2_p3=generate_p2_p3_tests,
-                            allowed_priorities=generate_priorities,
-                            acceptance_criteria=acceptance_criteria_per_req.get(req_id),
-                            run_id=run_id, run_cost=run_cost,
-                        )
-                        if gen_list:
-                            generated_tests[req_id] = gen_list
-            else:
+        # Step 3: assess the related tests, then decide which priorities still need tests.
+        def _check_coverage(c: Dict[str, Any]) -> None:
+            req_id, req_text, tests = c["req_id"], c["req_text"], c["tests"]
+            if not tests:
                 tests_needing_update[req_id] = []
                 tests_ok[req_id] = []
                 coverage_gap_reason_per_req[req_id] = "No related tests."
                 # No related tests at all → generate P0/P1 (and optionally P2/P3)
                 with _req_lock:
                     uncovered_requirements.append(req_id)
-                all_priorities = ["P0", "P1"] + (["P2", "P3"] if generate_p2_p3_tests else [])
-                if generate_new_tests:
-                    _emit_step("Generating tests")
-                    report(3, "Generating tests", 0.60)
-                    gen_list = self._generate_tests_for_requirement(
-                        req, tests,
-                        specs_context=related_specs_per_req.get(req_id, []),
-                        reuse_test_ids=[],
-                        update_test_infos=[],
-                        coverage_gap_reason=coverage_gap_reason_per_req.get(req_id, ""),
-                        generate_p2_p3=generate_p2_p3_tests,
-                        allowed_priorities=all_priorities,
-                        acceptance_criteria=acceptance_criteria_per_req.get(req_id),
-                        run_id=run_id, run_cost=run_cost,
+                c["priorities"] = ["P0", "P1"] + (["P2", "P3"] if generate_p2_p3_tests else [])
+                _rlog(c, lambda: f"No related tests — needs new {', '.join(c['priorities'])} tests")
+                return
+            # LLM batch-assessment of all retrieved tests: determines per-test relevance and update need.
+            # Falls back to similarity-band logic if the batch call fails.
+            _emit_step(req_id, "Assessing test coverage")
+            print(f"[assess-batch] {req_id}: reviewing all {len(tests)} test(s) with LLM...")
+            _rlog(c, lambda: f"Assessing {len(tests)} related test(s) against the requirement (AI)…")
+            _batch_assessments = self._assess_all_tests_batch(req_text, tests, run_id=run_id, run_cost=run_cost)
+
+            if _batch_assessments:
+                _assess_map: Dict[str, Dict] = {}
+                for i, a in enumerate(_batch_assessments):
+                    _tid = a.get("testrail_id") or (tests[i].get("testrail_id") if i < len(tests) else None)
+                    if _tid:
+                        _assess_map[str(_tid)] = a
+
+                _ok_ids: List[str] = []
+                _needing: List[Dict] = []
+                _irrelevant_count = 0
+
+                for t in tests:
+                    _tid = str(t.get("testrail_id") or "N/A")
+                    _a = _assess_map.get(_tid, {})
+                    _status = (_a.get("status") or "relevant_ok").lower()
+
+                    # Check for blank content FIRST — regardless of LLM classification.
+                    # Blank tests should always show suggestions, even if LLM said "irrelevant".
+                    _content = (t.get("content") or "")
+                    _meta_steps = (t.get("steps") or "").strip()
+                    _meta_expected = (t.get("expected_result") or "").strip()
+                    _meta_precond = (t.get("preconditions") or "").strip()
+                    _is_blank = not _meta_steps and not _meta_expected and not _meta_precond and "step" not in _content.lower()
+
+                    if _is_blank:
+                        _needing.append({**t, "status": "needs_update",
+                                          "suggested_changes": ["Add detailed test steps", "Add expected results", "Add preconditions"],
+                                          "reason": "Test case has no steps, expected results, or preconditions — needs content to be actionable",
+                                          "confidence": 0.9})
+                    elif _status == "irrelevant":
+                        _irrelevant_count += 1
+                        continue  # Excluded from coverage and from update list
+                    elif _status in ("needs_update", "partial"):
+                        _needing.append({**t, "status": _status,
+                                          "suggested_changes": _a.get("suggested_changes") or [],
+                                          "reason": _a.get("reason") or "",
+                                          "confidence": _a.get("confidence") or 0.0})
+                    else:  # relevant_ok
+                        _ok_ids.append(_tid)
+
+                tests_ok[req_id] = _ok_ids
+                tests_needing_update[req_id] = _needing
+                if _irrelevant_count:
+                    print(f"[assess-batch] {req_id}: {len(_ok_ids)} ok, {len(_needing)} need update, {_irrelevant_count} irrelevant (excluded)")
+                else:
+                    print(f"[assess-batch] {req_id}: {len(_ok_ids)} ok, {len(_needing)} need update")
+                _rlog(c, lambda: f"Assessment: {len(_ok_ids)} cover it as-is · {len(_needing)} need updates"
+                             + (f" · {_irrelevant_count} not relevant" if _irrelevant_count else ""))
+            else:
+                # Fallback: similarity bands (used if batch LLM call fails)
+                print(f"[assess-batch] {req_id}: batch failed — falling back to similarity bands")
+                _rlog(c, "Assessment by AI failed — falling back to similarity bands")
+                def _norm_similarity_pct(t: Dict) -> float:
+                    s = t.get("similarity_score")
+                    if s is None:
+                        return -1.0
+                    return (s * 100.0) if s <= 1.0 else float(s)
+                need_update_band = []
+                reuse_band = []
+                for t in tests:
+                    spct = _norm_similarity_pct(t)
+                    if spct < 0:
+                        reuse_band.append(t)
+                        continue
+                    if retrieval_threshold_pct <= spct <= needs_update_similarity_ceiling_pct:
+                        need_update_band.append(t)
+                    else:
+                        reuse_band.append(t)
+                tests_ok[req_id] = [t.get("testrail_id") or "N/A" for t in reuse_band]
+                _ASSESS_CAP = 3
+                assess_band = need_update_band[:_ASSESS_CAP]
+                skip_band = need_update_band[_ASSESS_CAP:]
+                if skip_band:
+                    tests_ok[req_id].extend(t.get("testrail_id") or "N/A" for t in skip_band)
+                needing_from_llm, ok_ids_from_band = self._assess_updates(req_text, assess_band, run_id=run_id, run_cost=run_cost)
+                tests_needing_update[req_id] = [e for e in needing_from_llm if (e.get("status") or "ok") != "ok"]
+                tests_ok[req_id].extend(ok_ids_from_band)
+                _rlog(c, lambda: f"Assessment: {len(tests_ok[req_id])} cover it as-is"
+                             f" · {len(tests_needing_update[req_id])} need updates")
+
+            # --- GATE 1: per-priority count check (deterministic) ---
+            _all_test_ids = [str(t.get("testrail_id") or "") for t in tests if t.get("testrail_id")]
+            generate_priorities = _compute_generate_priorities(
+                tests, generate_p2_p3_tests, ok_ids=_all_test_ids,
+            )
+            _rlog(c, lambda: "Priority check: " + (f"too few {', '.join(generate_priorities)} tests"
+                                               if generate_priorities else "enough tests at every priority"))
+
+            # --- GATE 2: LLM content coverage check (always runs when tests exist) ---
+            gate2_sufficient = False
+            gate2_reason = ""
+            if tests:
+                _emit_step(req_id, "Checking coverage gap")
+                _rlog(c, "Checking the tests cover the acceptance criteria (AI)…")
+                gate2_sufficient, gate2_reason = self._is_coverage_sufficient(
+                    req_text, tests,
+                    acceptance_criteria=acceptance_criteria_per_req.get(req_id),
+                    specs_context=(related_specs_per_req.get(req_id) or [])[:2],
+                    run_id=run_id, run_cost=run_cost,
+                )
+                _rlog(c, lambda: ("Content check: covered" if gate2_sufficient else "Content check: gaps found")
+                             + (f" — {_clip(gate2_reason, 180)}" if gate2_reason else ""))
+
+            # --- DECISION: 4-way matrix ---
+            _g1_pass = not generate_priorities
+            _g2_pass = gate2_sufficient
+
+            if _g1_pass and _g2_pass:
+                # Both pass: enough tests per priority AND content covers ACs
+                print(f"[DECISION] {req_id}: Gate1 PASS, Gate2 PASS ({gate2_reason}) → skipping generation")
+                _rlog(c, "Decision: already covered — no new tests needed")
+
+            elif _g1_pass and not _g2_pass:
+                # Enough tests by count but LLM found content gaps.
+                # Trust Gate 1 — don't generate. Show Gate 2's feedback as suggestions instead.
+                # This prevents infinite re-generation when the LLM keeps finding new uncovered ACs.
+                _g2_label = f"Gate2 LLM FAIL ({gate2_reason})" if tests else "Gate2 SKIPPED"
+                print(f"[DECISION] {req_id}: Gate1 PASS, {_g2_label} → not generating (Gate1 sufficient, showing suggestions only)")
+                _rlog(c, "Decision: enough tests by priority — content gaps become update suggestions, no new tests")
+                # Add the uncovered ACs as suggestions on existing tests
+                if gate2_reason and tests_needing_update.get(req_id):
+                    tests_needing_update[req_id][0].setdefault("suggested_changes", []).append(
+                        f"Coverage gap noted by AI: {gate2_reason}"
                     )
-                    if gen_list:
-                        generated_tests[req_id] = gen_list
+
+            elif not _g1_pass and _g2_pass:
+                # Content is covered but priority distribution is uneven
+                # → suggest priority changes on existing tests instead of generating new ones
+                _missing = ", ".join(generate_priorities)
+                print(f"[DECISION] {req_id}: Gate1 FAIL ({_missing}), Gate2 PASS ({gate2_reason}) → suggesting priority updates (not generating)")
+                _rlog(c, lambda: f"Decision: content covered but too few {_missing} tests — suggesting priority changes, no new tests")
+                # Add priority suggestions to needs-update tests
+                for _t in tests:
+                    _tp = (_t.get("priority") or "").strip().upper()
+                    _tid = str(_t.get("testrail_id") or "")
+                    if _tp and _tp not in generate_priorities and _tid:
+                        # This test has a priority that's already covered — suggest changing to an under-covered one
+                        for _nu in tests_needing_update.get(req_id, []):
+                            if str(_nu.get("testrail_id") or "") == _tid:
+                                _nu.setdefault("suggested_changes", []).append(
+                                    f"Consider changing priority from {_tp} to {generate_priorities[0]} (under-covered)"
+                                )
+                                break
+                generate_priorities = []  # Don't generate — just suggest
+
+            else:
+                # Both fail: real content gaps + priority gaps → generate
+                _g1_detail = ", ".join(generate_priorities)
+                _g2_label = f"Gate2 LLM FAIL ({gate2_reason})" if tests else "Gate2 SKIPPED (0 tests)"
+                print(f"[DECISION] {req_id}: Gate1 FAIL ({_g1_detail}), {_g2_label} → generating {', '.join(generate_priorities)}")
+                _rlog(c, lambda: f"Decision: generate new {_g1_detail} tests")
+
+            # Generate if priorities still need coverage
+            if generate_priorities:
+                coverage_gap_reason_per_req[req_id] = f"Need more tests for: {', '.join(generate_priorities)}."
+                with _req_lock:
+                    uncovered_requirements.append(req_id)
+            c["priorities"] = generate_priorities
+
+        # Step 4: write tests for the gaps, then measure coverage and stream the result.
+        def _write_missing_tests(c: Dict[str, Any]) -> None:
+            req, req_id, tests, priorities = c["req"], c["req_id"], c["tests"], c["priorities"]
+            if not priorities:
+                _rlog(c, "No new tests needed")
+            elif not generate_new_tests:
+                _rlog(c, "New test generation is off — gap recorded only")
+            else:
+                _emit_step(req_id, "Generating tests")
+                _rlog(c, lambda: f"Writing {', '.join(priorities)} tests (AI)…")
+                gen_list = self._generate_tests_for_requirement(
+                    req, tests,
+                    specs_context=related_specs_per_req.get(req_id, []),
+                    reuse_test_ids=tests_ok.get(req_id, []),
+                    update_test_infos=tests_needing_update.get(req_id, []),
+                    coverage_gap_reason=coverage_gap_reason_per_req.get(req_id, ""),
+                    generate_p2_p3=generate_p2_p3_tests,
+                    allowed_priorities=priorities,
+                    acceptance_criteria=acceptance_criteria_per_req.get(req_id),
+                    run_id=run_id, run_cost=run_cost,
+                )
+                if gen_list:
+                    generated_tests[req_id] = gen_list
+                _rlog(c, lambda: f"Generated tests: {len(gen_list or [])}" + _console_list(
+                    gen_list or [], lambda t: f"{t.get('priority') or '—'}  {_clip(t.get('title'), 100)}", 12))
 
             _coverage = _compute_coverage_metrics(
                 related_tests=related_tests[req_id],
@@ -994,12 +1147,16 @@ class RequirementAnalysisService:
                 ok_ids=tests_ok.get(req_id, []),
             )
             coverage_per_req[req_id] = _coverage
+            _rlog(c, lambda: f"Coverage: {_coverage['final_coverage_pct']}% · " + " · ".join(
+                f"{p} {v['existing']} existing + {v['generated']} new" for p, v in _coverage["by_priority"].items()))
+            _elapsed = c["elapsed"] + time.time() - c["step_started"]
+            _rlog(c, lambda: f"✓ done — {_elapsed:.1f}s of analysis")
 
             # Report progress and stream result under the lock to keep counter consistent
             with _req_lock:
                 _completed_reqs[0] += 1
                 _done = _completed_reqs[0]
-            report(2, f"Analyzed {_done} of {total_reqs} requirements", 0.30 + 0.60 * _done / max(1, total_reqs))
+            report(3, f"Analyzed {_done} of {total_reqs} requirements", 0.60 + 0.25 * _done / max(1, total_reqs))
 
             if requirement_result_callback:
                 try:
@@ -1015,7 +1172,7 @@ class RequirementAnalysisService:
                             "related_specs": related_specs_per_req.get(req_id, []),
                             "coverage": _coverage,
                             "acceptance_criteria": acceptance_criteria_per_req.get(req_id, []),
-                            "elapsed_s": round(time.time() - _start_time, 1),
+                            "elapsed_s": round(_elapsed, 1),
                             # Requirements are processed in parallel, so this is
                             # the run's spend at completion of this one, not an
                             # isolated per-requirement cost. Labelled as such in
@@ -1026,34 +1183,32 @@ class RequirementAnalysisService:
                 except Exception:
                     pass
 
-        # Check parallel processing setting (Admin Settings → Requirements → Parallel Processing)
-        _parallel_enabled = os.getenv("REQUIREMENT_PARALLEL_PROCESSING", "true").lower() in ("true", "1", "yes")
-
-        def _run_with_sem(idx: int, req: Dict) -> None:
-            with _llm_concurrency_sem:
-                _process_one_req(idx, req)
-
+        start_phase(2)
+        report(2, "Fetching context from Confluence & TestRail (0 of %d requirements)" % total_reqs if total_reqs else "Fetching context from Confluence & TestRail", 0.30)
         if _parallel_enabled and len(requirements) > 1:
             _max_parallel = min(len(requirements), _LLM_SEM_VALUE)
             print(f"[analyze] Processing {len(requirements)} requirement(s) with {_max_parallel} parallel worker(s)")
-            with ThreadPoolExecutor(max_workers=_max_parallel) as _executor:
-                _futures = {
-                    _executor.submit(_run_with_sem, idx, req): req.get("id", f"req-{idx}")
-                    for idx, req in enumerate(requirements)
-                }
-                for _future in as_completed(_futures):
-                    _req_label = _futures[_future]
-                    try:
-                        _future.result()
-                    except Exception as _exc:
-                        print(f"[analyze] {_req_label} failed: {_exc}")
+            log(f"{len(requirements)} requirements, analysed in parallel (up to {_max_parallel} at a time)")
         else:
             print(f"[analyze] Processing {len(requirements)} requirement(s) sequentially")
-            for idx, req in enumerate(requirements):
-                if cancel_event is not None and cancel_event.is_set():
-                    break
-                _process_one_req(idx, req)
+            log(f"{len(requirements)} requirement(s), analysed one at a time")
+        _for_each_requirement(_derive_acceptance_criteria)
 
+        start_phase(3)
+        report(2, "Finding related tests", 0.38)
+        _for_each_requirement(_find_related_tests)
+
+        start_phase(4)
+        report(2, "Checking coverage", 0.45)
+        _for_each_requirement(_check_coverage)
+
+        start_phase(5)
+        report(3, "Generating tests", 0.60)
+        _for_each_requirement(_write_missing_tests)
+
+        if _cancelled():
+            log(lambda: f"Cancelled — {total_reqs - _completed_reqs[0]} requirement(s) not finished")
+        start_phase(6)
         # Collect existing E2E tests from related_tests (always, regardless of generate_new_tests flag).
         # Primary detection: case_type == "FCT / Regression" (stored in ChromaDB metadata after sync).
         # Fallback for tests indexed before this field was added: "e2e" in title or "type: fct" in content.
@@ -1087,13 +1242,19 @@ class RequirementAnalysisService:
                     _seen_e2e_ids.add(_tid)
                     existing_e2e_tests.append(_t)
 
+        log(lambda: f"Existing E2E tests matching these requirements: {len(existing_e2e_tests)}" + _console_list(
+            existing_e2e_tests, lambda t: f"{t.get('testrail_id') or '—'}  {_pct(t.get('similarity_score'))}  {_clip(t.get('title'), 90)}", 5))
         # E2E Workflow Test Generation: LLM-gated (always ask the LLM if existing E2E coverage suffices)
         e2e_workflow_tests: List[Dict[str, Any]] = []
         _n_existing_e2e = len(existing_e2e_tests)
         print(f"[E2E DECISION] existing={_n_existing_e2e}, generate_new_tests={generate_new_tests}")
 
-        if not generate_new_tests or len(requirements) < 1:
-            print(f"[E2E DECISION] Skipped — generate_new_tests={generate_new_tests}")
+        _run_cancelled = cancel_event is not None and cancel_event.is_set()
+        if not generate_new_tests or len(requirements) < 1 or _run_cancelled:
+            print(f"[E2E DECISION] Skipped — generate_new_tests={generate_new_tests}, cancelled={_run_cancelled}")
+            log("Not generating E2E tests — " + ("the run was cancelled" if _run_cancelled
+                                                  else "new test generation is off" if not generate_new_tests
+                                                  else "no requirements to cover"))
         else:
             # Deterministic gate: if enough existing E2E tests (≥ total requirements), skip LLM check.
             # This prevents non-deterministic LLM from re-generating after user already pushed E2E tests.
@@ -1103,19 +1264,26 @@ class RequirementAnalysisService:
                 _e2e_gate_sufficient = True
                 _e2e_gate_reason = f"{_n_existing_e2e} existing E2E tests >= {len(requirements)} requirements"
             elif existing_e2e_tests:
+                log("Checking whether the existing E2E tests already cover these requirements (AI)…")
                 _e2e_gate_sufficient, _e2e_gate_reason = self._is_e2e_coverage_sufficient(
                     requirements, existing_e2e_tests, run_id=run_id, run_cost=run_cost
                 )
 
             if _e2e_gate_sufficient:
                 print(f"[E2E DECISION] LLM PASS ({_e2e_gate_reason}) — {_n_existing_e2e} existing E2E tests sufficient → skipping generation")
+                log(lambda: f"Existing E2E tests are enough — {_clip(_e2e_gate_reason, 180)}")
             else:
                 _gate_label = "No existing E2E tests" if not existing_e2e_tests else f"LLM FAIL ({_e2e_gate_reason})"
                 print(f"[E2E DECISION] {_gate_label} → generating E2E tests")
+                log(lambda: ("No existing E2E tests" if not existing_e2e_tests
+                             else f"E2E gaps found — {_clip(_e2e_gate_reason, 180)}") + " → generating new E2E tests")
                 report(3, "Identifying E2E workflows", 0.85)
                 print("[E2E] Fetching broad critical product tests for regression context...")
+                log("Fetching critical product tests for regression context…")
                 _critical_product_tests = self._fetch_critical_product_tests(k_per_query=8)
                 print(f"[E2E] Fetched {len(_critical_product_tests)} critical product tests across product areas")
+                log(lambda: f"Critical product tests: {len(_critical_product_tests)} across product areas")
+                log("Identifying E2E workflows (AI)…")
                 workflows = self._identify_e2e_workflows(
                     requirements, related_tests,
                     existing_e2e_tests=existing_e2e_tests,
@@ -1123,14 +1291,20 @@ class RequirementAnalysisService:
                     run_id=run_id, run_cost=run_cost,
                 )
                 print(f"[E2E DECISION] Identified {len(workflows)} workflows")
+                log(lambda: f"Workflows: {len(workflows)}" + _console_list(
+                    workflows, lambda w: _clip(w.get("name") if isinstance(w, dict) else w, 100), 10))
                 if workflows:
                     report(3, f"Generating E2E tests for {len(workflows)} workflow(s)", 0.90)
+                    log(lambda: f"Generating E2E tests for {len(workflows)} workflow(s) (AI)…")
                     batch_e2e = self._generate_e2e_tests_batch(workflows, requirements, run_id=run_id, run_cost=run_cost)
                     for e2e_test in batch_e2e:
                         e2e_workflow_tests.append(e2e_test)
                         print(f"[E2E DECISION] Generated: {e2e_test.get('title', 'no title')}")
 
         print(f"[E2E DECISION] Total E2E tests generated: {len(e2e_workflow_tests)}")
+        if e2e_workflow_tests:
+            log(lambda: f"Generated E2E tests: {len(e2e_workflow_tests)}" + _console_list(
+                e2e_workflow_tests, lambda t: f"{t.get('priority') or '—'}  {_clip(t.get('title'), 100)}", 12))
 
         report(3, "Generating tests", 1.0)
 
@@ -1158,6 +1332,10 @@ class RequirementAnalysisService:
                     pushed = self._push_generated_tests_to_testrail(generated_tests, section_map)
                 elif default_section:
                     pushed = self._push_generated_tests_to_testrail(generated_tests, default_section)
+
+        if pushed:
+            log(lambda: f"Pushed {sum(1 for x in pushed if x.get('success'))} of {len(pushed)} test(s) to TestRail")
+        end_phase()
 
         _req_coverages = list(coverage_per_req.values())
         _overall_pct = int(sum(c["final_coverage_pct"] for c in _req_coverages) / max(1, len(_req_coverages)))

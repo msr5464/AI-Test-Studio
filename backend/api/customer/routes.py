@@ -4,18 +4,16 @@ Customer API Routes
 Endpoints for customer operations (querying RAG system).
 """
 
-import json
 import os
-import queue
-import threading
 import time
 import uuid
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import tempfile
 
-from flask import Blueprint, request, jsonify, current_app, Response, stream_with_context, session
+from flask import Blueprint, request, jsonify, current_app, Response, session
 
+from backend.services import requirement_runs
 from backend.services.requirement_analysis_service import RequirementAnalysisService
 from backend.api.auth.routes import require_auth
 
@@ -40,116 +38,6 @@ def check_auth():
     the request.
     """
     pass
-
-# Max lengths for streamed result to avoid huge SSE payloads that fail to send/parse (bigger docs)
-# Test case content includes preconditions, steps, expected result — use enough to show full case
-_TRIM_DESC = 6000
-_TRIM_CONTENT = 12000
-_TRIM_SPEC_CONTENT = 3000
-
-
-def _trim_result_for_stream(result):
-    """Return a copy of the result with long text fields truncated so the SSE payload stays manageable."""
-    if not result or not isinstance(result, dict):
-        return result
-    out = dict(result)
-    # Requirements: limit title/description
-    if "requirements" in out and isinstance(out["requirements"], list):
-        out["requirements"] = [
-            {
-                **r,
-                "title": (r.get("title") or "")[:_TRIM_DESC],
-                "description": (r.get("description") or "")[:_TRIM_DESC],
-            }
-            for r in out["requirements"]
-        ]
-    # Related specs: limit content
-    if "related_specs" in out and isinstance(out["related_specs"], list):
-        out["related_specs"] = [
-            {**s, "content": ((s.get("content") or "")[:_TRIM_SPEC_CONTENT])}
-            for s in out["related_specs"]
-        ]
-    # Related tests / tests_needing_update: limit content; keep preconditions, steps, expected_result separate (trim if present)
-    for key in ("related_tests", "tests_needing_update"):
-        if key not in out or not isinstance(out[key], dict):
-            continue
-        trimmed = {}
-        for req_id, lst in out[key].items():
-            if not isinstance(lst, list):
-                trimmed[req_id] = lst
-                continue
-            trimmed[req_id] = []
-            for t in lst:
-                row = {**t, "content": ((t.get("content") or "")[:_TRIM_CONTENT])}
-                if "preconditions" in t:
-                    row["preconditions"] = (t.get("preconditions") or "")[:_TRIM_CONTENT]
-                if "steps" in t:
-                    row["steps"] = (t.get("steps") or "")[:_TRIM_CONTENT]
-                if "expected_result" in t:
-                    row["expected_result"] = (t.get("expected_result") or "")[:_TRIM_CONTENT]
-                trimmed[req_id].append(row)
-        out[key] = trimmed
-    # Generated tests: limit steps, preconditions, expected_result
-    if "generated_tests" in out and isinstance(out["generated_tests"], dict):
-        trimmed_gt = {}
-        for req_id, lst in out["generated_tests"].items():
-            if not isinstance(lst, list):
-                trimmed_gt[req_id] = lst
-                continue
-            trimmed_gt[req_id] = [
-                {
-                    **t,
-                    "preconditions": ((t.get("preconditions") or "")[:_TRIM_CONTENT]),
-                    "steps": ((t.get("steps") or "")[:_TRIM_CONTENT]),
-                    "expected_result": ((t.get("expected_result") or "")[:_TRIM_CONTENT]),
-                }
-                for t in lst
-            ]
-        out["generated_tests"] = trimmed_gt
-    return out
-
-
-def _trim_requirement_result_for_stream(data):
-    """Trim one requirement's result payload for streaming (keep size small)."""
-    if not data or not isinstance(data, dict):
-        return data
-    out = dict(data)
-    if "requirement" in out and isinstance(out["requirement"], dict):
-        r = out["requirement"]
-        out["requirement"] = {
-            **r,
-            "title": (r.get("title") or "")[:_TRIM_DESC],
-            "description": (r.get("description") or "")[:_TRIM_DESC],
-        }
-    if "related_specs" in out and isinstance(out["related_specs"], list):
-        out["related_specs"] = [
-            {**s, "content": ((s.get("content") or "")[:_TRIM_SPEC_CONTENT])}
-            for s in out["related_specs"]
-        ]
-    for key in ("related_tests", "tests_needing_update"):
-        if key in out and isinstance(out[key], list):
-            original_list = out[key]
-            out[key] = []
-            for t in original_list:
-                row = {**t, "content": ((t.get("content") or "")[:_TRIM_CONTENT])}
-                if "preconditions" in t:
-                    row["preconditions"] = (t.get("preconditions") or "")[:_TRIM_CONTENT]
-                if "steps" in t:
-                    row["steps"] = (t.get("steps") or "")[:_TRIM_CONTENT]
-                if "expected_result" in t:
-                    row["expected_result"] = (t.get("expected_result") or "")[:_TRIM_CONTENT]
-                out[key].append(row)
-    if "generated_tests" in out and isinstance(out["generated_tests"], list):
-        out["generated_tests"] = [
-            {
-                **t,
-                "preconditions": ((t.get("preconditions") or "")[:_TRIM_CONTENT]),
-                "steps": ((t.get("steps") or "")[:_TRIM_CONTENT]),
-                "expected_result": ((t.get("expected_result") or "")[:_TRIM_CONTENT]),
-            }
-            for t in out["generated_tests"]
-        ]
-    return out
 
 
 def _get_testrail_connector():
@@ -334,10 +222,13 @@ def _requirement_analysis_params():
     return text, file_paths, confluence_urls, opts
 
 
-@customer_bp.route('/requirement-analysis/stream', methods=['POST'])
-def requirement_analysis_stream():
+@customer_bp.route('/requirement-analysis/runs', methods=['POST'])
+def requirement_runs_start():
     """
-    Same as requirement-analysis but streams Server-Sent Events: progress (stage, message, progress 0-1) then result or error.
+    Start a requirement analysis in the background and return its History row (201).
+
+    The run no longer lives inside the request: the page follows it over
+    /runs/<session_id>/stream, reattaches after a refresh, and reopens it from History.
     Request body: same as POST /requirement-analysis (JSON or form).
     """
     try:
@@ -347,152 +238,82 @@ def requirement_analysis_stream():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-    q = queue.Queue(maxsize=500)
-    cancel_event = threading.Event()
-    run_started = time.time()
-    run_outcome = {"result": None, "status": "", "error": ""}
-    _source_type = ("confluence" if confluence_urls else
-                    "file" if file_paths else "text")
-    rag_service = current_app.config["RAG_SERVICE"]
-    svc = RequirementAnalysisService(rag_service=rag_service)
-    
-    current_user_id = session.get("user_id", "default")
+    if text:
+        source = "Pasted text"
+    elif file_paths:
+        source = ", ".join(f.filename for f in request.files.getlist("file") if f.filename)
+    else:
+        extra = len(confluence_urls) - 1
+        source = confluence_urls[0] + (f" +{extra} more" if extra else "")
 
-    def run_analyze():
-        try:
-            def progress_cb(stage, message, progress, closed_stage=None):
-                # closed_stage carries the duration and cost of the stage that
-                # just finished, so the UI can fill in its per-stage timings.
-                q.put(("progress", stage, message, progress, closed_stage))
+    svc = RequirementAnalysisService(rag_service=current_app.config["RAG_SERVICE"])
+    meta = requirement_runs.start(
+        svc,
+        user_id=session.get("user_id", "default"),
+        text=text,
+        file_paths=file_paths,
+        confluence_urls=confluence_urls,
+        opts=opts,
+        source=source,
+    )
+    return jsonify(meta), 201
 
-            def requirement_result_cb(req_id, data):
-                q.put(("requirement_result", req_id, _trim_requirement_result_for_stream(data)))
 
-            def doc_summary_cb(meta):
-                q.put(("doc_summary", meta))
+def _own_run(session_id):
+    """The run's History row if it belongs to the caller. Anyone else gets a 404, not a 403."""
+    meta = requirement_runs.get_meta(session_id)
+    if not meta or meta.get("user_id") != session.get("user_id", "default"):
+        return None
+    return meta
 
-            def requirement_step_cb(req_id, step):
-                q.put(("requirement_step", req_id, step))
 
-            result = svc.analyze(
-                text=text,
-                file_path=file_paths[0] if len(file_paths) == 1 else None,
-                file_paths=file_paths if len(file_paths) > 1 else None,
-                confluence_url=confluence_urls[0] if len(confluence_urls) == 1 else None,
-                confluence_urls=confluence_urls if len(confluence_urls) > 1 else None,
-                progress_callback=progress_cb,
-                requirement_result_callback=requirement_result_cb,
-                doc_summary_callback=doc_summary_cb,
-                requirement_step_callback=requirement_step_cb,
-                cancel_event=cancel_event,
-                **opts,
-            )
-            run_outcome["result"] = result
-            run_outcome["status"] = "completed"
-            q.put(("result", result))
-        except Exception as e:
-            run_outcome["status"] = "failed"
-            run_outcome["error"] = str(e)
-            q.put(("error", str(e)))
-        finally:
-            # Every terminal path lands here — success, exception, the 20-minute
-            # deadline, and a client disconnect. A failed run still spent money.
-            try:
-                from backend.services.analytics_service import record_requirement_run
-                record_requirement_run(
-                    run_outcome.get("result"),
-                    status=run_outcome.get("status") or "interrupted",
-                    source_type=_source_type,
-                    started_at=run_started,
-                    error=run_outcome.get("error") or "",
-                    user_id=current_user_id,
-                )
-            except Exception:
-                pass
-            for fp in file_paths:
-                if fp and fp.exists():
-                    try: fp.unlink()
-                    except Exception: pass
+def _run_not_found():
+    return jsonify({"success": False, "error": "Run not found"}), 404
 
-    def sse(data_str):
-        return f"data: {data_str}\n\n"
 
-    def gen():
-        # Send config immediately so frontend can apply correct thresholds before per-requirement blocks arrive
-        try:
-            _cov_min_sim = 60.0
-            _v = os.getenv("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", "").strip()
-            if _v:
-                _cov_min_sim = max(0.0, min(100.0, float(_v)))
-        except (ValueError, TypeError):
-            _cov_min_sim = 60.0
-        try:
-            _retrieval_threshold = 45.0
-            _v = os.getenv("REQUIREMENT_TESTS_SIMILARITY_THRESHOLD", "").strip()
-            if _v:
-                _retrieval_threshold = max(0.0, min(100.0, float(_v)))
-        except (ValueError, TypeError):
-            _retrieval_threshold = 45.0
-        yield sse(json.dumps({"type": "config", "coverage_min_similarity": _cov_min_sim, "retrieval_similarity_threshold": _retrieval_threshold}))
+@customer_bp.route('/requirement-analysis/runs', methods=['GET'])
+def requirement_runs_list():
+    """The caller's runs, newest first: {items: [History row]}."""
+    limit = max(1, min(request.args.get("limit", 20, type=int), 50))
+    items = requirement_runs.list_runs(session.get("user_id", "default"), limit)
+    return jsonify({"items": items}), 200
 
-        thread = threading.Thread(target=run_analyze)
-        thread.start()
-        deadline = time.time() + 1200  # hard stop after 20 min regardless
-        while True:
-            if time.time() > deadline:
-                cancel_event.set()  # signal analysis threads to stop
-                break
-            try:
-                item = q.get(timeout=25)
-            except queue.Empty:
-                # Send SSE comment as keepalive to prevent TCP/proxy idle disconnects
-                yield ": keepalive\n\n"
-                continue
-            if item[0] == "doc_summary":
-                try:
-                    yield sse(json.dumps({"type": "doc_summary", "data": item[1]}, default=str))
-                except Exception:
-                    pass
-                continue
-            if item[0] == "requirement_step":
-                try:
-                    yield sse(json.dumps({"type": "requirement_step", "req_id": item[1], "step": item[2]}))
-                except Exception:
-                    pass
-                continue
-            if item[0] == "requirement_result":
-                try:
-                    yield sse(
-                        json.dumps(
-                            {"type": "requirement_result", "req_id": item[1], "data": item[2]},
-                            default=str,
-                        )
-                    )
-                except Exception:
-                    pass
-                continue
-            if item[0] == "result":
-                try:
-                    payload = _trim_result_for_stream(item[1])
-                    yield sse(json.dumps(payload, default=str))
-                except Exception as serr:
-                    yield sse(json.dumps({"success": False, "error": "Failed to serialize result: " + str(serr)}))
-                break
-            if item[0] == "error":
-                yield sse(json.dumps({"success": False, "error": item[1]}))
-                break
-            _, stage, message, progress = item[:4]
-            payload = {"stage": stage, "message": message, "progress": progress}
-            closed_stage = item[4] if len(item) > 4 else None
-            if closed_stage:
-                payload["closed_stage"] = closed_stage
-            yield sse(json.dumps(payload))
 
+@customer_bp.route('/requirement-analysis/runs/<session_id>/events', methods=['GET'])
+def requirement_runs_events(session_id):
+    """Every recorded event of a run in one response, for replaying a past run."""
+    if not _own_run(session_id):
+        return _run_not_found()
+    return jsonify({"events": requirement_runs.events(session_id)}), 200
+
+
+@customer_bp.route('/requirement-analysis/runs/<session_id>/stream', methods=['GET'])
+def requirement_runs_stream(session_id):
+    """Server-Sent Events for a run: recorded events first, then live ones until it ends.
+
+    Resumes after Last-Event-ID, which EventSource sends by itself when it reconnects.
+    """
+    if not _own_run(session_id):
+        return _run_not_found()
+    try:
+        offset = int(request.headers.get("Last-Event-ID", "")) + 1
+    except ValueError:
+        offset = 0
     return Response(
-        stream_with_context(gen()),
+        requirement_runs.stream(session_id, max(offset, 0)),
         content_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@customer_bp.route('/requirement-analysis/runs/<session_id>/cancel', methods=['POST'])
+def requirement_runs_cancel(session_id):
+    """Stop a running analysis. It ends as "cancelled" with whatever it analysed so far."""
+    if not _own_run(session_id):
+        return _run_not_found()
+    if not requirement_runs.cancel(session_id):
+        return jsonify({"success": False, "error": "Run is not running"}), 409
+    return jsonify({"status": "cancelling", "session_id": session_id}), 200
 
 
 @customer_bp.route('/requirement-analysis/suggest-case-update', methods=['POST'])
@@ -539,6 +360,22 @@ def requirement_analysis_suggest_case_update():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+def _record_push(data, action, testrail_id, title):
+    """Remember a push on the Requirements → Tests run it came from, when the page names one.
+
+    Best-effort: the case already exists in TestRail, so a failure here must not turn
+    the push into an error.
+    """
+    session_id = data.get("session_id")
+    if not session_id:
+        return
+    try:
+        requirement_runs.record_push(str(session_id), session.get("user_id", "default"),
+                                     action, testrail_id, title, data.get("target"))
+    except Exception as e:
+        print(f"[{action}-case] could not record the push on run {session_id}: {e}")
+
+
 @customer_bp.route('/requirement-analysis/update-case', methods=['POST'])
 def requirement_analysis_update_case():
     """
@@ -573,6 +410,7 @@ def requirement_analysis_update_case():
             priority=priority,
         )
         if result.get("success"):
+            _record_push(data, "updated", testrail_id, title)
             # Re-ingest updated test into ChromaDB so the next analysis sees the new version
             try:
                 ingested = svc.ingest_pushed_case_into_rag(
@@ -642,6 +480,7 @@ def requirement_analysis_create_case():
             case_type_name=case_type,
         )
         if result.get("success"):
+            _record_push(data, "created", result.get("testrail_id", ""), title)
             # Ingest into ChromaDB so next requirement analysis sees it as an existing test
             try:
                 ingested = svc.ingest_pushed_case_into_rag(

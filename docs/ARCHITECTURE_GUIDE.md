@@ -413,8 +413,10 @@ Step 2: Pastes requirement text  OR  uploads file (PDF/DOCX/XLSX/PPTX)
         OR  provides Confluence URL
         │
         ▼
-Step 3: POST /api/customer/requirement-analysis/stream
-        │  SSE stream begins — LLM analyses requirements in real time
+Step 3: POST /api/customer/requirement-analysis/runs  → session_id
+        │  The run executes in the background; the Live Run card follows
+        │  GET /api/customer/requirement-analysis/runs/<session_id>/stream (SSE)
+        │  and History reopens past runs from their recorded events
         │
         ▼
 Step 4: LLM output streamed to browser:

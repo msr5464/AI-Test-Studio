@@ -958,21 +958,52 @@ curl -X POST http://localhost:5001/api/customer/requirement-analysis \
 
 ---
 
-### Requirement Analysis (Streaming)
+### Requirement Analysis Runs
 
-Same as `requirement-analysis` but streams progress events as Server-Sent Events (SSE). Used by the UI to show a live progress bar.
+The UI's way to run an analysis. A run executes in the background, so it survives a page refresh or a closed tab; every event it emits is recorded, which is what the page's History table replays. Runs are private to the user who started them — other users get `404`.
 
-**Endpoint:** `POST /api/customer/requirement-analysis/stream`
+**Start a run:** `POST /api/customer/requirement-analysis/runs`
 
-**Request:** Identical to `requirement-analysis`.
+**Request:** Identical to `requirement-analysis` (JSON or multipart form).
 
-**Response:** `text/event-stream` — emits JSON events with fields `stage`, `message`, `progress` (0–100), and per-requirement results as they complete.
+**Response (201):** the run's History row:
+```json
+{
+  "session_id": "20260916-143012-req-3f9a1c",
+  "status": "running",
+  "started_at": "2026-09-16T14:30:12",
+  "started_epoch": 1789551012.4,
+  "source": "Pasted text",
+  "title": "",
+  "source_type": "text",
+  "generate_new_tests": true,
+  "duration_s": null, "cost_usd": null, "input_tokens": null, "output_tokens": null,
+  "llm_calls": null, "requirements": null, "tests_generated": null, "error": ""
+}
+```
+
+**List runs:** `GET /api/customer/requirement-analysis/runs?limit=20` → `{"items": [row, ...]}`, newest first (limit 1–50). `status` is one of `running`, `completed`, `failed`, `cancelled`, or `interrupted` (the server restarted mid-run). The newest 50 runs per user are kept.
+
+**Follow a run:** `GET /api/customer/requirement-analysis/runs/<session_id>/stream` — `text/event-stream`. Sends every recorded event, then live ones until the run ends. Each frame has an `id:`; reconnecting with `Last-Event-ID` resumes after it. Every event carries `ts` (epoch seconds). Events, in order:
+- `{"type": "config", ...}` — session, source, options and similarity thresholds
+- `{"type": "phase", "state": "start" | "done", "index", "total", "key", "name", "duration_s"?, "cost_usd"?, "llm_calls"?}` — the six steps, run one after another: Extract Requirements (`extract`), Derive Acceptance Criteria (`criteria`), Find Related Tests (`find-tests`), Check Coverage (`coverage`), Write Missing Tests (`write-tests`), Build E2E Tests (`e2e`); `done` carries the step's own time and spend
+- `{"type": "log", "phase", "text"}` — one console line within the open step (`phase` is its index); `text` may span several lines
+- `{"stage", "message", "progress", "closed_stage"?}` — progress (0–1)
+- `{"type": "doc_summary", "data": {...}}`, `{"type": "requirement_step", "req_id", "step"}`
+- `{"type": "requirement_result", "req_id", "data": {...}}` — one per requirement
+- the final event: the full analysis result plus `"status"`, or `{"success": false, "error", "status"}`
+
+**Replay a run:** `GET /api/customer/requirement-analysis/runs/<session_id>/events` → `{"events": [...]}`, the same events in one response.
+
+**Cancel a run:** `POST /api/customer/requirement-analysis/runs/<session_id>/cancel` → `{"status": "cancelling"}`, or `409` if the run is not running. The run ends as `cancelled` with whatever it analysed so far.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:5001/api/customer/requirement-analysis/stream \
+curl -b cookies.txt -X POST http://localhost:5001/api/customer/requirement-analysis/runs \
   -H "Content-Type: application/json" \
   -d '{"requirement_spec": "REQ-001: ...", "generate_new_tests": true}'
+
+curl -b cookies.txt -N http://localhost:5001/api/customer/requirement-analysis/runs/<session_id>/stream
 ```
 
 ---

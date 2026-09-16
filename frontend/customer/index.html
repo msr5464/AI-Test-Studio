@@ -762,7 +762,8 @@
         }
 
         /* ── Card section headers ── */
-        [data-theme="light"] .qa-card h3 {
+        [data-theme="light"] .qa-card h3,
+        [data-theme="light"] .req-results > h3 {
             color: #0f172a;
             padding-bottom: 14px;
             border-bottom: 1px solid #e2e8f0;
@@ -3997,113 +3998,6 @@
             box-shadow: var(--shadow);
         }
 
-        .req-results-summary {
-            margin-bottom: 20px;
-        }
-
-        .req-summary-block {
-            padding: 14px 18px;
-            border-radius: 8px;
-            background: linear-gradient(90deg, #16a34a, #22c55e);
-            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
-        }
-
-        .req-summary-headline {
-            font-size: 16px;
-            font-weight: 600;
-            color: #fff;
-            margin: 0 0 4px 0;
-            line-height: 1.4;
-        }
-
-        .req-summary-headline .req-summary-total {
-            font-weight: 700;
-            color: #fff;
-        }
-
-        .req-summary-subline {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.85);
-            margin: 6px 0 0 0;
-            line-height: 1.4;
-        }
-
-        .req-summary-metrics {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px 20px;
-            font-size: 14px;
-            color: var(--text);
-        }
-
-        .req-summary-metric {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: var(--bg-card);
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-        }
-
-        .req-summary-metric .value {
-            font-weight: 700;
-            color: var(--primary);
-            min-width: 1.2em;
-            text-align: right;
-        }
-
-        .req-summary-metric.covered .value {
-            color: var(--success);
-        }
-
-        .req-summary-metric.attention .value {
-            color: #ef4444;
-        }
-
-        .req-summary-metric.generated .value {
-            color: var(--primary);
-        }
-
-        .req-summary-metric.cost .value {
-            color: var(--text-light);
-            font-weight: 600;
-        }
-
-        .req-summary-metric .label {
-            color: var(--text-light);
-            white-space: nowrap;
-        }
-
-        .req-summary-tabs-intro {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin: -8px 0 12px 0;
-        }
-
-        .req-summary-card {
-            padding: 16px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            text-align: center;
-            box-shadow: var(--shadow);
-        }
-
-        .req-summary-card .value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .req-summary-card .label {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
         .req-result-tabs {
             display: flex;
             gap: 8px;
@@ -4331,45 +4225,6 @@
             padding: 2px 8px;
             margin-left: 4px;
             font-weight: 500;
-            flex-shrink: 0;
-        }
-
-        .req-activity-feed {
-            margin: 10px 4px 2px 4px;
-        }
-
-        .req-activity-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 10px;
-            border-radius: 6px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            margin-bottom: 5px;
-            font-size: 13px;
-        }
-
-        .req-activity-id {
-            font-weight: 700;
-            color: var(--primary);
-            min-width: 64px;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
-
-        .req-activity-step {
-            color: var(--text-main);
-            flex: 1;
-        }
-
-        .req-activity-spinner {
-            width: 13px;
-            height: 13px;
-            border: 2px solid var(--border);
-            border-top-color: #16a34a;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
             flex-shrink: 0;
         }
 
@@ -4994,89 +4849,6 @@
             color: var(--text-muted);
         }
 
-        .req-progress {
-            margin: 20px 0;
-            padding: 20px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-        }
-
-        .req-progress-bar-wrap {
-            height: 10px;
-            background: var(--bg-input);
-            border-radius: 5px;
-            overflow: hidden;
-            margin-bottom: 16px;
-        }
-
-        .req-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #16a34a, #22c55e);
-            border-radius: 5px;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .req-progress-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .req-progress-message {
-            font-size: 14px;
-            color: var(--text);
-            margin: 0;
-            font-weight: 500;
-        }
-
-        .req-progress-counter {
-            font-size: 14px;
-            color: #fff;
-            margin: 0;
-            font-weight: 600;
-            background: linear-gradient(90deg, #16a34a, #22c55e);
-            padding: 4px 14px;
-            border-radius: 16px;
-            box-shadow: 0 1px 6px rgba(34, 197, 94, 0.35);
-            letter-spacing: 0.01em;
-        }
-
-        .req-progress-stages {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .req-progress-stages .req-stage {
-            padding: 8px 12px;
-            margin: 4px 0;
-            border-radius: 8px;
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
-        .req-progress-stages .req-stage.active {
-            background: var(--primary-light);
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .req-progress-stages .req-stage.done {
-            color: var(--success);
-        }
-
-        .req-progress-stages .req-stage-time {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-weight: normal;
-            margin-left: 6px;
-        }
-
         .req-tc-card {
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -5669,7 +5441,8 @@
             transition: background-color 0.3s, border-color 0.3s;
         }
 
-        .qa-card h3 {
+        .qa-card h3,
+        .req-results > h3 {
             margin: 0 0 16px 0;
             font-size: 16px;
             font-weight: 600;
@@ -6318,6 +6091,11 @@
             word-break: break-word;
         }
 
+        /* A blank line from an agent is an empty div; keep it one line tall. */
+        .qa-console > div {
+            min-height: 1.5em;
+        }
+
         .qa-console .qa-line-stdout {
             color: #cbd5e1;
         }
@@ -6395,13 +6173,16 @@
 
         #qaLiveCard.terminal-completed,
         #healLiveCard.terminal-completed,
-        #adaptLiveCard.terminal-completed { border-left-color: #10b981; }
+        #adaptLiveCard.terminal-completed,
+        #reqLiveCard.terminal-completed { border-left-color: #10b981; }
         #qaLiveCard.terminal-failed,
         #healLiveCard.terminal-failed,
-        #adaptLiveCard.terminal-failed    { border-left-color: #ef4444; }
+        #adaptLiveCard.terminal-failed,
+        #reqLiveCard.terminal-failed    { border-left-color: #ef4444; }
         #qaLiveCard.terminal-cancelled,
         #healLiveCard.terminal-cancelled,
-        #adaptLiveCard.terminal-cancelled { border-left-color: #94a3b8; }
+        #adaptLiveCard.terminal-cancelled,
+        #reqLiveCard.terminal-cancelled { border-left-color: #94a3b8; }
 
         .qa-live-header {
             display: flex;
@@ -6758,17 +6539,32 @@
             display: none; /* replaced by qa-live-meta */
         }
 
-        #qaHistoryWrap {
+        #reqHistoryWrap,
+        #qaHistoryWrap,
+        #adaptHistoryWrap,
+        #healHistoryWrap {
             max-height: 302px; /* ~7 rows at 38px + 36px header */
             overflow-y: auto;
             border-radius: 8px;
             border: 1px solid var(--border);
         }
 
-        #qaHistoryWrap::-webkit-scrollbar { width: 5px; }
-        #qaHistoryWrap::-webkit-scrollbar-track { background: transparent; }
-        #qaHistoryWrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        #qaHistoryWrap::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+        #reqHistoryWrap::-webkit-scrollbar,
+        #qaHistoryWrap::-webkit-scrollbar,
+        #adaptHistoryWrap::-webkit-scrollbar,
+        #healHistoryWrap::-webkit-scrollbar { width: 5px; }
+        #reqHistoryWrap::-webkit-scrollbar-track,
+        #qaHistoryWrap::-webkit-scrollbar-track,
+        #adaptHistoryWrap::-webkit-scrollbar-track,
+        #healHistoryWrap::-webkit-scrollbar-track { background: transparent; }
+        #reqHistoryWrap::-webkit-scrollbar-thumb,
+        #qaHistoryWrap::-webkit-scrollbar-thumb,
+        #adaptHistoryWrap::-webkit-scrollbar-thumb,
+        #healHistoryWrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        #reqHistoryWrap::-webkit-scrollbar-thumb:hover,
+        #qaHistoryWrap::-webkit-scrollbar-thumb:hover,
+        #adaptHistoryWrap::-webkit-scrollbar-thumb:hover,
+        #healHistoryWrap::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
 
         /* Flow map on the Adapt page. Its own class rather than reusing the
            history table's: this one has to stay readable inside a card and
@@ -7475,23 +7271,62 @@
                         </div>
                     </div>
 
-                    <!-- Analysis Results (reuse existing) -->
-                    <div id="reqProgress" class="req-progress" style="display: none; margin-top: 24px;">
-                        <div class="req-progress-bar-wrap">
-                            <div class="req-progress-bar" id="reqProgressBar"></div>
+                    <!-- Live run — the same card as the agent pages -->
+                    <div class="qa-card" id="reqLiveCard" style="display:none;margin-top:18px;">
+                        <div class="qa-live-header">
+                            <div class="qa-live-header-icon">📡</div>
+                            <span class="qa-live-header-title">Live Run</span>
+                            <span class="qa-live-badge badge-running" id="reqLiveStatus">running…</span>
+                            <span class="qa-live-elapsed" id="reqLiveElapsed">00:00</span>
                         </div>
-                        <div class="req-progress-header">
-                            <p class="req-progress-message" id="reqProgressMessage"></p>
-                            <p class="req-progress-counter" id="reqProgressCounter" style="display: none;"></p>
+                        <div class="qa-live-meta">
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Session</span>
+                                <span class="qa-live-meta-value" id="reqLiveSession">—</span>
+                            </div>
+                            <div class="qa-live-meta-item">
+                                <span class="qa-live-meta-label">Source</span>
+                                <span class="qa-live-meta-value" id="reqLiveSource">—</span>
+                            </div>
+                            <div class="qa-live-totals">
+                                <div class="qa-live-meta-item qa-live-metric" title="Estimated from token usage">
+                                    <span class="qa-live-meta-label">Cost</span>
+                                    <span class="qa-live-meta-value" id="reqLiveCost">—</span>
+                                </div>
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">Tokens</span>
+                                    <span class="qa-live-meta-value" id="reqLiveTokens">—</span>
+                                </div>
+                                <div class="qa-live-meta-item qa-live-metric">
+                                    <span class="qa-live-meta-label">LLM calls</span>
+                                    <span class="qa-live-meta-value" id="reqLiveCalls">—</span>
+                                </div>
+                            </div>
                         </div>
-                        <ul class="req-progress-stages">
-                            <li id="reqStage1" class="req-stage">1. Understanding requirements</li>
-                            <li id="reqStage2" class="req-stage">2. Analyzing existing coverage</li>
-                            <li id="reqStage3" class="req-stage">3. Generating test cases</li>
-                        </ul>
+                        <div class="qa-live-steps-wrap">
+                            <div class="qa-progress-steps" id="reqProgressSteps">
+                                <div class="qa-step" data-step="1"><span class="qa-step-icon">1</span>Extract Requirements</div>
+                                <div class="qa-step" data-step="2"><span class="qa-step-icon">2</span>Derive Acceptance Criteria</div>
+                                <div class="qa-step" data-step="3"><span class="qa-step-icon">3</span>Find Related Tests</div>
+                                <div class="qa-step" data-step="4"><span class="qa-step-icon">4</span>Check Coverage</div>
+                                <div class="qa-step" data-step="5"><span class="qa-step-icon">5</span>Write Missing Tests</div>
+                                <div class="qa-step" data-step="6"><span class="qa-step-icon">6</span>Build E2E Tests</div>
+                            </div>
+                        </div>
+                        <div class="qa-live-console-wrap">
+                            <button type="button" class="qa-console-copy-btn" id="reqConsoleCopyBtn"
+                                title="Copy logs" onclick="reqRun.copyLogs()">⧉</button>
+                            <div class="qa-console" id="reqConsole"></div>
+                        </div>
+                        <div class="qa-live-footer">
+                            <button type="button" class="qa-btn qa-btn-danger" id="reqCancelBtn"
+                                onclick="reqRun.cancel()" style="padding:6px 14px;font-size:12px;">✕ Cancel</button>
+                        </div>
                     </div>
+
+                    <!-- Analysis Results -->
                     <div class="req-results" id="reqResults" style="display: none; margin-top: 24px;">
-                        <div class="req-results-summary" id="reqResultsSummary"></div>
+                        <h3>📋 Result</h3>
                         <div id="reqDocSummary"></div>
                         <div class="req-result-tabs">
                             <button type="button" class="req-result-tab active" data-pane="related"
@@ -7519,8 +7354,29 @@
                         </div>
                         <div id="reqResultPaneE2eflows" class="req-result-pane"></div>
                     </div>
+
+                    <!-- History -->
+                    <div class="qa-card" style="margin-top:18px;">
+                        <h3>🕓 History <button type="button" class="qa-btn qa-btn-ghost"
+                                onclick="reqRun.loadHistory()"
+                                style="margin-left:auto;padding:6px 12px;font-size:12px;">Refresh</button></h3>
+                        <div id="reqHistoryWrap">
+                            <div class="qa-history-empty">No runs yet.</div>
+                        </div>
+                    </div>
                 </div><!-- /.panel-body -->
             </div><!-- /#tabPanelAnalyze -->
+
+            <!-- Requirements run detail — same shell as the agent session modals -->
+            <div class="qa-modal-overlay" id="reqSessionModal" onclick="reqRun.closeSession(event)">
+                <div class="qa-modal" onclick="event.stopPropagation()">
+                    <h3>Session detail <button type="button" class="qa-modal-close"
+                            onclick="reqRun.closeSession()" aria-label="Close">×</button></h3>
+                    <div id="reqSessionDetail">
+                        <div class="qa-empty-hint">Loading…</div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Test Assistant Tab -->
             <div class="tab-panel" id="tabPanelAsk">
@@ -9121,6 +8977,8 @@
                 });
             } else {
                 document.getElementById('reqSpecText')?.focus();
+                // Pick up runs that started or finished since this page last looked.
+                if (window._isAuthenticated && window.reqRun) window.reqRun.loadHistory();
             }
         }
 
@@ -9265,9 +9123,6 @@
             }
             var generateNew = document.getElementById('reqGenerateNewTests').checked;
             var generateP2P3 = document.getElementById('reqGenerateP2P3Tests').checked;
-            var btn = document.getElementById('reqAnalyzeBtn');
-            btn.disabled = true;
-            btn.textContent = 'Analyzing...';
             var hasFiles = fileList && fileList.length > 0;
             var formData = new FormData();
             if (hasFiles) {
@@ -9287,653 +9142,895 @@
             var body = hasFiles ? formData : JSON.stringify(jsonPayload);
             var headers = {};
             if (!hasFiles) headers['Content-Type'] = 'application/json';
-            var progressEl = document.getElementById('reqProgress');
-            var progressBar = document.getElementById('reqProgressBar');
-            var progressMsg = document.getElementById('reqProgressMessage');
-            var progressCounter = document.getElementById('reqProgressCounter');
-            progressEl.style.display = 'block';
-            document.getElementById('reqResults').style.display = 'none';
-            document.getElementById('reqResults').removeAttribute('data-stream-scrolled');
-            var _loadingSpinner = '<span class="req-tab-loading-spinner"></span>';
-            document.getElementById('reqResultPaneRelated').innerHTML = '<div id="reqTabRelatedDesc" class="req-tab-desc">All test cases with similarity \u2265 <span id="reqTabRelatedDescThreshold">' + Math.round(window._reqRetrievalMinSim || 45) + '</span>% to the analyzed requirements.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'Loading related tests\u2026</p></div>';
-            document.getElementById('reqResultPaneGenerated').innerHTML = '<div id="reqTabGeneratedDesc" class="req-tab-desc">Strong-match existing tests (\u2265 <span id="reqTabGeneratedDescThreshold">' + Math.round(window._reqCoverageMinSim || 60) + '</span>% similarity) + newly generated tests per requirement.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'Loading user story tests\u2026</p></div>';
-            document.getElementById('reqResultPaneE2eflows').innerHTML = '<div class="req-tab-desc">Existing regression tests (\u2265 <span class="req-e2e-threshold-val">' + Math.round(window._reqCoverageMinSim || 60) + '</span>% similarity) + newly generated E2E workflow tests spanning multiple requirements.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'E2E tests are identified at the end of analysis. Please wait\u2026</p></div>';
-            document.getElementById('reqResultsSummary').innerHTML = '';
-            document.getElementById('reqDocSummary').innerHTML = '';
-            progressBar.style.width = '0%';
-            progressMsg.textContent = 'Starting…';
-            progressCounter.style.display = 'none';
-            progressCounter.textContent = '';
-            var lastProgressPct = 0;
-            var streamedGenBarAdded = false;
-            var reqProgressTotal = 0;
-            var reqProgressCurrent = 0;
-            var streamRelatedCount = 0;
-            var streamGeneratedCount = 0;
-            var streamReqCount = 0;
-            var isGeneratingTests = generateNew;
-            // Reset tab counts
-            document.getElementById('reqTabRelatedCount').textContent = '0';
-            document.getElementById('reqTabGeneratedCount').textContent = '0';
-            document.getElementById('reqTabE2eflowsCount').textContent = '0';
-            // All 3 tabs always visible
-            document.getElementById('reqTabGenerated').style.display = '';
-            document.getElementById('reqTabE2eflows').style.display = '';
-            // Ensure Related Tests tab is active
-            document.querySelectorAll('.req-result-tab').forEach(function (b) { b.classList.remove('active'); });
-            document.querySelectorAll('.req-result-pane').forEach(function (p) { p.classList.remove('visible'); });
-            document.getElementById('reqTabRelated').classList.add('active');
-            document.getElementById('reqResultPaneRelated').classList.add('visible');
-            // Show summary header immediately
-            document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">Analyzing requirements...</p></div>';
-            document.getElementById('reqResults').style.display = 'block';
-            document.body.classList.remove('layout-initial'); // allow page to grow, use browser scroll
-            [1, 2, 3].forEach(function (i) {
-                var s = document.getElementById('reqStage' + i);
-                s.classList.remove('active', 'done');
-            });
+            // The run lives on the server now; this request only starts it. As on the
+            // agent pages the button is busy for the start alone, so another analysis
+            // can be started while one is running.
+            var btn = document.getElementById('reqAnalyzeBtn');
             btn.disabled = true;
-            btn.textContent = 'Analyzing...';
-            var reqIdleTimeoutMs = 300000; // 5-min idle: reset on every chunk; only fires if server goes silent
-            var abortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
-            var timeoutId = null;
-            function resetIdleTimeout() {
-                if (!abortController) return;
-                if (timeoutId) clearTimeout(timeoutId);
-                timeoutId = setTimeout(function () { abortController.abort(); }, reqIdleTimeoutMs);
-            }
-            resetIdleTimeout();
-            function done() {
-                btn.disabled = false;
-                btn.textContent = 'Generate Tests';
-                progressEl.style.display = 'none';
-                progressCounter.style.display = 'none';
-                if (timeoutId) clearTimeout(timeoutId);
-            }
-            // A failed analysis used to leave all three panes spinning forever.
-            function failed(msg) {
-                done();
-                var panes = document.querySelectorAll('.req-tab-loading-msg');
-                for (var i = 0; i < panes.length; i++) panes[i].remove();
-                var summary = document.getElementById('reqResultsSummary');
-                if (summary) {
-                    summary.innerHTML = '<div class="req-summary-block">' +
-                        '<p class="req-summary-headline" style="color:#ef4444;">' +
-                        escapeHtml(msg) + '</p></div>';
-                }
-                showToast(msg, 'warning');
-            }
-            var fetchOpts = { method: 'POST', body: body, headers: headers };
-            if (abortController) fetchOpts.signal = abortController.signal;
-            fetch(API_BASE + '/requirement-analysis/stream', fetchOpts)
+            btn.textContent = 'Starting…';
+            fetch(API_BASE + '/requirement-analysis/runs', { method: 'POST', body: body, headers: headers })
                 .then(function (r) {
-                    if (!r.ok) return r.text().then(function (t) { throw new Error(t || 'Server error ' + r.status); });
-                    return r.body.getReader();
-                })
-                .then(function (reader) {
-                    var decoder = new TextDecoder();
-                    var buf = '';
-                    var gotResult = false;
-                    function buildCoverageBadgeHtml(coverage, genList) {
-                        if (!coverage) return '';
-                        var pct = coverage.final_coverage_pct != null ? coverage.final_coverage_pct : 0;
-                        var status = coverage.status || 'uncovered';
-                        var cls = status === 'covered' ? 'req-coverage-covered'
-                            : status === 'partially_covered' ? 'req-coverage-partial'
-                                : 'req-coverage-uncovered';
-                        var label = pct === 100 ? '100% covered' : pct > 0 ? pct + '% covered' : 'Not covered';
-
-                        // Build tooltip text from priority breakdown
-                        var byP = coverage.by_priority || {};
-                        var parts = [];
-                        ['P0', 'P1', 'P2', 'P3'].forEach(function (p) {
-                            var d = byP[p];
-                            if (!d || (d.existing === 0 && d.generated === 0)) return;
-                            var s = p + ': ' + (d.generated > 0
-                                ? d.existing + ' existing + ' + d.generated + ' new'
-                                : d.existing + ' existing');
-                            if (d.pct >= 100) s += ' \u2713';
-                            parts.push(s);
-                        });
-                        if (status === 'covered' && (!genList || genList.length === 0)) {
-                            parts.push('No new tests needed \u2014 already covered');
-                        }
-
-                        var tooltipText = parts.join(' \xb7 ');
-                        var tooltipHtml = tooltipText
-                            ? '<span class="req-coverage-tooltip">' + escapeHtml(tooltipText) + '</span>'
-                            : '';
-
-                        return '<span class="req-coverage-wrap">'
-                            + '<span class="req-coverage-badge ' + cls + '">' + escapeHtml(label) + '</span>'
-                            + tooltipHtml
-                            + '</span>';
-                    }
-                    function buildDescWithACHtml(desc, title, acs, specsCount) {
-                        var hasDesc = desc && desc.trim() && desc.trim() !== (title || '').trim();
-                        var hasACs = acs && acs.length > 0;
-                        if (!hasDesc && !hasACs) return '';
-                        var html = '<div class="req-description">';
-                        if (hasDesc) html += '<div class="req-desc-text">' + escapeHtml(desc) + '</div>';
-                        if (hasACs) {
-                            var items = acs.map(function (ac) { return '<li>' + escapeHtml(ac) + '</li>'; }).join('');
-                            var confluenceBadge = (specsCount > 0) ? '<span class="req-ac-confluence-badge">via Confluence</span>' : '';
-                            html += (hasDesc ? '<div class="req-ac-divider"></div>' : '') + '<div class="req-ac-label">Acceptance Criteria' + confluenceBadge + '</div><ol class="req-ac-list">' + items + '</ol>';
-                        }
-                        html += '</div>';
-                        return html;
-                    }
-                    function appendRequirementResult(reqId, data) {
-                        // Remove live activity row for this req now that result has arrived
-                        var _actRow = document.getElementById('req-activity-' + reqId.replace(/[^a-zA-Z0-9]/g, '_'));
-                        if (_actRow) _actRow.remove();
-                        var req = data.requirement || {};
-                        var relatedTests = data.related_tests || [];
-                        var needingTests = data.tests_needing_update || [];
-                        var genList = data.generated_tests || [];
-                        var relatedSpecs = data.related_specs || [];
-                        var coverage = data.coverage || null;
-                        var acceptanceCriteria = data.acceptance_criteria || [];
-                        var elapsedS = data.elapsed_s != null ? data.elapsed_s : null;
-                        var reqTextFull = (req.title ? (req.title) + '\n' : '') + (req.description || '');
-                        // Merge related_tests and tests_needing_update (needing tests have suggestions)
-                        var needingIds = {};
-                        needingTests.forEach(function (t) {
-                            var tid = String(t.testrail_id || '').replace(/^C/i, '');
-                            if (tid) needingIds[tid] = t;
-                        });
-                        var tests = [];
-                        // Add needing tests first (they have AI suggestions)
-                        needingTests.forEach(function (t) { tests.push(t); });
-                        // Add related tests not already in needing
-                        relatedTests.forEach(function (t) {
-                            var tid = String(t.testrail_id || '').replace(/^C/i, '');
-                            if (!tid || !needingIds[tid]) tests.push(t);
-                        });
-                        // Sort by similarity score
-                        tests.sort(function (a, b) {
-                            return (b.similarity_score || 0) - (a.similarity_score || 0);
-                        });
-                        // Filter to strong-match tests for User Story Tests tab (must be after tests is built)
-                        var _covMinSim = window._reqCoverageMinSim || 60;
-                        var strongTests = tests.filter(function (t) {
-                            var sim = t.similarity_score || 0;
-                            return (sim <= 1 ? sim * 100 : sim) >= _covMinSim;
-                        });
-                        // Update streaming counts for tabs and summary
-                        streamRelatedCount += relatedTests.length;
-                        streamGeneratedCount += strongTests.length + genList.length;
-                        streamReqCount++;
-                        document.getElementById('reqTabRelatedCount').textContent = streamRelatedCount;
-                        document.getElementById('reqTabGeneratedCount').textContent = streamGeneratedCount;
-                        // Update summary header with current count
-                        var summaryText = 'Analyzed <span class="req-summary-total">' + streamReqCount + '</span> requirement' + (streamReqCount === 1 ? '' : 's');
-                        if (reqProgressTotal > 0 && streamReqCount < reqProgressTotal) {
-                            summaryText += ' of ' + reqProgressTotal;
-                        }
-                        document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">' + summaryText + '</p></div>';
-                        var containerRelated = document.getElementById('reqResultPaneRelated').querySelector('.req-stream-container');
-                        var countBadge = tests.length + ' test' + (tests.length === 1 ? '' : 's');
-                        var block = '<div class="req-requirement-section collapsed">';
-                        block += '<div class="req-req-header"><span class="req-req-chevron"></span><div class="req-req-header-content"><div class="req-id">' + escapeHtml(reqId) + '</div>';
-                        if (req.title) block += '<div class="req-title">' + escapeHtml(req.title) + '</div>';
-                        var timeBadgeHtml = elapsedS != null ? '<span class="req-time-badge">' + elapsedS + 's</span>' : '';
-                        // Requirements are analysed in parallel, so this is the
-                        // run's spend at the moment this one finished — a
-                        // running total, not this requirement's own cost. The
-                        // label says so rather than implying attribution.
-                        var reqCost = data.run_cost_usd_at_completion;
-                        if (reqCost != null && reqCost > 0) {
-                            timeBadgeHtml += '<span class="req-time-badge" title="Run cost so far'
-                                + ' \u2014 requirements are analysed in parallel, so this is not'
-                                + ' this requirement\u0027s own cost">'
-                                + QA_FMT_COST(reqCost) + ' so far</span>';
-                        }
-                        block += '</div><span class="req-count-badge">' + countBadge + '</span>' + timeBadgeHtml + '</div>';
-                        block += '<div class="req-req-body">';
-                        block += buildDescWithACHtml(req.description, req.title, acceptanceCriteria, relatedSpecs.length);
-                        if (relatedSpecs.length > 0) {
-                            var specsId = 'req-specs-' + reqId.replace(/[^a-zA-Z0-9]/g, '_');
-                            block += '<div class="req-specs-section">';
-                            block += '<div class="req-specs-toggle" onclick="(function(el){var b=document.getElementById(\'' + specsId + '\');if(b){b.style.display=b.style.display===\'none\'?\'block\':\'none\';el.classList.toggle(\'expanded\')}})(this)">';
-                            block += '<span class="req-specs-chevron">&#9656;</span>';
-                            block += '<span class="req-specs-label">Spec pages referenced</span>';
-                            block += '<span class="req-specs-count">' + relatedSpecs.length + ' page' + (relatedSpecs.length === 1 ? '' : 's') + '</span>';
-                            block += '</div>';
-                            block += '<div class="req-specs-body" id="' + specsId + '" style="display:none;">';
-                            relatedSpecs.forEach(function (s) {
-                                var simPct = s.similarity_score != null ? Math.round(s.similarity_score * 100) : null;
-                                var simClass = simPct == null ? '' : simPct >= 75 ? 'req-spec-sim-high' : simPct >= 60 ? 'req-spec-sim-mid' : 'req-spec-sim-low';
-                                var simBadge = simPct != null ? '<span class="req-spec-sim ' + simClass + '">' + simPct + '% match</span>' : '';
-                                var link = s.url ? '<a href="' + escapeHtml(s.url) + '" target="_blank" class="req-spec-link" title="Open in Confluence">&#8599;</a>' : '';
-                                var rawTitle = (s.title || '').replace(/^[*#\s]+/, '').trim();
-                                var title = escapeHtml((rawTitle || 'Confluence page').substring(0, 100));
-                                // Clean up excerpt: strip markdown symbols, collapse whitespace
-                                var rawExcerpt = (s.content || '').replace(/[*#_`\[\]]/g, '').replace(/\s+/g, ' ').trim();
-                                var excerpt = rawExcerpt ? escapeHtml(rawExcerpt.substring(0, 180)) : '';
-                                block += '<div class="req-spec-row">';
-                                block += '<div class="req-spec-main">';
-                                block += '<div class="req-spec-title-line"><span class="req-spec-title" title="' + title + '">' + title + '</span>' + simBadge + '</div>';
-                                if (excerpt) block += '<div class="req-spec-excerpt">' + excerpt + '</div>';
-                                block += '</div>';
-                                block += link;
-                                block += '</div>';
-                            });
-                            block += '</div></div>';
-                        }
-                        block += '<div class="req-section-label">Related test cases</div>';
-                        if (tests.length === 0) block += '<p style="color:var(--text-muted);font-size:13px;">No related tests found.</p>';
-                        else block += '<div class="req-tc-cards">' + tests.map(function (t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
-                        block += '</div></div>';
-                        var _relLoading = containerRelated.querySelector('.req-tab-loading-msg');
-                        // Insert in correct order (REQ-1 before REQ-2, etc.) even when results arrive out of order
-                        var _reqNum = parseInt((reqId.match(/\d+/) || [0])[0], 10) || 0;
-                        var _insertBefore = null;
-                        var _existingSections = containerRelated.querySelectorAll('.req-requirement-section');
-                        for (var _si = 0; _si < _existingSections.length; _si++) {
-                            var _existingId = _existingSections[_si].querySelector('.req-id');
-                            if (_existingId) {
-                                var _existingNum = parseInt((_existingId.textContent.match(/\d+/) || [0])[0], 10) || 0;
-                                if (_existingNum > _reqNum) { _insertBefore = _existingSections[_si]; break; }
-                            }
-                        }
-                        var _tempDiv = document.createElement('div');
-                        _tempDiv.innerHTML = block;
-                        var _newSection = _tempDiv.firstElementChild;
-                        if (_insertBefore) {
-                            containerRelated.insertBefore(_newSection, _insertBefore);
-                        } else {
-                            if (_relLoading) containerRelated.insertBefore(_newSection, _relLoading);
-                            else containerRelated.appendChild(_newSection);
-                        }
-                        if (_relLoading) containerRelated.appendChild(_relLoading);
-                        var containerGen = document.getElementById('reqResultPaneGenerated').querySelector('.req-stream-container');
-                        var _genLoading = containerGen.querySelector('.req-tab-loading-msg');
-                        if (genList.length > 0 && !streamedGenBarAdded) {
-                            containerGen.insertAdjacentHTML('afterbegin', '<div class="req-gen-select-actions" style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><a href="#" id="reqSelectToggleGen" class="req-gen-select-link">Select all</a><button type="button" class="req-tr-btn" id="reqPushSelectedBtn" style="margin-left:8px;">Push selected to TestRail</button></div>');
-                            streamedGenBarAdded = true;
-                        }
-                        var usTotal = strongTests.length + genList.length;
-                        var genCountBadge = usTotal + ' test' + (usTotal === 1 ? '' : 's');
-                        var genBlock = '<div class="req-requirement-section collapsed">';
-                        genBlock += '<div class="req-req-header"><span class="req-req-chevron"></span><div class="req-req-header-content"><div class="req-id">' + escapeHtml(reqId) + '</div>';
-                        if (req.title) genBlock += '<div class="req-title">' + escapeHtml(req.title) + '</div>';
-                        genBlock += '</div><span class="req-count-badge">' + genCountBadge + '</span>' + buildCoverageBadgeHtml(usTotal > 0 ? coverage : { final_coverage_pct: 0, status: 'uncovered' }, genList) + '</div>';
-                        genBlock += '<div class="req-req-body">';
-                        genBlock += buildDescWithACHtml(req.description, req.title, acceptanceCriteria, relatedSpecs.length);
-                        // Existing strong-match tests sub-section
-                        if (strongTests.length > 0) {
-                            genBlock += '<div class="req-section-label">Existing tests (' + strongTests.length + ')</div>';
-                            genBlock += '<div class="req-tc-cards">' + strongTests.map(function (t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
-                        }
-                        // New generated tests sub-section
-                        if (genList.length > 0) {
-                            genBlock += '<div class="req-section-label" style="margin-top:16px;">New tests (' + genList.length + ')</div>';
-                            genList.forEach(function (gt, idx) {
-                                var gtDataAttr = ' data-req-id="' + escapeHtml(reqId) + '" data-index="' + idx + '"';
-                                gtDataAttr += ' data-title="' + escapeHtml((gt.title || '').substring(0, 500)).replace(/"/g, '&quot;') + '"';
-                                gtDataAttr += ' data-priority="' + escapeHtml(gt.priority || 'P2') + '"';
-                                gtDataAttr += ' data-preconditions="' + escapeHtml((gt.preconditions || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
-                                gtDataAttr += ' data-steps="' + escapeHtml((gt.steps || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
-                                gtDataAttr += ' data-expected="' + escapeHtml((gt.expected_result || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
-                                genBlock += '<div class="req-generated-test req-gen-test-row"' + gtDataAttr + ' style="display:flex;align-items:flex-start;gap:12px;">';
-                                genBlock += '<input type="checkbox" class="req-gen-select" data-req-id="' + escapeHtml(reqId) + '" data-index="' + idx + '" style="margin-top:4px;flex-shrink:0;" />';
-                                genBlock += '<div class="req-gen-test-content" style="flex:1;min-width:0;">';
-                                genBlock += '<div class="gt-title">' + escapeHtml(gt.title || 'Generated test') + '</div>';
-                                if (gt.priority) genBlock += '<div class="gt-priority"><strong>Priority:</strong> ' + escapeHtml(gt.priority) + '</div>';
-                                if (gt.preconditions) genBlock += '<div class="gt-preconditions"><strong>Preconditions</strong><div class="gt-preconditions-content">' + escapeHtml(gt.preconditions) + '</div></div>';
-                                if (gt.steps) genBlock += '<div class="gt-steps"><strong>Steps</strong><div class="gt-steps-content">' + escapeHtml(gt.steps) + '</div></div>';
-                                if (gt.expected_result) genBlock += '<div class="gt-expected"><strong>Expected result</strong><div class="gt-expected-content">' + escapeHtml(gt.expected_result) + '</div></div>';
-                                genBlock += '<div class="req-gen-actions"><button type="button" class="req-modify-push-btn">Modify &amp; Push to TestRail</button></div>';
-                                genBlock += '</div></div>';
-                            });
-                        } else if (strongTests.length === 0) {
-                            genBlock += '<p style="color:var(--text-muted);font-size:13px;">No tests above coverage threshold.</p>';
-                        }
-                        genBlock += '</div></div>';
-                        // Insert in correct order for Generated tab too
-                        var _genInsertBefore = null;
-                        var _genSections = containerGen.querySelectorAll('.req-requirement-section');
-                        for (var _gi = 0; _gi < _genSections.length; _gi++) {
-                            var _gId = _genSections[_gi].querySelector('.req-id');
-                            if (_gId) {
-                                var _gNum = parseInt((_gId.textContent.match(/\d+/) || [0])[0], 10) || 0;
-                                if (_gNum > _reqNum) { _genInsertBefore = _genSections[_gi]; break; }
-                            }
-                        }
-                        var _genTemp = document.createElement('div');
-                        _genTemp.innerHTML = genBlock;
-                        var _genNewSection = _genTemp.firstElementChild;
-                        if (_genInsertBefore) {
-                            containerGen.insertBefore(_genNewSection, _genInsertBefore);
-                        } else {
-                            if (_genLoading) containerGen.insertBefore(_genNewSection, _genLoading);
-                            else containerGen.appendChild(_genNewSection);
-                        }
-                        if (_genLoading) containerGen.appendChild(_genLoading); // keep loader at bottom until all done
-                    }
-                    function tryProcessData(lineStr) {
-                        if (!lineStr || lineStr.indexOf('data: ') !== 0) return false;
-                        try {
-                            var data = JSON.parse(lineStr.slice(6));
-                            if (data.stage !== undefined) {
-                                var pct = Math.round((data.progress || 0) * 100);
-                                lastProgressPct = Math.max(lastProgressPct, pct);
-                                progressBar.style.width = lastProgressPct + '%';
-                                progressMsg.textContent = data.message || '';
-                                [1, 2, 3].forEach(function (i) {
-                                    var s = document.getElementById('reqStage' + i);
-                                    s.classList.remove('active');
-                                    if (i < data.stage) s.classList.add('done');
-                                    if (i === data.stage) s.classList.add('active');
-                                });
-                                // Per-stage time and cost, into the .req-stage-time
-                                // span the stylesheet has always had but nothing
-                                // ever rendered.
-                                if (data.closed_stage && data.closed_stage.stage) {
-                                    var cs = data.closed_stage;
-                                    var stageEl = document.getElementById('reqStage' + cs.stage);
-                                    if (stageEl) {
-                                        var timeEl = stageEl.querySelector('.req-stage-time');
-                                        if (!timeEl) {
-                                            timeEl = document.createElement('span');
-                                            timeEl.className = 'req-stage-time';
-                                            stageEl.appendChild(timeEl);
-                                        }
-                                        var bits = [QA_FMT_DURATION(cs.duration_s)];
-                                        if (cs.cost_usd > 0) bits.push(QA_FMT_COST(cs.cost_usd));
-                                        if (cs.llm_calls > 0) {
-                                            bits.push(cs.llm_calls + ' call'
-                                                + (cs.llm_calls === 1 ? '' : 's'));
-                                        }
-                                        timeEl.textContent = bits.join(' \u00b7 ');
-                                    }
-                                }
-                                // Parse "X of Y requirements" from message to get total count
-                                var reqMatch = (data.message || '').match(/\((\d+)\s+of\s+(\d+)\s+requirements?\)/i);
-                                if (reqMatch) {
-                                    var msgCurrent = parseInt(reqMatch[1], 10);
-                                    reqProgressTotal = parseInt(reqMatch[2], 10);
-                                    if (reqProgressTotal > 1) {
-                                        progressCounter.textContent = 'Processing requirement ' + msgCurrent + ' of ' + reqProgressTotal;
-                                        progressCounter.style.display = 'block';
-                                    }
-                                }
-                                // Show E2E preparation message when backend is working on E2E tests
-                                var msg = (data.message || '').toLowerCase();
-                                if (isGeneratingTests && (msg.indexOf('e2e') !== -1 || msg.indexOf('workflow') !== -1)) {
-                                    progressCounter.textContent = 'Preparing E2E tests...';
-                                    progressCounter.style.display = 'block';
-                                    // Update summary header
-                                    document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">Preparing E2E tests...</p></div>';
-                                }
-                                return true;
-                            }
-                            if (data.type === 'config') {
-                                // Backend sends this as the very first SSE event so thresholds are
-                                // available before per-requirement blocks start rendering.
-                                if (data.coverage_min_similarity != null) {
-                                    window._reqCoverageMinSim = data.coverage_min_similarity;
-                                    var _gtEarly = document.getElementById('reqTabGeneratedDescThreshold');
-                                    if (_gtEarly) _gtEarly.textContent = Math.round(window._reqCoverageMinSim);
-                                    var _e2eEarly = document.getElementById('reqTabE2eDescThreshold');
-                                    if (_e2eEarly) _e2eEarly.textContent = Math.round(window._reqCoverageMinSim);
-                                    document.querySelectorAll('.req-e2e-threshold-val').forEach(function (el) { el.textContent = Math.round(window._reqCoverageMinSim); });
-                                }
-                                if (data.retrieval_similarity_threshold != null) {
-                                    window._reqRetrievalMinSim = data.retrieval_similarity_threshold;
-                                    var _rtEarly = document.getElementById('reqTabRelatedDescThreshold');
-                                    if (_rtEarly) _rtEarly.textContent = Math.round(window._reqRetrievalMinSim);
-                                }
-                                return true;
-                            }
-                            if (data.type === 'doc_summary' && data.data) {
-                                var ds = data.data;
-                                var sourceLabels = { confluence: 'Confluence', file: 'File', text: 'Pasted text' };
-                                var sourceLabel = sourceLabels[ds.source_type] || ds.source_type;
-                                var metaParts = [];
-                                if (ds.word_count) metaParts.push(ds.word_count.toLocaleString() + ' words');
-                                if (ds.requirement_count) metaParts.push(ds.requirement_count + ' requirement' + (ds.requirement_count === 1 ? '' : 's') + ' found');
-                                var linkHtml = (ds.confluence_url && ds.source_type === 'confluence')
-                                    ? ' <a href="' + escapeHtml(ds.confluence_url) + '" target="_blank" class="req-doc-link">Open in Confluence &#8599;</a>' : '';
-                                var summaryHtml = '';
-                                if (ds.summary) {
-                                    summaryHtml = '<div class="req-doc-ai-summary">' + marked.parse(ds.summary) + '</div>';
-                                }
-                                var html = '<div class="req-doc-summary-banner">'
-                                    + '<div class="req-doc-summary-top">'
-                                    + '<span class="req-doc-source-badge req-doc-source-' + escapeHtml(ds.source_type || 'text') + '">' + escapeHtml(sourceLabel) + '</span>'
-                                    + '<span class="req-doc-title">' + escapeHtml(ds.title || 'Document') + '</span>'
-                                    + linkHtml
-                                    + '</div>'
-                                    + (metaParts.length ? '<div class="req-doc-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' : '')
-                                    + summaryHtml
-                                    + '</div>';
-                                document.getElementById('reqDocSummary').innerHTML = html;
-                                document.getElementById('reqResults').style.display = 'block';
-                                return true;
-                            }
-                            if (data.type === 'requirement_step' && data.req_id && data.step) {
-                                var _feed = document.getElementById('req-activity-feed');
-                                if (_feed) {
-                                    var _rowId = 'req-activity-' + data.req_id.replace(/[^a-zA-Z0-9]/g, '_');
-                                    var _row = document.getElementById(_rowId);
-                                    if (!_row) {
-                                        _row = document.createElement('div');
-                                        _row.className = 'req-activity-row';
-                                        _row.id = _rowId;
-                                        _row.innerHTML = '<span class="req-activity-id">' + escapeHtml(data.req_id) + '</span>'
-                                            + '<span class="req-activity-step"></span>'
-                                            + '<span class="req-activity-spinner"></span>';
-                                        _feed.appendChild(_row);
-                                    }
-                                    var _stepEl = _row.querySelector('.req-activity-step');
-                                    if (_stepEl) _stepEl.textContent = data.step + '\u2026';
-                                }
-                                return true;
-                            }
-                            if (data.type === 'requirement_result' && data.req_id && data.data) {
-                                reqProgressCurrent++;
-                                if (reqProgressTotal > 0 && reqProgressCurrent >= reqProgressTotal) {
-                                    // All per-requirement results in — remove loaders for Related & User Story tabs
-                                    ['reqResultPaneRelated', 'reqResultPaneGenerated'].forEach(function (id) {
-                                        var _p = document.getElementById(id);
-                                        if (_p) { var _m = _p.querySelector('.req-tab-loading-msg'); if (_m) _m.remove(); }
-                                    });
-                                    if (isGeneratingTests) {
-                                        progressCounter.textContent = 'Preparing E2E tests...';
-                                        document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">Preparing E2E tests...</p></div>';
-                                    } else {
-                                        progressCounter.textContent = 'Finalizing...';
-                                        document.getElementById('reqResultsSummary').innerHTML = '<div class="req-summary-block"><p class="req-summary-headline">Finalizing...</p></div>';
-                                    }
-                                } else if (reqProgressTotal > 0) {
-                                    progressCounter.textContent = 'Completed ' + reqProgressCurrent + ' of ' + reqProgressTotal + ' requirements';
-                                }
-                                if (reqProgressCurrent > 0) {
-                                    progressCounter.style.display = 'block';
-                                }
-                                appendRequirementResult(data.req_id, data.data);
-                                var resEl = document.getElementById('reqResults');
-                                resEl.style.display = 'block';
-                                if (!resEl.getAttribute('data-stream-scrolled')) {
-                                    resEl.setAttribute('data-stream-scrolled', '1');
-                                    resEl.scrollIntoView({ behavior: 'smooth' });
-                                }
-                                return true;
-                            }
-                            if (data.success !== undefined || data.error) {
-                                gotResult = true;
-                                done();
-                                // Remove persistent loaders now that all requirements are processed
-                                ['reqResultPaneRelated', 'reqResultPaneGenerated'].forEach(function (id) {
-                                    var pane = document.getElementById(id);
-                                    if (pane) { var msg = pane.querySelector('.req-tab-loading-msg'); if (msg) msg.remove(); }
-                                });
-                                if (data.success) {
-                                    lastReqResult = data;
-                                    window._lastAnalyzedRequirements = data.requirements || [];
-                                    window._reqCoverageMinSim = (data.summary && data.summary.coverage_min_similarity) || 60;
-                                    window._reqRetrievalMinSim = (data.summary && data.summary.retrieval_similarity_threshold) || 45;
-                                    (function () {
-                                        var rt = document.getElementById('reqTabRelatedDescThreshold');
-                                        var gt = document.getElementById('reqTabGeneratedDescThreshold');
-                                        var e2e = document.getElementById('reqTabE2eDescThreshold');
-                                        if (rt) rt.textContent = Math.round(window._reqRetrievalMinSim);
-                                        if (gt) gt.textContent = Math.round(window._reqCoverageMinSim);
-                                        if (e2e) e2e.textContent = Math.round(window._reqCoverageMinSim);
-                                    })();
-                                    // Result received
-                                    var container = document.getElementById('reqResultPaneRelated').firstElementChild;
-                                    if (!container || container.children.length === 0) {
-                                        renderReqResults(data);
-                                    } else {
-                                        updateReqSummaryOnly(data);
-                                        // Render E2E Flows (comes in final data after streaming)
-                                        renderE2EFlows(data);
-                                        // Show E2E tab if existing E2E tests found (even when generation was off)
-                                        var e2eTotal = ((data.e2e_workflow_tests || []).length) + ((data.existing_e2e_tests || []).length);
-                                        if (e2eTotal > 0) document.getElementById('reqTabE2eflows').style.display = '';
-                                    }
-                                    attachReqPushHandlers();
-                                    document.getElementById('reqResults').style.display = 'block';
-                                    document.body.classList.remove('layout-initial');
-                                    document.getElementById('reqResults').scrollIntoView({ behavior: 'smooth' });
-                                } else {
-                                    failed(data.error || 'Analysis failed');
-                                }
-                                return true;
-                            }
-                        } catch (e) { return false; }
-                        return false;
-                    }
-                    function pump() {
-                        return reader.read().then(function (opt) {
-                            if (opt.done) {
-                                if (!gotResult && buf.trim()) {
-                                    var trimmed = buf.trim();
-                                    if (trimmed.indexOf('data: ') === 0 && tryProcessData(trimmed)) {
-                                        // Processed remaining buffer
-                                    } else {
-                                        failed('Incomplete response from the server — the analysis did not finish.');
-                                    }
-                                } else if (!gotResult) {
-                                    // Stream ended without result
-                                }
-                                done();
-                                return;
-                            }
-                            buf += decoder.decode(opt.value, { stream: true });
-                            resetIdleTimeout(); // got data — reset idle timer
-                            var parts = buf.split('\n\n');
-                            buf = parts.pop();
-                            for (var pi = 0; pi < parts.length; pi++) {
-                                var block = parts[pi];
-                                var line = block.split('\n').find(function (l) { return l.indexOf('data: ') === 0; });
-                                if (!line) continue;
-                                if (tryProcessData(line)) {
-                                    if (gotResult) return Promise.resolve();
-                                }
-                            }
-                            return gotResult ? Promise.resolve() : pump();
-                        });
-                    }
-                    return pump();
+                    return r.json().catch(function () { return {}; }).then(function (row) {
+                        if (!r.ok) throw new Error(row.error || 'Server error ' + r.status);
+                        window.reqRun.open(row, false);
+                        window.reqRun.loadHistory();
+                    });
                 })
                 .catch(function (e) {
-                    done();
-                    if (e.name === 'AbortError') {
-                        failed('The server went quiet for 5 minutes, so the request was stopped. ' +
-                               'Long specs can take several minutes — try a shorter doc or run it again.');
-                    } else {
-                        failed('Request failed: ' + (e.message || 'Network error'));
-                    }
+                    showToast('Could not start the analysis: ' + (e.message || 'Network error'), 'warning');
+                })
+                .then(function () {
+                    btn.disabled = false;
+                    updateGenerateButtonText();
                 });
         }
 
-        function buildReqSummaryHtml(data) {
-            if (!data) return '';
-            var s = data.summary || {};
-            var total = data.requirements_analyzed || 0;
-            var relatedCount = 0;
-            if (data.related_tests && typeof data.related_tests === 'object') {
-                Object.keys(data.related_tests).forEach(function (reqId) { relatedCount += (data.related_tests[reqId] || []).length; });
+        // ── Requirements → Tests runs ────────────────────────────────────────
+        // Same shape as the agent panels (qaHealing): the run lives on the server,
+        // the Live Run card follows it and History reopens it. Live and replay feed
+        // one apply(), so a past run renders exactly as it did live.
+        window.reqRun = (function () {
+            const BASE = API_BASE + '/requirement-analysis/runs';
+            const state = {
+                initialised: false, openId: 0, session: null, eventSource: null,
+                elapsedTimer: null, terminal: false, isReplay: false, logs: [], lastMessage: '',
+                stage: 0, total: 0, current: 0, relatedCount: 0, generatedCount: 0,
+                genBarAdded: false, sawPhase: false, phase: null, source: '',
+                phaseKeys: {},
+            };
+
+            function $(id) { return document.getElementById(id); }
+
+            function appendLog(line, cls) {
+                state.logs.push(line);
+                const el = $('reqConsole');
+                const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+                const div = document.createElement('div');
+                div.className = cls || window.qaLineClass(line);
+                div.textContent = line;
+                el.appendChild(div);
+                if (atBottom) el.scrollTop = el.scrollHeight;
             }
-            var generated = (s.total_generated_tests != null ? s.total_generated_tests : (s.generated_count || 0));
-            var e2eGeneratedCount = (s.e2e_workflow_tests_count || 0);
-            var e2eFlowCount = e2eGeneratedCount + (s.e2e_existing_count || 0);
-            var totalGeneratedTests = generated + e2eGeneratedCount;
-            // Count strong-match existing tests for User Story Tests tab
-            var _covMin = window._reqCoverageMinSim || 60;
-            var strongExistingCount = 0;
-            if (data.related_tests && typeof data.related_tests === 'object') {
-                Object.keys(data.related_tests).forEach(function (reqId) {
-                    (data.related_tests[reqId] || []).forEach(function (t) {
-                        var sim = t.similarity_score || 0;
-                        if ((sim <= 1 ? sim * 100 : sim) >= _covMin) strongExistingCount++;
+
+            // The agent consoles' layout: "[HH:MM:SS] [step] text", with continuation
+            // lines aligned under the text. `ts` is the event's server time; lines the
+            // page writes itself pass now().
+            function pad2(n) { return String(n).padStart(2, '0'); }
+            function now() { return Date.now() / 1000; }
+            function stamp(ts) {
+                if (!ts) return '';
+                const t = new Date(ts * 1000);
+                return '[' + [t.getHours(), t.getMinutes(), t.getSeconds()].map(pad2).join(':') + '] ';
+            }
+            function logEntry(ts, tag, text, cls) {
+                const prefix = stamp(ts) + (tag ? '[' + tag + '] ' : '');
+                const indent = ' '.repeat(prefix.length);
+                appendLog(String(text).split('\n').map(function (line, i) {
+                    return (i ? indent : prefix) + line;
+                }).join('\n'), cls);
+            }
+
+            function copyLogs() {
+                navigator.clipboard.writeText(state.logs.join('\n')).catch(function () {});
+            }
+
+            // Stages 2 and 3 re-open once per requirement, and requirements run in
+            // parallel, so a chip only moves forward: the furthest stage reached is
+            // running and every stage before it is done.
+            function markStages(stage, terminalStatus) {
+                state.stage = Math.max(state.stage, stage);
+                document.querySelectorAll('#reqProgressSteps .qa-step').forEach(function (el) {
+                    const n = Number(el.getAttribute('data-step'));
+                    el.classList.remove('running', 'done', 'failed');
+                    if (terminalStatus === 'completed' || n < state.stage) el.classList.add('done');
+                    else if (n === state.stage && !terminalStatus) el.classList.add('running');
+                    else if (n === state.stage && terminalStatus !== 'cancelled') el.classList.add('failed');
+                });
+            }
+
+            function fmtClock(secs) {
+                const s = Math.max(0, Math.round(secs));
+                return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+            }
+
+            // Counts from the run's own start, so a run reattached after a refresh
+            // does not restart its clock at 00:00.
+            function startElapsed(startedEpoch) {
+                const from = startedEpoch ? startedEpoch * 1000 : Date.now();
+                const tick = function () { $('reqLiveElapsed').textContent = fmtClock((Date.now() - from) / 1000); };
+                stopElapsed();
+                tick();
+                state.elapsedTimer = setInterval(tick, 1000);
+            }
+
+            function stopElapsed() {
+                if (state.elapsedTimer) { clearInterval(state.elapsedTimer); state.elapsedTimer = null; }
+            }
+
+            // The browser caps concurrent connections per origin at six, and a
+            // stream left open still counts against that cap.
+            function closeStream() {
+                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+            }
+
+            function resetResults() {
+                var _loadingSpinner = '<span class="req-tab-loading-spinner"></span>';
+                $('reqResults').removeAttribute('data-stream-scrolled');
+                document.getElementById('reqResultPaneRelated').innerHTML = '<div id="reqTabRelatedDesc" class="req-tab-desc">All test cases with similarity \u2265 <span id="reqTabRelatedDescThreshold">' + Math.round(window._reqRetrievalMinSim || 45) + '</span>% to the analyzed requirements.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'Loading related tests\u2026</p></div>';
+                document.getElementById('reqResultPaneGenerated').innerHTML = '<div id="reqTabGeneratedDesc" class="req-tab-desc">Strong-match existing tests (\u2265 <span id="reqTabGeneratedDescThreshold">' + Math.round(window._reqCoverageMinSim || 60) + '</span>% similarity) + newly generated tests per requirement.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'Loading user story tests\u2026</p></div>';
+                document.getElementById('reqResultPaneE2eflows').innerHTML = '<div class="req-tab-desc">Existing regression tests (\u2265 <span class="req-e2e-threshold-val">' + Math.round(window._reqCoverageMinSim || 60) + '</span>% similarity) + newly generated E2E workflow tests spanning multiple requirements.</div><div class="req-expand-collapse-bar"><a href="#" class="req-expand-all-link">Expand All</a> | <a href="#" class="req-collapse-all-link">Collapse All</a></div><div class="req-stream-container"><p class="req-tab-loading-msg">' + _loadingSpinner + 'E2E tests are identified at the end of analysis. Please wait\u2026</p></div>';
+                $('reqDocSummary').innerHTML = '';
+                ['reqTabRelatedCount', 'reqTabGeneratedCount', 'reqTabE2eflowsCount'].forEach(function (id) { $(id).textContent = '0'; });
+                document.querySelectorAll('.req-result-tab').forEach(function (b) { b.classList.remove('active'); });
+                document.querySelectorAll('.req-result-pane').forEach(function (p) { p.classList.remove('visible'); });
+                $('reqTabRelated').classList.add('active');
+                $('reqResultPaneRelated').classList.add('visible');
+                $('reqResults').style.display = 'block';
+                document.body.classList.remove('layout-initial'); // allow page to grow, use browser scroll
+            }
+
+            function open(row, isReplay) {
+                closeStream();
+                stopElapsed();
+                Object.assign(state, {
+                    session: row.session_id, terminal: false, isReplay: !!isReplay, logs: [],
+                    lastMessage: '', stage: 0, total: 0, current: 0, relatedCount: 0,
+                    generatedCount: 0, genBarAdded: false,
+                    sawPhase: false, phase: null, source: row.source || '', phaseKeys: {},
+                });
+                const openId = ++state.openId;
+                // The previous run's result must not answer lookups for this one.
+                lastReqResult = null;
+                resetResults();
+
+                const card = $('reqLiveCard');
+                card.style.display = 'block';
+                card.classList.remove('terminal-completed', 'terminal-failed', 'terminal-cancelled');
+                $('reqLiveStatus').textContent = 'running…';
+                $('reqLiveStatus').className = 'qa-live-badge badge-running';
+                $('reqLiveSession').textContent = row.session_id;
+                $('reqLiveSource').textContent = row.title || row.source || '—';
+                $('reqConsole').innerHTML = '';
+                QA_RESET_METRIC_TILES('req');
+                markStages(0);
+                $('reqCancelBtn').style.display = isReplay ? 'none' : '';
+
+                if (!isReplay) {
+                    startElapsed(row.started_epoch);
+                    connect();
+                    return;
+                }
+                // A finished run's events are already complete, so fetch them in one
+                // request rather than holding a stream open for them.
+                $('reqLiveElapsed').textContent = '—';
+                QA_FETCH_JSON(BASE + '/' + encodeURIComponent(row.session_id) + '/events')
+                    .then(function (body) {
+                        if (state.openId !== openId) return;     // another run was opened meanwhile
+                        ((body && body.events) || []).forEach(apply);
+                        if (!state.terminal) apply({ success: false, status: 'unknown', error: 'No result was recorded for this run.' });
+                    })
+                    .catch(function (e) {
+                        if (state.openId !== openId) return;
+                        apply({ success: false, status: 'unknown', error: 'Could not load this run: ' + (e && e.message || e) });
                     });
+            }
+
+            function connect() {
+                const es = new EventSource(BASE + '/' + encodeURIComponent(state.session) + '/stream');
+                state.eventSource = es;
+                es.onmessage = function (msg) {
+                    if (state.eventSource !== es) { es.close(); return; }
+                    let d;
+                    try { d = JSON.parse(msg.data); } catch (e) { return; }
+                    if (isTerminal(d)) es.close();
+                    apply(d);
+                };
+                es.onerror = function () {
+                    if (state.eventSource !== es || state.terminal) { es.close(); return; }
+                    if (es.readyState === EventSource.CLOSED) {
+                        // Refused rather than dropped (the run is gone, or the login
+                        // expired), so the browser will not retry by itself.
+                        apply({ success: false, status: 'unknown', error: 'Lost the connection to this run. Reopen it from History.' });
+                        return;
+                    }
+                    // The browser reconnects by itself and sends Last-Event-ID, so the
+                    // server resumes after the last event this page applied.
+                    logEntry(now(), 'stream', 'connection dropped — reconnecting…');
+                };
+            }
+
+            function isTerminal(d) { return d.success !== undefined || !!d.error; }
+
+            // One dispatch for both transports: a branch added to only one of them
+            // would be a bug in exactly one of the two ways to open a run.
+            function apply(d) {
+                try {
+                    if (!d) return;
+                    if (d.stage !== undefined) onProgress(d);
+                    else if (d.type === 'log') logEntry(d.ts, state.phaseKeys[d.phase] || '', d.text);
+                    else if (d.type === 'phase') onPhase(d);
+                    else if (d.type === 'config') onConfig(d);
+                    else if (d.type === 'doc_summary') { if (d.data) onDocSummary(d); }
+                    else if (d.type === 'requirement_step') {
+                        // The service now logs each step itself; only runs recorded before that need this.
+                        if (d.req_id && d.step && !state.sawPhase) appendLog(d.req_id + ' · ' + d.step + '…');
+                    }
+                    else if (d.type === 'requirement_result') { if (d.req_id && d.data) onRequirementResult(d.req_id, d.data); }
+                    else if (d.type === 'testrail_push') markReqTestPushed(d.target, d.action, d.testrail_id);
+                    else if (isTerminal(d)) finish(d);
+                } catch (e) {
+                    logEntry(now(), '', '✗ Could not show an event: ' + (e && e.message || e));
+                }
+            }
+
+            function onProgress(d) {
+                const message = d.message || '';
+                // "N of M requirements" carries the total, so the tab loaders can go once all are in.
+                const m = message.match(/(\d+)\s+of\s+(\d+)\s+requirements?/i);
+                if (m) state.total = parseInt(m[2], 10);
+                // Phases drive the chips and the console. Runs recorded before the
+                // service logged phases only have progress messages to show.
+                if (state.sawPhase) return;
+                markStages(d.stage);
+                if (message && message !== state.lastMessage) {
+                    state.lastMessage = message;
+                    appendLog(message);
+                }
+            }
+
+            // "▶ [03/06] Find Related Tests" opens a step and
+            // "✓ [03/06] Find Related Tests — 9s · $0.0021 · 2 calls" closes it.
+            function onPhase(d) {
+                state.sawPhase = true;
+                const label = '[' + pad2(d.index) + '/' + pad2(d.total) + '] ' + d.name;
+                if (d.state === 'start') {
+                    state.phase = d;
+                    state.phaseKeys[d.index] = d.key || '';
+                    appendLog(' ');
+                    logEntry(d.ts, '', '▶ ' + label, 'qa-line-step');
+                    markStages(d.index);
+                    return;
+                }
+                state.phase = null;
+                const bits = [QA_FMT_DURATION(d.duration_s)];
+                if (d.cost_usd > 0) bits.push(QA_FMT_COST(d.cost_usd));
+                if (d.llm_calls > 0) bits.push(QA_FMT_CALLS(d.llm_calls));
+                logEntry(d.ts, '', '✓ ' + label + ' — ' + bits.join(' · '), 'qa-line-done');
+                markStages(d.index + 1);
+            }
+
+            // Sent first, so thresholds are set before per-requirement blocks render.
+            function onConfig(d) {
+                if (d.coverage_min_similarity != null) {
+                    window._reqCoverageMinSim = d.coverage_min_similarity;
+                    const gt = $('reqTabGeneratedDescThreshold');
+                    if (gt) gt.textContent = Math.round(window._reqCoverageMinSim);
+                    document.querySelectorAll('.req-e2e-threshold-val').forEach(function (el) { el.textContent = Math.round(window._reqCoverageMinSim); });
+                }
+                if (d.retrieval_similarity_threshold != null) {
+                    window._reqRetrievalMinSim = d.retrieval_similarity_threshold;
+                    const rt = $('reqTabRelatedDescThreshold');
+                    if (rt) rt.textContent = Math.round(window._reqRetrievalMinSim);
+                }
+                // Session banner, as the agent consoles open with.
+                const rule = '━'.repeat(52);
+                const onOff = function (v) { return v ? 'on' : 'off'; };
+                appendLog(rule);
+                logEntry(d.ts, '', 'requirements-to-tests | source=' + (d.source || state.source || '—'));
+                logEntry(d.ts, '', 'new tests=' + onOff(d.generate_new_tests !== false)
+                    + (d.generate_p2_p3_tests !== undefined ? ' · P2/P3 tests=' + onOff(d.generate_p2_p3_tests) : '')
+                    + ' · related tests ≥ ' + Math.round(d.retrieval_similarity_threshold) + '%'
+                    + ' · strong match ≥ ' + Math.round(d.coverage_min_similarity) + '%');
+                logEntry(d.ts, '', 'session=' + (d.session_id || state.session));
+                appendLog(rule);
+            }
+
+            function onDocSummary(event) {
+                var ds = event.data;
+                var sourceLabels = { confluence: 'Confluence', file: 'File', text: 'Pasted text' };
+                var sourceLabel = sourceLabels[ds.source_type] || ds.source_type;
+                var metaParts = [];
+                if (ds.word_count) metaParts.push(ds.word_count.toLocaleString() + ' words');
+                if (ds.requirement_count) metaParts.push(ds.requirement_count + ' requirement' + (ds.requirement_count === 1 ? '' : 's') + ' found');
+                var linkHtml = (ds.confluence_url && ds.source_type === 'confluence')
+                    ? ' <a href="' + escapeHtml(ds.confluence_url) + '" target="_blank" class="req-doc-link">Open in Confluence &#8599;</a>' : '';
+                var summaryHtml = '';
+                if (ds.summary) {
+                    summaryHtml = '<div class="req-doc-ai-summary">' + marked.parse(ds.summary) + '</div>';
+                }
+                $('reqDocSummary').innerHTML = '<div class="req-doc-summary-banner">'
+                    + '<div class="req-doc-summary-top">'
+                    + '<span class="req-doc-source-badge req-doc-source-' + escapeHtml(ds.source_type || 'text') + '">' + escapeHtml(sourceLabel) + '</span>'
+                    + '<span class="req-doc-title">' + escapeHtml(ds.title || 'Document') + '</span>'
+                    + linkHtml
+                    + '</div>'
+                    + (metaParts.length ? '<div class="req-doc-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' : '')
+                    + summaryHtml
+                    + '</div>';
+                if (!state.terminal) $('reqResults').style.display = 'block';
+                // The summary runs in the background and can land after the run ended;
+                // the banner above still shows it, but a finished console stays closed.
+                if (!state.terminal) {
+                    logEntry(event.ts, 'summary', 'Document summary ready — ' + (ds.title || 'Document')
+                        + (metaParts.length ? ' · ' + metaParts.join(' · ') : ''));
+                }
+            }
+
+            function onRequirementResult(reqId, data) {
+                state.current++;
+                appendRequirementResult(reqId, data);
+                if (!state.sawPhase) {
+                    appendLog('✓ ' + reqId + ' — ' + (data.related_tests || []).length + ' related tests, '
+                        + (data.generated_tests || []).length + ' new'
+                        + (data.elapsed_s != null ? ' (' + data.elapsed_s + 's)' : ''));
+                }
+                if (state.total > 0 && state.current >= state.total) {
+                    // Every requirement is in: only E2E generation (or nothing) remains.
+                    ['reqResultPaneRelated', 'reqResultPaneGenerated'].forEach(function (id) {
+                        const m = $(id).querySelector('.req-tab-loading-msg');
+                        if (m) m.remove();
+                    });
+                }
+                const resEl = $('reqResults');
+                resEl.style.display = 'block';
+                if (!state.isReplay && !resEl.getAttribute('data-stream-scrolled')) {
+                    resEl.setAttribute('data-stream-scrolled', '1');
+                    resEl.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            function buildCoverageBadgeHtml(coverage, genList) {
+                if (!coverage) return '';
+                var pct = coverage.final_coverage_pct != null ? coverage.final_coverage_pct : 0;
+                var status = coverage.status || 'uncovered';
+                var cls = status === 'covered' ? 'req-coverage-covered'
+                    : status === 'partially_covered' ? 'req-coverage-partial'
+                        : 'req-coverage-uncovered';
+                var label = pct === 100 ? '100% covered' : pct > 0 ? pct + '% covered' : 'Not covered';
+
+                // Build tooltip text from priority breakdown
+                var byP = coverage.by_priority || {};
+                var parts = [];
+                ['P0', 'P1', 'P2', 'P3'].forEach(function (p) {
+                    var d = byP[p];
+                    if (!d || (d.existing === 0 && d.generated === 0)) return;
+                    var s = p + ': ' + (d.generated > 0
+                        ? d.existing + ' existing + ' + d.generated + ' new'
+                        : d.existing + ' existing');
+                    if (d.pct >= 100) s += ' \u2713';
+                    parts.push(s);
+                });
+                if (status === 'covered' && (!genList || genList.length === 0)) {
+                    parts.push('No new tests needed \u2014 already covered');
+                }
+
+                var tooltipText = parts.join(' \xb7 ');
+                var tooltipHtml = tooltipText
+                    ? '<span class="req-coverage-tooltip">' + escapeHtml(tooltipText) + '</span>'
+                    : '';
+
+                return '<span class="req-coverage-wrap">'
+                    + '<span class="req-coverage-badge ' + cls + '">' + escapeHtml(label) + '</span>'
+                    + tooltipHtml
+                    + '</span>';
+            }
+            function buildDescWithACHtml(desc, title, acs, specsCount) {
+                var hasDesc = desc && desc.trim() && desc.trim() !== (title || '').trim();
+                var hasACs = acs && acs.length > 0;
+                if (!hasDesc && !hasACs) return '';
+                var html = '<div class="req-description">';
+                if (hasDesc) html += '<div class="req-desc-text">' + escapeHtml(desc) + '</div>';
+                if (hasACs) {
+                    var items = acs.map(function (ac) { return '<li>' + escapeHtml(ac) + '</li>'; }).join('');
+                    var confluenceBadge = (specsCount > 0) ? '<span class="req-ac-confluence-badge">via Confluence</span>' : '';
+                    html += (hasDesc ? '<div class="req-ac-divider"></div>' : '') + '<div class="req-ac-label">Acceptance Criteria' + confluenceBadge + '</div><ol class="req-ac-list">' + items + '</ol>';
+                }
+                html += '</div>';
+                return html;
+            }
+            function appendRequirementResult(reqId, data) {
+                var req = data.requirement || {};
+                var relatedTests = data.related_tests || [];
+                var needingTests = data.tests_needing_update || [];
+                var genList = data.generated_tests || [];
+                var relatedSpecs = data.related_specs || [];
+                var coverage = data.coverage || null;
+                var acceptanceCriteria = data.acceptance_criteria || [];
+                var elapsedS = data.elapsed_s != null ? data.elapsed_s : null;
+                var reqTextFull = (req.title ? (req.title) + '\n' : '') + (req.description || '');
+                // Merge related_tests and tests_needing_update (needing tests have suggestions)
+                var needingIds = {};
+                needingTests.forEach(function (t) {
+                    var tid = String(t.testrail_id || '').replace(/^C/i, '');
+                    if (tid) needingIds[tid] = t;
+                });
+                var tests = [];
+                // Add needing tests first (they have AI suggestions)
+                needingTests.forEach(function (t) { tests.push(t); });
+                // Add related tests not already in needing
+                relatedTests.forEach(function (t) {
+                    var tid = String(t.testrail_id || '').replace(/^C/i, '');
+                    if (!tid || !needingIds[tid]) tests.push(t);
+                });
+                // Sort by similarity score
+                tests.sort(function (a, b) {
+                    return (b.similarity_score || 0) - (a.similarity_score || 0);
+                });
+                // Filter to strong-match tests for User Story Tests tab (must be after tests is built)
+                var _covMinSim = window._reqCoverageMinSim || 60;
+                var strongTests = tests.filter(function (t) {
+                    var sim = t.similarity_score || 0;
+                    return (sim <= 1 ? sim * 100 : sim) >= _covMinSim;
+                });
+                // Update streaming counts for tabs
+                state.relatedCount += relatedTests.length;
+                state.generatedCount += strongTests.length + genList.length;
+                document.getElementById('reqTabRelatedCount').textContent = state.relatedCount;
+                document.getElementById('reqTabGeneratedCount').textContent = state.generatedCount;
+                var containerRelated = document.getElementById('reqResultPaneRelated').querySelector('.req-stream-container');
+                var countBadge = tests.length + ' test' + (tests.length === 1 ? '' : 's');
+                var block = '<div class="req-requirement-section collapsed">';
+                block += '<div class="req-req-header"><span class="req-req-chevron"></span><div class="req-req-header-content"><div class="req-id">' + escapeHtml(reqId) + '</div>';
+                if (req.title) block += '<div class="req-title">' + escapeHtml(req.title) + '</div>';
+                var timeBadgeHtml = elapsedS != null ? '<span class="req-time-badge">' + elapsedS + 's</span>' : '';
+                // Requirements are analysed in parallel, so this is the
+                // run's spend at the moment this one finished — a
+                // running total, not this requirement's own cost. The
+                // label says so rather than implying attribution.
+                var reqCost = data.run_cost_usd_at_completion;
+                if (reqCost != null && reqCost > 0) {
+                    timeBadgeHtml += '<span class="req-time-badge" title="Run cost so far'
+                        + ' \u2014 requirements are analysed in parallel, so this is not'
+                        + ' this requirement\u0027s own cost">'
+                        + QA_FMT_COST(reqCost) + ' so far</span>';
+                }
+                block += '</div><span class="req-count-badge">' + countBadge + '</span>' + timeBadgeHtml + '</div>';
+                block += '<div class="req-req-body">';
+                block += buildDescWithACHtml(req.description, req.title, acceptanceCriteria, relatedSpecs.length);
+                if (relatedSpecs.length > 0) {
+                    var specsId = 'req-specs-' + reqId.replace(/[^a-zA-Z0-9]/g, '_');
+                    block += '<div class="req-specs-section">';
+                    block += '<div class="req-specs-toggle" onclick="(function(el){var b=document.getElementById(\'' + specsId + '\');if(b){b.style.display=b.style.display===\'none\'?\'block\':\'none\';el.classList.toggle(\'expanded\')}})(this)">';
+                    block += '<span class="req-specs-chevron">&#9656;</span>';
+                    block += '<span class="req-specs-label">Spec pages referenced</span>';
+                    block += '<span class="req-specs-count">' + relatedSpecs.length + ' page' + (relatedSpecs.length === 1 ? '' : 's') + '</span>';
+                    block += '</div>';
+                    block += '<div class="req-specs-body" id="' + specsId + '" style="display:none;">';
+                    relatedSpecs.forEach(function (s) {
+                        var simPct = s.similarity_score != null ? Math.round(s.similarity_score * 100) : null;
+                        var simClass = simPct == null ? '' : simPct >= 75 ? 'req-spec-sim-high' : simPct >= 60 ? 'req-spec-sim-mid' : 'req-spec-sim-low';
+                        var simBadge = simPct != null ? '<span class="req-spec-sim ' + simClass + '">' + simPct + '% match</span>' : '';
+                        var link = s.url ? '<a href="' + escapeHtml(s.url) + '" target="_blank" class="req-spec-link" title="Open in Confluence">&#8599;</a>' : '';
+                        var rawTitle = (s.title || '').replace(/^[*#\s]+/, '').trim();
+                        var title = escapeHtml((rawTitle || 'Confluence page').substring(0, 100));
+                        // Clean up excerpt: strip markdown symbols, collapse whitespace
+                        var rawExcerpt = (s.content || '').replace(/[*#_`\[\]]/g, '').replace(/\s+/g, ' ').trim();
+                        var excerpt = rawExcerpt ? escapeHtml(rawExcerpt.substring(0, 180)) : '';
+                        block += '<div class="req-spec-row">';
+                        block += '<div class="req-spec-main">';
+                        block += '<div class="req-spec-title-line"><span class="req-spec-title" title="' + title + '">' + title + '</span>' + simBadge + '</div>';
+                        if (excerpt) block += '<div class="req-spec-excerpt">' + excerpt + '</div>';
+                        block += '</div>';
+                        block += link;
+                        block += '</div>';
+                    });
+                    block += '</div></div>';
+                }
+                block += '<div class="req-section-label">Related test cases</div>';
+                if (tests.length === 0) block += '<p style="color:var(--text-muted);font-size:13px;">No related tests found.</p>';
+                else block += '<div class="req-tc-cards">' + tests.map(function (t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
+                block += '</div></div>';
+                var _relLoading = containerRelated.querySelector('.req-tab-loading-msg');
+                // Insert in correct order (REQ-1 before REQ-2, etc.) even when results arrive out of order
+                var _reqNum = parseInt((reqId.match(/\d+/) || [0])[0], 10) || 0;
+                var _insertBefore = null;
+                var _existingSections = containerRelated.querySelectorAll('.req-requirement-section');
+                for (var _si = 0; _si < _existingSections.length; _si++) {
+                    var _existingId = _existingSections[_si].querySelector('.req-id');
+                    if (_existingId) {
+                        var _existingNum = parseInt((_existingId.textContent.match(/\d+/) || [0])[0], 10) || 0;
+                        if (_existingNum > _reqNum) { _insertBefore = _existingSections[_si]; break; }
+                    }
+                }
+                var _tempDiv = document.createElement('div');
+                _tempDiv.innerHTML = block;
+                var _newSection = _tempDiv.firstElementChild;
+                if (_insertBefore) {
+                    containerRelated.insertBefore(_newSection, _insertBefore);
+                } else {
+                    if (_relLoading) containerRelated.insertBefore(_newSection, _relLoading);
+                    else containerRelated.appendChild(_newSection);
+                }
+                if (_relLoading) containerRelated.appendChild(_relLoading);
+                var containerGen = document.getElementById('reqResultPaneGenerated').querySelector('.req-stream-container');
+                var _genLoading = containerGen.querySelector('.req-tab-loading-msg');
+                if (genList.length > 0 && !state.genBarAdded) {
+                    containerGen.insertAdjacentHTML('afterbegin', '<div class="req-gen-select-actions" style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><a href="#" id="reqSelectToggleGen" class="req-gen-select-link">Select all</a><button type="button" class="req-tr-btn" id="reqPushSelectedBtn" style="margin-left:8px;">Push selected to TestRail</button></div>');
+                    state.genBarAdded = true;
+                }
+                var usTotal = strongTests.length + genList.length;
+                var genCountBadge = usTotal + ' test' + (usTotal === 1 ? '' : 's');
+                var genBlock = '<div class="req-requirement-section collapsed">';
+                genBlock += '<div class="req-req-header"><span class="req-req-chevron"></span><div class="req-req-header-content"><div class="req-id">' + escapeHtml(reqId) + '</div>';
+                if (req.title) genBlock += '<div class="req-title">' + escapeHtml(req.title) + '</div>';
+                genBlock += '</div><span class="req-count-badge">' + genCountBadge + '</span>' + buildCoverageBadgeHtml(usTotal > 0 ? coverage : { final_coverage_pct: 0, status: 'uncovered' }, genList) + '</div>';
+                genBlock += '<div class="req-req-body">';
+                genBlock += buildDescWithACHtml(req.description, req.title, acceptanceCriteria, relatedSpecs.length);
+                // Existing strong-match tests sub-section
+                if (strongTests.length > 0) {
+                    genBlock += '<div class="req-section-label">Existing tests (' + strongTests.length + ')</div>';
+                    genBlock += '<div class="req-tc-cards">' + strongTests.map(function (t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
+                }
+                // New generated tests sub-section
+                if (genList.length > 0) {
+                    genBlock += '<div class="req-section-label" style="margin-top:16px;">New tests (' + genList.length + ')</div>';
+                    genList.forEach(function (gt, idx) {
+                        var gtDataAttr = ' data-req-id="' + escapeHtml(reqId) + '" data-index="' + idx + '"';
+                        gtDataAttr += ' data-title="' + escapeHtml((gt.title || '').substring(0, 500)).replace(/"/g, '&quot;') + '"';
+                        gtDataAttr += ' data-priority="' + escapeHtml(gt.priority || 'P2') + '"';
+                        gtDataAttr += ' data-preconditions="' + escapeHtml((gt.preconditions || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
+                        gtDataAttr += ' data-steps="' + escapeHtml((gt.steps || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
+                        gtDataAttr += ' data-expected="' + escapeHtml((gt.expected_result || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
+                        genBlock += '<div class="req-generated-test req-gen-test-row"' + gtDataAttr + ' style="display:flex;align-items:flex-start;gap:12px;">';
+                        genBlock += '<input type="checkbox" class="req-gen-select" data-req-id="' + escapeHtml(reqId) + '" data-index="' + idx + '" style="margin-top:4px;flex-shrink:0;" />';
+                        genBlock += '<div class="req-gen-test-content" style="flex:1;min-width:0;">';
+                        genBlock += '<div class="gt-title">' + escapeHtml(gt.title || 'Generated test') + '</div>';
+                        if (gt.priority) genBlock += '<div class="gt-priority"><strong>Priority:</strong> ' + escapeHtml(gt.priority) + '</div>';
+                        if (gt.preconditions) genBlock += '<div class="gt-preconditions"><strong>Preconditions</strong><div class="gt-preconditions-content">' + escapeHtml(gt.preconditions) + '</div></div>';
+                        if (gt.steps) genBlock += '<div class="gt-steps"><strong>Steps</strong><div class="gt-steps-content">' + escapeHtml(gt.steps) + '</div></div>';
+                        if (gt.expected_result) genBlock += '<div class="gt-expected"><strong>Expected result</strong><div class="gt-expected-content">' + escapeHtml(gt.expected_result) + '</div></div>';
+                        genBlock += '<div class="req-gen-actions"><button type="button" class="req-modify-push-btn">Modify &amp; Push to TestRail</button></div>';
+                        genBlock += '</div></div>';
+                    });
+                } else if (strongTests.length === 0) {
+                    genBlock += '<p style="color:var(--text-muted);font-size:13px;">No tests above coverage threshold.</p>';
+                }
+                genBlock += '</div></div>';
+                // Insert in correct order for Generated tab too
+                var _genInsertBefore = null;
+                var _genSections = containerGen.querySelectorAll('.req-requirement-section');
+                for (var _gi = 0; _gi < _genSections.length; _gi++) {
+                    var _gId = _genSections[_gi].querySelector('.req-id');
+                    if (_gId) {
+                        var _gNum = parseInt((_gId.textContent.match(/\d+/) || [0])[0], 10) || 0;
+                        if (_gNum > _reqNum) { _genInsertBefore = _genSections[_gi]; break; }
+                    }
+                }
+                var _genTemp = document.createElement('div');
+                _genTemp.innerHTML = genBlock;
+                var _genNewSection = _genTemp.firstElementChild;
+                if (_genInsertBefore) {
+                    containerGen.insertBefore(_genNewSection, _genInsertBefore);
+                } else {
+                    if (_genLoading) containerGen.insertBefore(_genNewSection, _genLoading);
+                    else containerGen.appendChild(_genNewSection);
+                }
+                if (_genLoading) containerGen.appendChild(_genLoading); // keep loader at bottom until all done
+            }
+
+            function finish(d) {
+                state.terminal = true;
+                stopElapsed();
+                closeStream();
+                const status = String(d.status || (d.success ? 'completed' : 'failed')).toLowerCase();
+                // Three badge and border styles exist; every status maps onto one.
+                const tone = status === 'completed' ? 'completed'
+                    : (status === 'cancelled' || status === 'unknown') ? 'cancelled' : 'failed';
+                const badge = $('reqLiveStatus');
+                badge.textContent = window.QA_STATUS_LABEL[status] || status;
+                badge.className = 'qa-live-badge badge-' + tone;
+                ['completed', 'failed', 'cancelled'].forEach(function (t) {
+                    $('reqLiveCard').classList.toggle('terminal-' + t, t === tone);
+                });
+                markStages(state.stage, status);
+                $('reqCancelBtn').style.display = 'none';
+                if (d.duration_s != null) $('reqLiveElapsed').textContent = fmtClock(d.duration_s);
+                // A failed analysis used to leave all three panes spinning forever.
+                document.querySelectorAll('#reqResults .req-tab-loading-msg').forEach(function (m) { m.remove(); });
+                // A phase still open means the run stopped inside it.
+                const statusLabel = window.QA_STATUS_LABEL[status] || status;
+                if (state.phase) {
+                    const p = state.phase;
+                    logEntry(d.ts, '', (status === 'cancelled' ? '■ ' : '✗ ') + '[' + pad2(p.index) + '/'
+                        + pad2(p.total) + '] ' + p.name + ' — ' + statusLabel);
+                    state.phase = null;
+                }
+                appendLog(' ');
+                appendLog('━'.repeat(52));
+
+                if (d.success) {
+                    QA_UPDATE_METRIC_TILES('req', {
+                        cost_usd: d.total_estimated_cost_usd, input_tokens: d.input_tokens,
+                        output_tokens: d.output_tokens, llm_calls: d.llm_calls,
+                    });
+                    // Runs recorded before phases existed: per-stage totals at the end instead.
+                    if (!state.sawPhase) {
+                        (d.stage_timings || []).forEach(function (st) {
+                            const bits = [QA_FMT_DURATION(st.duration_s)];
+                            if (st.cost_usd > 0) bits.push(QA_FMT_COST(st.cost_usd));
+                            if (st.llm_calls > 0) bits.push(QA_FMT_CALLS(st.llm_calls));
+                            appendLog('✓ ' + (st.label || 'Stage ' + st.stage) + ' — ' + bits.join(' · '));
+                        });
+                    }
+                    showResult(d);
+                    const s = d.summary || {};
+                    const mark = status === 'completed' ? '✓ ' : status === 'cancelled' ? '■ ' : '✗ ';
+                    logEntry(d.ts, '', mark + statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1) + ' — '
+                        + (d.requirements_analyzed || 0) + ' requirement(s) · '
+                        + (s.total_generated_tests || 0) + ' new test(s) · '
+                        + (s.e2e_workflow_tests_count || 0) + ' E2E test(s) · '
+                        + QA_FMT_DURATION(d.duration_s) + ' · ' + QA_FMT_COST(d.total_estimated_cost_usd),
+                        status === 'completed' ? 'qa-line-done' : undefined);
+                    if (d.error) logEntry(d.ts, '', '✗ ' + d.error);
+                } else {
+                    const msg = d.error || 'Analysis failed';
+                    // The Live Run card already says why; keep the results area only if anything came back.
+                    if (!state.current) $('reqResults').style.display = 'none';
+                    logEntry(d.ts, '', '✗ ' + msg);
+                    if (!state.isReplay) showToast(msg, 'warning');
+                }
+                loadHistory();
+            }
+
+            function showResult(data) {
+                lastReqResult = data;
+                window._reqCoverageMinSim = (data.summary && data.summary.coverage_min_similarity) || 60;
+                window._reqRetrievalMinSim = (data.summary && data.summary.retrieval_similarity_threshold) || 45;
+                const rt = $('reqTabRelatedDescThreshold');
+                const gt = $('reqTabGeneratedDescThreshold');
+                if (rt) rt.textContent = Math.round(window._reqRetrievalMinSim);
+                if (gt) gt.textContent = Math.round(window._reqCoverageMinSim);
+                updateReqTabCounts(data);
+                // E2E tests only exist in the final result, after the per-requirement stream.
+                renderE2EFlows(data);
+                attachReqPushHandlers();
+                $('reqResults').style.display = 'block';
+                document.body.classList.remove('layout-initial');
+                if (!state.isReplay) $('reqResults').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // ── History ──────────────────────────────────────────────────────
+            function resultSummary(r) {
+                if (r.error && r.status !== 'completed') {
+                    return r.error.length > 80 ? r.error.slice(0, 77) + '…' : r.error;
+                }
+                if (r.requirements == null) return '—';
+                return r.requirements + ' req' + (r.requirements === 1 ? '' : 's') + ' · '
+                    + (r.tests_generated || 0) + ' new tests';
+            }
+
+            function loadHistory(onLoaded) {
+                const wrap = $('reqHistoryWrap');
+                QA_FETCH_JSON(BASE + '?limit=20').then(function (body) {
+                    const items = (body && body.items) || [];
+                    if (typeof onLoaded === 'function') onLoaded(items);
+                    if (!items.length) {
+                        wrap.innerHTML = '<div class="qa-history-empty">No runs yet.</div>';
+                        return;
+                    }
+                    const hasActions = items.some(function (r) { return r.status === 'running'; });
+                    let html = '<table class="qa-history-table"><thead><tr>' +
+                        '<th>Run</th><th>Source</th><th>Started</th><th>Status</th>' +
+                        '<th>Result</th><th>Time</th><th>Cost</th><th>Logs</th>' +
+                        (hasActions ? '<th>Action</th>' : '<th></th>') +
+                        '</tr></thead><tbody>';
+                    items.forEach(function (r) {
+                        const status = (r.status || 'unknown').toLowerCase();
+                        const action = status === 'running'
+                            ? '<button class="qa-action-btn qa-action-btn-stop" title="Stop run" data-stop="'
+                              + QA_ESC_ATTR(r.session_id) + '">■ Stop</button>'
+                            : '';
+                        html += '<tr data-session="' + QA_ESC_ATTR(r.session_id) + '">' +
+                            '<td class="qa-session-id">' + escapeHtml(QA_RUN_REF(r.session_id)) + '</td>' +
+                            '<td>' + escapeHtml(r.title || r.source || '—') + '</td>' +
+                            '<td>' + escapeHtml(QA_FMT_STARTED(r.started_at)) + '</td>' +
+                            '<td><span class="qa-status-pill ' + (window.QA_PILL_CLASS[status] || 'queued') + '">' +
+                                escapeHtml(window.QA_STATUS_LABEL[status] || status) + '</span></td>' +
+                            '<td>' + escapeHtml(resultSummary(r)) + '</td>' +
+                            '<td>' + escapeHtml(QA_FMT_DURATION(r.duration_s)) + '</td>' +
+                            '<td>' + escapeHtml(QA_FMT_COST(r.cost_usd)) + '</td>' +
+                            '<td><a href="#" data-logs style="color:var(--primary);">view</a></td>' +
+                            '<td>' + action + '</td></tr>';
+                    });
+                    wrap.innerHTML = html + '</tbody></table>';
+                    // As on the agent pages: the row opens Session detail, and "view"
+                    // replays the logs and results into the Live Run card.
+                    wrap.querySelectorAll('tbody tr[data-session]').forEach(function (tr, i) {
+                        tr.addEventListener('click', function () { openSession(items[i]); });
+                        tr.querySelector('[data-logs]').addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            open(items[i], items[i].status !== 'running');
+                            $('reqLiveCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        });
+                    });
+                    wrap.querySelectorAll('[data-stop]').forEach(function (btn) {
+                        btn.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            stopRun(btn.getAttribute('data-stop'));
+                        });
+                    });
+                }).catch(function (e) {
+                    wrap.innerHTML = '<div class="qa-history-empty">Failed to load: ' +
+                        escapeHtml(e && e.message || String(e)) + '</div>';
                 });
             }
-            var userStoryCount = strongExistingCount + generated;
 
-            // Update tab counts
-            var relatedCountEl = document.getElementById('reqTabRelatedCount');
-            var generatedCountEl = document.getElementById('reqTabGeneratedCount');
-            var e2eCountEl = document.getElementById('reqTabE2eflowsCount');
-            if (relatedCountEl) relatedCountEl.textContent = relatedCount;
-            if (generatedCountEl) generatedCountEl.textContent = userStoryCount;
-            if (e2eCountEl) e2eCountEl.textContent = e2eFlowCount;
-
-            // Build simplified summary (headline only) - final state
-            // Check if tests were generated (either story-level or E2E)
-            var hasGeneratedTests = totalGeneratedTests > 0;
-            var headlineText = hasGeneratedTests
-                ? '✓ Generated tests for <span class="req-summary-total">' + total + '</span> requirement' + (total === 1 ? '' : 's')
-                : '✓ Found related tests for <span class="req-summary-total">' + total + '</span> requirement' + (total === 1 ? '' : 's');
-
-            var parts = [
-                '<div class="req-summary-block">',
-                '<p class="req-summary-headline">' + headlineText + '</p>'
-            ];
-            if (s.pushed_count) {
-                parts.push('<p class="req-summary-subline"><strong>' + s.pushed_count + '</strong> tests pushed to TestRail</p>');
-            }
-            // Run cost and time. .req-summary-metric (and its .cost variant) have
-            // been styled in this file all along with nothing emitting them.
-            var metrics = [];
-            if (data.duration_s != null) {
-                metrics.push(['', QA_FMT_DURATION(data.duration_s), 'Time taken']);
-            }
-            if (data.total_estimated_cost_usd != null) {
-                metrics.push(['cost', QA_FMT_COST(data.total_estimated_cost_usd),
-                              'Est. cost']);
-            }
-            var calls = data.llm_calls || 0;
-            if (calls > 0) metrics.push(['', String(calls), 'LLM calls']);
-            var toks = (data.input_tokens || 0) + (data.output_tokens || 0);
-            if (toks > 0) metrics.push(['', QA_FMT_TOKENS(toks), 'Tokens']);
-            if (totalGeneratedTests > 0) {
-                metrics.push(['generated', String(totalGeneratedTests), 'Tests generated']);
-            }
-            if (metrics.length) {
-                parts.push('<div class="req-summary-metrics">');
-                metrics.forEach(function (m) {
-                    parts.push('<div class="req-summary-metric ' + m[0] + '">'
-                        + '<div class="value">' + escapeHtml(m[1]) + '</div>'
-                        + '<div class="label">' + escapeHtml(m[2]) + '</div></div>');
+            // ── Session detail ───────────────────────────────────────────────
+            // Built from the run's recorded events, so it needs no endpoint of its
+            // own: details, time and cost per step, then what each requirement came
+            // to and the E2E tests. QA_SESSION_DETAIL is the agent pages' renderer.
+            function openSession(row) {
+                const body = $('reqSessionDetail');
+                body.innerHTML = '<div class="qa-empty-hint">Loading…</div>';
+                $('reqSessionModal').classList.add('active');
+                QA_FETCH_JSON(BASE + '/' + encodeURIComponent(row.session_id) + '/events').then(function (res) {
+                    body.innerHTML = sessionDetailHtml(row, (res && res.events) || []);
+                }).catch(function (e) {
+                    body.innerHTML = '<div class="qa-empty-hint">Failed: ' + escapeHtml(e && e.message || String(e)) + '</div>';
                 });
-                parts.push('</div>');
-                // Cost is derived from a token rate card, not billed usage, and
-                // must not be read as an invoice figure.
-                parts.push('<p class="req-summary-subline" style="opacity:.7;font-size:12px;">'
-                    + 'Cost is estimated from token usage.</p>');
             }
-            parts.push('</div>');
-            return parts.join('');
-        }
-        function updateReqSummaryOnly(data) {
+
+            function closeSession(event) {
+                if (event && event.target !== event.currentTarget) return;
+                $('reqSessionModal').classList.remove('active');
+            }
+
+            function sessionDetailHtml(row, events) {
+                let config = {}, final = null;
+                const steps = [], results = [], pushes = [];
+                events.forEach(function (e) {
+                    if (e.type === 'config') config = e;
+                    else if (e.type === 'testrail_push') pushes.push(e);
+                    else if (e.type === 'phase' && e.state === 'done') steps.push(e);
+                    else if (e.type === 'requirement_result' && e.data) results.push(e);
+                    else if (!e.type && e.stage === undefined && isTerminal(e)) final = e;
+                });
+                const f = final || {};
+                const status = String(row.status || 'unknown').toLowerCase();
+                const onOff = function (v) { return v ? 'on' : 'off'; };
+                const clip = function (text, n) { text = String(text || ''); return text.length > n ? text.slice(0, n - 1) + '…' : text; };
+
+                const meta = [
+                    ['Session', escapeHtml(row.session_id)],
+                    ['Source', escapeHtml(row.source || '—')],
+                    ['Status', '<span class="qa-status-pill ' + (window.QA_PILL_CLASS[status] || 'queued') + '">'
+                        + escapeHtml(window.QA_STATUS_LABEL[status] || status) + '</span>'],
+                    ['Result', escapeHtml(resultSummary(row))],
+                    ['Started', escapeHtml(QA_FMT_STARTED(row.started_at))],
+                    ['Options', escapeHtml('new tests ' + onOff(config.generate_new_tests !== false)
+                        + (config.generate_p2_p3_tests !== undefined ? ' · P2/P3 tests ' + onOff(config.generate_p2_p3_tests) : ''))],
+                ];
+                if (row.title && row.title !== row.source) meta.splice(2, 0, ['Document', escapeHtml(clip(row.title, 120))]);
+
+                // One row per step; runs recorded before steps were logged have the three stage totals.
+                const stages = steps.length
+                    ? steps.map(function (p) { return { label: escapeHtml(p.name), duration_s: p.duration_s, llm_calls: p.llm_calls, cost_usd: p.cost_usd }; })
+                    : (f.stage_timings || []).map(function (st) { return Object.assign({}, st, { label: escapeHtml(st.label || '') }); });
+                // The Total row adds up the step rows above it. The run's own llm_calls
+                // also counts embedding lookups, so it would not match them.
+                const metrics = stages.length ? {
+                    stages: stages,
+                    duration_s: row.duration_s != null ? row.duration_s : f.duration_s,
+                    llm_calls: stages.reduce(function (n, st) { return n + (st.llm_calls || 0); }, 0),
+                    output_tokens: f.output_tokens,
+                    cost_usd: row.cost_usd != null ? row.cost_usd : f.total_estimated_cost_usd,
+                } : null;
+
+                let body = '';
+                const error = f.error || row.error || (!final && status !== 'running' ? 'No result was recorded for this run.' : '');
+                if (error) body += '<p style="margin:14px 0 0 0;color:#ef4444;">✗ ' + escapeHtml(error) + '</p>';
+
+                if (results.length) {
+                    const num = function (e) { return parseInt((String(e.req_id).match(/\d+/) || [0])[0], 10) || 0; };
+                    body += '<div class="qa-modal-section"><h4>Requirements</h4>'
+                        + '<table class="qa-history-table"><thead><tr><th>Requirement</th><th>Related tests</th>'
+                        + '<th>Need update</th><th>New tests</th><th>Coverage</th><th>Time</th></tr></thead><tbody>'
+                        + results.sort(function (a, b) { return num(a) - num(b); }).map(function (e) {
+                            const d = e.data, cov = d.coverage || {};
+                            return '<tr><td><span class="qa-session-id">' + escapeHtml(e.req_id) + '</span> '
+                                + escapeHtml(clip((d.requirement || {}).title, 90)) + '</td>'
+                                + '<td>' + (d.related_tests || []).length + '</td>'
+                                + '<td>' + (d.tests_needing_update || []).length + '</td>'
+                                + '<td>' + (d.generated_tests || []).length + '</td>'
+                                + '<td>' + (cov.final_coverage_pct != null ? cov.final_coverage_pct + '%' : '—') + '</td>'
+                                + '<td>' + escapeHtml(QA_FMT_DURATION(d.elapsed_s)) + '</td></tr>';
+                        }).join('') + '</tbody></table></div>';
+                }
+                if (final && final.success) {
+                    const e2e = final.e2e_workflow_tests || [];
+                    body += '<div class="qa-modal-section"><h4>E2E tests</h4>'
+                        + '<p style="margin:0 0 6px 0;font-size:13px;">' + (final.existing_e2e_tests || []).length
+                        + ' existing E2E test(s) matched · ' + e2e.length + ' new</p>'
+                        + (e2e.length ? '<ul style="margin:0;padding-left:18px;font-size:13px;">' + e2e.map(function (t) {
+                            return '<li>' + escapeHtml((t.priority ? t.priority + ' · ' : '') + (t.title || '')) + '</li>';
+                        }).join('') + '</ul>' : '')
+                        + '</div>';
+                }
+                if (pushes.length) {
+                    const when = function (ts) {
+                        return ts ? new Date(ts * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+                    };
+                    body += '<div class="qa-modal-section"><h4>Pushed to TestRail (' + pushes.length + ')</h4>'
+                        + '<table class="qa-history-table"><thead><tr><th>Case</th><th>Action</th><th>Title</th>'
+                        + '<th>From</th><th>When</th></tr></thead><tbody>'
+                        + pushes.map(function (p) {
+                            const t = p.target || {};
+                            const from = t.kind === 'generated' ? t.req_id + ' · new test'
+                                : t.kind === 'e2e' ? 'E2E test' : 'existing ' + (t.testrail_id || 'case');
+                            return '<tr><td>' + formatTestrailIdHtml(p.testrail_id) + '</td>'
+                                + '<td>' + escapeHtml(p.action === 'updated' ? 'Updated' : 'Created') + '</td>'
+                                + '<td>' + escapeHtml(clip(p.title, 80)) + '</td>'
+                                + '<td>' + escapeHtml(from) + '</td>'
+                                + '<td>' + escapeHtml(when(p.ts)) + '</td></tr>';
+                        }).join('') + '</tbody></table></div>';
+                }
+                return QA_SESSION_DETAIL({ metrics: metrics }, { meta: meta, body: body, steps: [], retryHtml: null });
+            }
+
+            function stopRun(sessionId) {
+                fetch(BASE + '/' + encodeURIComponent(sessionId) + '/cancel', { method: 'POST', credentials: 'same-origin' })
+                    .then(function (r) {
+                        return r.json().catch(function () { return {}; }).then(function (b) {
+                            const shown = sessionId === state.session && !state.terminal;
+                            if (!r.ok) {
+                                if (shown) logEntry(now(), 'cancel', 'failed: ' + (b.error || 'unknown'));
+                                showToast('Could not stop the run: ' + (b.error || 'unknown'), 'warning');
+                            } else if (shown) {
+                                logEntry(now(), 'cancel', 'requested — finishing the requirements already in progress…');
+                            } else {
+                                showToast('■ Stopping the run…', 'info');
+                            }
+                            loadHistory();
+                        });
+                    })
+                    .catch(function (e) {
+                        showToast('Could not stop the run: ' + (e.message || 'Network error'), 'warning');
+                    });
+            }
+
+            function cancel() {
+                if (state.session && !state.terminal) stopRun(state.session);
+            }
+
+            function init() {
+                const first = !state.initialised;
+                state.initialised = true;
+                if (first) window.addEventListener('beforeunload', closeStream);
+                loadHistory(function (items) {
+                    // After a refresh, pick a running analysis back up, as the agent
+                    // pages do with their active run.
+                    if (!first || state.session) return;
+                    const live = items.find(function (r) { return r.status === 'running'; });
+                    if (live) open(live, false);
+                });
+            }
+
+            return { init: init, open: open, loadHistory: loadHistory, cancel: cancel, copyLogs: copyLogs,
+                     openSession: openSession, closeSession: closeSession,
+                     // The run a push belongs to, so the server can record it there.
+                     session: function () { return state.session; } };
+        })();
+
+        // Final counts on the three result tabs. Run totals (time, cost, tokens,
+        // LLM calls) are on the Live Run card, as on the agent pages.
+        function updateReqTabCounts(data) {
             if (!data) return;
-            document.getElementById('reqResultsSummary').innerHTML = buildReqSummaryHtml(data);
+            var s = data.summary || {};
+            var relatedCount = 0;
+            var strongExistingCount = 0;
+            var _covMin = window._reqCoverageMinSim || 60;
+            Object.keys(data.related_tests || {}).forEach(function (reqId) {
+                (data.related_tests[reqId] || []).forEach(function (t) {
+                    relatedCount++;
+                    var sim = t.similarity_score || 0;
+                    if ((sim <= 1 ? sim * 100 : sim) >= _covMin) strongExistingCount++;
+                });
+            });
+            var generated = s.total_generated_tests != null ? s.total_generated_tests : (s.generated_count || 0);
+            document.getElementById('reqTabRelatedCount').textContent = relatedCount;
+            document.getElementById('reqTabGeneratedCount').textContent = strongExistingCount + generated;
+            document.getElementById('reqTabE2eflowsCount').textContent = (s.e2e_workflow_tests_count || 0) + (s.e2e_existing_count || 0);
         }
         function buildE2eTestRow(e2e, source, idx) {
             // New E2E test — checkbox + content
@@ -10030,6 +10127,60 @@
                 if (pushBtn) { pushBtn.disabled = false; pushBtn.textContent = origBtnText; }
             });
         }
+        // ── Pushed-to-TestRail markers ───────────────────────────────────────
+        // One place marks a test as pushed: straight after the push, and again when a
+        // reopened run replays the pushes it recorded — so both look the same, and a
+        // test pushed yesterday cannot be pushed again by mistake today. Idempotent,
+        // because a push on a still-running run also arrives over its live stream.
+        //   target: {kind: 'generated', req_id, index} | {kind: 'e2e', index}
+        //         | {kind: 'existing', testrail_id}
+        function markReqTestPushed(target, action, testrailId) {
+            if (!target || !testrailId) return;
+            if (target.kind === 'generated' || target.kind === 'e2e') {
+                var e2e = target.kind === 'e2e';
+                var pane = document.getElementById(e2e ? 'reqResultPaneE2eflows' : 'reqResultPaneGenerated');
+                var row = null;
+                (pane ? pane.querySelectorAll(e2e ? '.req-e2e-flow-row' : '.req-gen-test-row') : []).forEach(function (el) {
+                    var sameIndex = el.getAttribute(e2e ? 'data-e2e-index' : 'data-index') === String(target.index);
+                    if (sameIndex && (e2e || el.getAttribute('data-req-id') === target.req_id)) row = el;
+                });
+                if (!row || row.querySelector('.req-pushed-link')) return;
+                var cb = row.querySelector('.req-gen-select, .req-e2e-select');
+                if (cb) { cb.checked = false; cb.disabled = true; cb.style.display = 'none'; }
+                var actions = row.querySelector('.req-gen-actions');     // holds "Modify & Push"
+                if (actions) actions.style.display = 'none';
+                var linkWrap = document.createElement('div');
+                linkWrap.className = 'req-pushed-link';
+                linkWrap.innerHTML = 'Pushed to TestRail \u2192 ' + formatTestrailIdHtml(testrailId);
+                (row.querySelector(e2e ? '.req-e2e-content' : '.req-gen-test-content') || row).appendChild(linkWrap);
+                return;
+            }
+            if (target.kind !== 'existing') return;
+            // The same case can be listed under several tabs; mark every copy.
+            var sourceId = String(target.testrail_id || '').replace(/^C/i, '');
+            if (!sourceId) return;
+            document.querySelectorAll('#reqResults .req-tc-card').forEach(function (card) {
+                if (String(card.getAttribute('data-testrail-id') || '').replace(/^C/i, '') !== sourceId) return;
+                if (card.querySelector('.req-created-in-testrail')) return;
+                var updateBtn = card.querySelector('.req-update-with-ai-btn');
+                if (updateBtn) updateBtn.style.display = 'none';
+                var headerMain = card.querySelector('.req-tc-card-header .req-tc-header-main');
+                if (headerMain) {
+                    var title = card.getAttribute('data-current-title') || (headerMain.textContent || '').replace(/^C\d+\s*/, '').trim() || 'Test case';
+                    headerMain.innerHTML = formatTestrailIdHtml(testrailId) + ' \u200B' + escapeHtml(title);
+                }
+                card.setAttribute('data-testrail-id', (/^\d+$/.test(String(testrailId)) ? 'C' + testrailId : String(testrailId)));
+                var actionsDiv = card.querySelector('.req-tc-card-actions');
+                if (actionsDiv) {
+                    var line = document.createElement('p');
+                    line.className = 'req-created-in-testrail';
+                    line.style.cssText = 'margin-top:8px;font-size:13px;color:#2e7d32;';
+                    line.innerHTML = (action === 'updated' ? 'Updated' : 'Created') + ' in TestRail: ' + formatTestrailIdHtml(testrailId);
+                    actionsDiv.appendChild(line);
+                }
+            });
+        }
+
         function doPushE2eToTestrail(targetSectionId, caseType) {
             if (!reqE2ePushSubset || reqE2ePushSubset.length === 0) return;
             var flat = reqE2ePushSubset;
@@ -10068,7 +10219,9 @@
                     expected_result: (t.expected_result || '').trim() || undefined,
                     priority: (t.priority || 'P0').toString().toUpperCase().replace(/^P(\d)$/, 'P$1'),
                     platform: 'web / m-web',
-                    case_type: caseType || 'FCT / Regression'
+                    case_type: caseType || 'FCT / Regression',
+                    session_id: window.reqRun.session(),
+                    target: { kind: 'e2e', index: item.index }
                 };
                 fetch(API_BASE + '/requirement-analysis/create-case', {
                     method: 'POST',
@@ -10079,28 +10232,7 @@
                     progressText.textContent = 'Pushing... ' + doneCount + ' of ' + flat.length + ' done';
                     if (data && data.success && data.testrail_id) {
                         okCount++;
-                        var pane = document.getElementById('reqResultPaneE2eflows');
-                        if (pane) {
-                            var cb = pane.querySelector('.req-e2e-select[data-e2e-index="' + item.index + '"]');
-                            if (cb) {
-                                cb.checked = false;
-                                cb.disabled = true;
-                                cb.style.display = 'none';
-                                var row = cb.closest('.req-e2e-flow-row');
-                                if (row) {
-                                    // Hide "Modify & Push" button
-                                    var _modBtn = row.querySelector('.req-modify-push-btn, .req-e2e-modify-push-btn');
-                                    if (_modBtn) _modBtn.style.display = 'none';
-                                    // Show TestRail link
-                                    var contentEl = row.querySelector('.req-e2e-content') || row;
-                                    var linkWrap = document.createElement('div');
-                                    linkWrap.className = 'req-pushed-link';
-                                    linkWrap.style.cssText = '';
-                                    linkWrap.innerHTML = 'Pushed to TestRail \u2192 ' + formatTestrailIdHtml(data.testrail_id);
-                                    contentEl.appendChild(linkWrap);
-                                }
-                            }
-                        }
+                        markReqTestPushed({ kind: 'e2e', index: item.index }, 'created', data.testrail_id);
                     }
                     runNext(i + 1);
                 }).catch(function () {
@@ -10662,6 +10794,15 @@
                 priority: document.getElementById('reqGenEditPriority').value || undefined,
                 case_type: document.getElementById('reqGenEditType').value || undefined
             };
+            var srcRow = reqGenEditSourceRow;
+            var target = !srcRow ? null
+                : srcRow.classList.contains('req-e2e-flow-row')
+                    ? { kind: 'e2e', index: parseInt(srcRow.getAttribute('data-e2e-index'), 10) }
+                    : { kind: 'generated', req_id: srcRow.getAttribute('data-req-id'), index: parseInt(srcRow.getAttribute('data-index'), 10) };
+            if (target) {
+                payload.session_id = window.reqRun.session();
+                payload.target = target;
+            }
             var btn = document.getElementById('reqGenEditSubmit');
             var btnText = btn.textContent || '';
             btn.disabled = true;
@@ -10681,22 +10822,7 @@
                         // Nothing on screen to mark — this is the only confirmation.
                         showToast('Test created in TestRail: ' + (newTid ? 'C' + newTid : ''), 'info');
                     }
-                    // Update the UI to show it was pushed
-                    if (reqGenEditSourceRow && newTid) {
-                        var row = reqGenEditSourceRow;
-                        // Disable the checkbox (covers both generated tests and E2E tests)
-                        var cb = row.querySelector('.req-gen-select, .req-e2e-select');
-                        if (cb) {
-                            cb.checked = false;
-                            cb.disabled = true;
-                            cb.style.display = 'none';
-                        }
-                        // Replace button with success link
-                        var actionsDiv = row.querySelector('.req-gen-actions');
-                        if (actionsDiv) {
-                            actionsDiv.innerHTML = '<span style="color:#2e7d32;font-size:12px;">✓ Created: ' + formatTestrailIdHtml(newTid) + '</span>';
-                        }
-                    }
+                    if (target && newTid) markReqTestPushed(target, 'created', newTid);
                     reqGenEditSourceRow = null;
                     reqGenEditReqId = null;
                     reqGenEditIndex = null;
@@ -10825,10 +10951,11 @@
                 preconditions: (document.getElementById('reqCaseEditPreconditions').value || '').trim() || undefined,
                 expected_result: (document.getElementById('reqCaseEditExpected').value || '').trim() || undefined,
                 priority: document.getElementById('reqCaseEditPriority').value || undefined,
-                case_type: document.getElementById('reqCaseEditType').value || undefined
+                case_type: document.getElementById('reqCaseEditType').value || undefined,
+                session_id: window.reqRun.session(),
+                target: { kind: 'existing', testrail_id: reqCaseEditTestrailId }
             };
             var updateBtn = document.getElementById('reqCaseEditUpdateBtn');
-            var card = reqCaseEditSourceCard;
             updateBtn.disabled = true;
             fetch(API_BASE + '/requirement-analysis/update-case', {
                 method: 'POST',
@@ -10844,24 +10971,7 @@
                     reqCaseEditTestrailId = null;
                     reqCaseEditSourceCard = null;
                     // No toast: the card gets a green "Updated in TestRail: C###" line.
-                    if (card && tid) {
-                        var updateBtnInCard = card.querySelector('.req-update-with-ai-btn');
-                        if (updateBtnInCard) updateBtnInCard.style.display = 'none';
-                        var headerMain = card.querySelector('.req-tc-card-header .req-tc-header-main');
-                        if (headerMain) {
-                            var titleText = card.getAttribute('data-current-title') || (headerMain.textContent || '').replace(/^C\d+\s*/, '').trim() || 'Test case';
-                            headerMain.innerHTML = formatTestrailIdHtml(tid) + ' \u200B' + escapeHtml(titleText);
-                        }
-                        card.setAttribute('data-testrail-id', (/^\d+$/.test(String(tid)) ? 'C' + tid : String(tid)));
-                        var actionsDiv = card.querySelector('.req-tc-card-actions');
-                        if (actionsDiv) {
-                            var p = document.createElement('p');
-                            p.className = 'req-created-in-testrail';
-                            p.style.cssText = 'margin-top:8px;font-size:13px;color:#2e7d32;';
-                            p.innerHTML = 'Updated in TestRail: ' + formatTestrailIdHtml(tid);
-                            actionsDiv.appendChild(p);
-                        }
-                    }
+                    markReqTestPushed({ kind: 'existing', testrail_id: tid }, 'updated', tid);
                 } else {
                     setReqCaseEditError(data && data.error ? data.error : 'Update failed');
                 }
@@ -10889,7 +10999,9 @@
             var btnText = insertBtn.textContent || '';
             insertBtn.disabled = true;
             insertBtn.textContent = 'Creating…';
-            var card = reqCaseEditSourceCard;
+            var sourceId = (reqCaseEditSourceCard && reqCaseEditSourceCard.getAttribute('data-testrail-id')) || reqCaseEditTestrailId;
+            payload.session_id = window.reqRun.session();
+            payload.target = { kind: 'existing', testrail_id: sourceId };
             fetch(API_BASE + '/requirement-analysis/create-case', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -10905,24 +11017,7 @@
                     saveReqTestrailSelection(reqCaseEditProjectId, reqCaseEditSuiteId, sectionId);
                     var newTid = data.testrail_id || '';
                     // No toast: the card gets a green "Created in TestRail: C###" line.
-                    if (card && newTid) {
-                        var headerMain = card.querySelector('.req-tc-card-header .req-tc-header-main');
-                        if (headerMain) {
-                            var titleDisplay = card.getAttribute('data-current-title') || (headerMain.textContent || '').replace(/^C\d+\s*/, '').trim() || 'Test case';
-                            headerMain.innerHTML = formatTestrailIdHtml(newTid) + ' \u200B' + escapeHtml(titleDisplay);
-                        }
-                        card.setAttribute('data-testrail-id', (/^\d+$/.test(String(newTid)) ? 'C' + newTid : String(newTid)));
-                        var updateBtnInCard = card.querySelector('.req-update-with-ai-btn');
-                        if (updateBtnInCard) updateBtnInCard.style.display = 'none';
-                        var actionsDiv = card.querySelector('.req-tc-card-actions');
-                        if (actionsDiv) {
-                            var createdP = document.createElement('p');
-                            createdP.className = 'req-created-in-testrail';
-                            createdP.style.cssText = 'margin-top:8px;font-size:13px;color:#2e7d32;';
-                            createdP.innerHTML = 'Created in TestRail: ' + formatTestrailIdHtml(newTid);
-                            actionsDiv.appendChild(createdP);
-                        }
-                    }
+                    if (sourceId && newTid) markReqTestPushed({ kind: 'existing', testrail_id: sourceId }, 'created', newTid);
                 } else {
                     setReqCaseEditError(data && data.error ? data.error : 'Create failed');
                 }
@@ -10932,188 +11027,6 @@
                 setReqCaseEditError('Request failed: ' + (err.message || 'Network error'));
             });
         });
-        function renderReqResults(data) {
-            if (!data) return;
-            try {
-                window._reqCoverageMinSim = (data.summary && data.summary.coverage_min_similarity) || 60;
-                window._reqRetrievalMinSim = (data.summary && data.summary.retrieval_similarity_threshold) || 45;
-                (function () {
-                    var rt = document.getElementById('reqTabRelatedDescThreshold');
-                    var gt = document.getElementById('reqTabGeneratedDescThreshold');
-                    var e2e = document.getElementById('reqTabE2eDescThreshold');
-                    if (rt) rt.textContent = Math.round(window._reqRetrievalMinSim);
-                    if (gt) gt.textContent = Math.round(window._reqCoverageMinSim);
-                    if (e2e) e2e.textContent = Math.round(window._reqCoverageMinSim);
-                })();
-                document.getElementById('reqResultsSummary').innerHTML = buildReqSummaryHtml(data);
-                var requirementsList = data.requirements || [];
-                var requirements = requirementsList.reduce(function (acc, r) { acc[r.id] = r; return acc; }, {});
-                var related = data.related_tests || {};
-                var needingUpdate = data.tests_needing_update || {};
-                var generated = data.generated_tests || {};
-                var specsMap = data.related_specs_per_req || {};
-                var hasGenerated = Object.keys(generated).some(function (reqId) { return (generated[reqId] || []).length > 0; });
-                var coverageMinSim = window._reqCoverageMinSim || 60;
-
-                // Function to merge related tests and tests_needing_update (needing tests have AI suggestions)
-                function mergeTests(relatedList, needingList) {
-                    var needingIds = {};
-                    needingList.forEach(function (t) {
-                        var tid = String(t.testrail_id || '').replace(/^C/i, '');
-                        if (tid) needingIds[tid] = t;
-                    });
-                    var merged = [];
-                    // Add needing tests first (they have AI suggestions)
-                    needingList.forEach(function (t) { merged.push(t); });
-                    // Add related tests not already in needing
-                    relatedList.forEach(function (t) {
-                        var tid = String(t.testrail_id || '').replace(/^C/i, '');
-                        if (!tid || !needingIds[tid]) merged.push(t);
-                    });
-                    // Sort by similarity score
-                    merged.sort(function (a, b) {
-                        return (b.similarity_score || 0) - (a.similarity_score || 0);
-                    });
-                    return merged;
-                }
-
-                var coveragePerReq = data.coverage_per_req || {};
-                var html = '';
-                requirementsList.forEach(function (r) {
-                    var reqId = r.id;
-                    var tests = mergeTests(related[reqId] || [], needingUpdate[reqId] || []);
-                    var reqTextFull = (r.title || '') + (r.description ? '\n' + r.description : '');
-                    var countBadge = tests.length + ' test' + (tests.length === 1 ? '' : 's');
-                    var reqCoverage = coveragePerReq[reqId] || null;
-                    var reqGenList = generated[reqId] || [];
-                    html += '<div class="req-requirement-section collapsed">';
-                    html += '<div class="req-req-header"><span class="req-req-chevron"></span><div class="req-req-header-content"><div class="req-id">' + escapeHtml(reqId) + '</div>';
-                    if (r.title) html += '<div class="req-title">' + escapeHtml(r.title) + '</div>';
-                    html += '</div><span class="req-count-badge">' + countBadge + '</span></div>';
-                    html += '<div class="req-req-body">';
-                    if (r.description && (r.description || '').trim() !== (r.title || '').trim()) html += '<div class="req-description">' + escapeHtml(r.description) + '</div>';
-                    var reqSpecs = specsMap[reqId] || [];
-                    if (reqSpecs.length > 0) {
-                        var _specsId = 'req-specs-' + reqId.replace(/[^a-zA-Z0-9]/g, '_');
-                        html += '<div class="req-specs-section">';
-                        html += '<div class="req-specs-toggle" onclick="(function(el){var b=document.getElementById(\'' + _specsId + '\');if(b){b.style.display=b.style.display===\'none\'?\'block\':\'none\';el.classList.toggle(\'expanded\')}})(this)">';
-                        html += '<span class="req-specs-chevron">&#9656;</span>';
-                        html += '<span class="req-specs-label">Spec pages referenced</span>';
-                        html += '<span class="req-specs-count">' + reqSpecs.length + ' page' + (reqSpecs.length === 1 ? '' : 's') + '</span>';
-                        html += '</div>';
-                        html += '<div class="req-specs-body" id="' + _specsId + '" style="display:none;">';
-                        reqSpecs.forEach(function (s) {
-                            var simPct = s.similarity_score != null ? Math.round(s.similarity_score * 100) : null;
-                            var simClass = simPct == null ? '' : simPct >= 75 ? 'req-spec-sim-high' : simPct >= 60 ? 'req-spec-sim-mid' : 'req-spec-sim-low';
-                            var simBadge = simPct != null ? '<span class="req-spec-sim ' + simClass + '">' + simPct + '% match</span>' : '';
-                            var link = s.url ? '<a href="' + escapeHtml(s.url) + '" target="_blank" class="req-spec-link" title="Open in Confluence">&#8599;</a>' : '';
-                            var rawTitle = (s.title || '').replace(/^[*#\s]+/, '').trim();
-                            var title = escapeHtml((rawTitle || 'Confluence page').substring(0, 100));
-                            var rawExcerpt = (s.content || '').replace(/[*#_`\[\]]/g, '').replace(/\s+/g, ' ').trim();
-                            var excerpt = rawExcerpt ? escapeHtml(rawExcerpt.substring(0, 180)) : '';
-                            html += '<div class="req-spec-row">';
-                            html += '<div class="req-spec-main">';
-                            html += '<div class="req-spec-title-line"><span class="req-spec-title" title="' + title + '">' + title + '</span>' + simBadge + '</div>';
-                            if (excerpt) html += '<div class="req-spec-excerpt">' + excerpt + '</div>';
-                            html += '</div>';
-                            html += link;
-                            html += '</div>';
-                        });
-                        html += '</div></div>';
-                    }
-                    html += '<div class="req-section-label">Related test cases</div>';
-                    if (tests.length === 0) html += '<p style="color:var(--text-muted);font-size:13px;">No related tests found.</p>';
-                    else html += '<div class="req-tc-cards">' + tests.map(function (t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
-                    html += '</div></div>';
-                });
-                var relatedPane = document.getElementById('reqResultPaneRelated');
-                var relatedContainer = relatedPane.querySelector('.req-stream-container');
-                if (relatedContainer) relatedContainer.innerHTML = html || '<p>No requirements to show.</p>';
-                else relatedPane.innerHTML = html || '<p>No requirements to show.</p>';
-
-                html = '';
-                if (hasGenerated) {
-                    html += '<div class="req-gen-select-actions" style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
-                    html += '<a href="#" id="reqSelectToggleGen" class="req-gen-select-link">Select all</a>';
-                    html += '<button type="button" class="req-tr-btn" id="reqPushSelectedBtn" style="margin-left:8px;">Push selected to TestRail</button>';
-                    html += '</div>';
-                }
-                requirementsList.forEach(function (r) {
-                    var reqId = r.id;
-                    var tests = mergeTests(related[reqId] || [], needingUpdate[reqId] || []);
-                    var genList = generated[reqId] || [];
-                    var reqTextFull = (r.title || '') + (r.description ? '\n' + r.description : '');
-                    var reqCoverage = coveragePerReq[reqId] || null;
-                    var strongTests = tests.filter(function (t) {
-                        var sim = t.similarity_score || 0;
-                        return (sim <= 1 ? sim * 100 : sim) >= coverageMinSim;
-                    });
-                    var usTotal = strongTests.length + genList.length;
-                    var countBadge = usTotal + ' test' + (usTotal === 1 ? '' : 's');
-                    html += '<div class="req-requirement-section collapsed">';
-                    html += '<div class="req-req-header"><span class="req-req-chevron"></span><div class="req-req-header-content"><div class="req-id">' + escapeHtml(reqId) + '</div>';
-                    if (r.title) html += '<div class="req-title">' + escapeHtml(r.title) + '</div>';
-                    html += '</div><span class="req-count-badge">' + countBadge + '</span>' + buildCoverageBadgeHtml(usTotal > 0 ? reqCoverage : { final_coverage_pct: 0, status: 'uncovered' }, genList) + '</div>';
-                    html += '<div class="req-req-body">';
-                    if (r.description && (r.description || '').trim() !== (r.title || '').trim()) html += '<div class="req-description">' + escapeHtml(r.description) + '</div>';
-                    // Existing strong-match tests sub-section
-                    if (strongTests.length > 0) {
-                        html += '<div class="req-section-label">Existing tests (' + strongTests.length + ')</div>';
-                        html += '<div class="req-tc-cards">' + strongTests.map(function (t) { return buildTestCaseCardHtml(t, { showSimilarity: true, reqId: reqId, reqTextFull: reqTextFull }); }).join('') + '</div>';
-                    }
-                    // New generated tests sub-section
-                    if (genList.length > 0) {
-                        html += '<div class="req-section-label" style="margin-top:16px;">New tests (' + genList.length + ')</div>';
-                        genList.forEach(function (gt, idx) {
-                            var gtDataAttr = ' data-req-id="' + escapeHtml(reqId) + '" data-index="' + idx + '"';
-                            gtDataAttr += ' data-title="' + escapeHtml((gt.title || '').substring(0, 500)).replace(/"/g, '&quot;') + '"';
-                            gtDataAttr += ' data-priority="' + escapeHtml(gt.priority || 'P2') + '"';
-                            gtDataAttr += ' data-preconditions="' + escapeHtml((gt.preconditions || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
-                            gtDataAttr += ' data-steps="' + escapeHtml((gt.steps || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
-                            gtDataAttr += ' data-expected="' + escapeHtml((gt.expected_result || '').substring(0, 3000)).replace(/"/g, '&quot;') + '"';
-                            html += '<div class="req-generated-test req-gen-test-row"' + gtDataAttr + ' style="display:flex;align-items:flex-start;gap:12px;">';
-                            html += '<input type="checkbox" class="req-gen-select" data-req-id="' + escapeHtml(reqId) + '" data-index="' + idx + '" style="margin-top:4px;flex-shrink:0;" />';
-                            html += '<div class="req-gen-test-content" style="flex:1;min-width:0;">';
-                            html += '<div class="gt-title">' + escapeHtml(gt.title || 'Generated test') + '</div>';
-                            if (gt.priority) html += '<div class="gt-priority"><strong>Priority:</strong> ' + escapeHtml(gt.priority) + '</div>';
-                            if (gt.preconditions) html += '<div class="gt-preconditions"><strong>Preconditions</strong><div class="gt-preconditions-content">' + escapeHtml(gt.preconditions) + '</div></div>';
-                            if (gt.steps) html += '<div class="gt-steps"><strong>Steps</strong><div class="gt-steps-content">' + escapeHtml(gt.steps) + '</div></div>';
-                            if (gt.expected_result) html += '<div class="gt-expected"><strong>Expected result</strong><div class="gt-expected-content">' + escapeHtml(gt.expected_result) + '</div></div>';
-                            html += '<div class="req-gen-actions"><button type="button" class="req-modify-push-btn">Modify &amp; Push to TestRail</button></div>';
-                            html += '</div></div>';
-                        });
-                    } else if (strongTests.length === 0) {
-                        html += '<p style="color:var(--text-muted);font-size:13px;">No tests above coverage threshold.</p>';
-                    }
-                    html += '</div></div>';
-                });
-                var pushed = data.pushed_to_testrail || [];
-                if (pushed.length > 0) {
-                    var pushedHtml = '<div class="req-req-block" style="border-left-color:#2e7d32;"><div class="req-id">Pushed to TestRail</div><ul class="req-test-list">' +
-                        pushed.map(function (p) {
-                            return '<li>' + (p.success ? formatTestrailIdHtml(p.testrail_id) + ' ' + escapeHtml(p.requirement_id || '') + ' &#10003;' : escapeHtml(p.requirement_id || '') + ' failed: ' + escapeHtml(p.error || 'Unknown')) + '</li>';
-                        }).join('') + '</ul></div>';
-                    html = pushedHtml + html;
-                }
-                var genPane = document.getElementById('reqResultPaneGenerated');
-                var genContainer = genPane.querySelector('.req-stream-container');
-                if (genContainer) genContainer.innerHTML = html || '<p>No requirements to show.</p>';
-                else genPane.innerHTML = html || '<p>No requirements to show.</p>';
-
-                // Render E2E Workflow Tests (existing + new via shared helper)
-                renderE2EFlows(data);
-                var e2eTotal = ((data.e2e_workflow_tests || []).length) + ((data.existing_e2e_tests || []).length);
-                if (e2eTotal > 0) document.getElementById('reqTabE2eflows').style.display = '';
-
-                if (hasGenerated) {
-                    attachReqPushHandlers();
-                    updateReqSelectToggleLabel();
-                }
-            } catch (err) {
-                // renderReqResults error silenced for production
-                showToast('Could not display results: ' + (err.message || 'unknown error'), 'warning');
-            }
-        }
 
         var reqPushModalSubset = null;
         var reqPushModalRelatedTests = null;
@@ -11280,31 +11193,6 @@
             progressText.textContent = 'Pushing... 0 of ' + flat.length + ' done';
             var doneCount = 0;
             var okCount = 0;
-            function updateRowAsPushed(reqId, index, testrailId) {
-                var pane = document.getElementById('reqResultPaneGenerated');
-                if (!pane) return;
-                var cb = null;
-                pane.querySelectorAll('.req-gen-select').forEach(function (el) {
-                    if (el.getAttribute('data-req-id') === reqId && parseInt(el.getAttribute('data-index'), 10) === index) cb = el;
-                });
-                if (!cb) return;
-                cb.checked = false;
-                cb.disabled = true;
-                cb.style.display = 'none';
-                var row = cb.closest('.req-gen-test-row');
-                if (row) {
-                    // Hide "Modify & Push" button
-                    var modBtn = row.querySelector('.req-modify-push-btn');
-                    if (modBtn) modBtn.style.display = 'none';
-                    // Show TestRail link
-                    var contentEl = row.querySelector('.req-gen-test-content') || row;
-                    var linkWrap = document.createElement('div');
-                    linkWrap.className = 'req-pushed-link';
-                    linkWrap.style.cssText = '';
-                    linkWrap.innerHTML = 'Pushed to TestRail \u2192 ' + formatTestrailIdHtml(testrailId);
-                    contentEl.appendChild(linkWrap);
-                }
-            }
             function runNext(i) {
                 if (i >= flat.length) {
                     btn.disabled = false;
@@ -11315,11 +11203,6 @@
                     reqPushModalSubset = null;
                     reqPushModalRelatedTests = null;
                     if (sectionId) saveReqTestrailSelection(reqPushModalProjectId, reqPushModalSuiteId, sectionId);
-                    if (okCount > 0 && lastReqResult && lastReqResult.summary) {
-                        lastReqResult.summary.pushed_count = (lastReqResult.summary.pushed_count || 0) + okCount;
-                        var sumEl = document.getElementById('reqResultsSummary');
-                        if (sumEl) sumEl.innerHTML = buildReqSummaryHtml(lastReqResult);
-                    }
                     showToast('Pushed ' + okCount + ' of ' + flat.length + ' to TestRail.', 'info');
                     return;
                 }
@@ -11338,7 +11221,9 @@
                     expected_result: (t.expected_result || '').trim() || undefined,
                     priority: (t.priority || 'P2').toString().toUpperCase().replace(/^P(\d)$/, 'P$1'),
                     platform: 'web / m-web',
-                    case_type: caseType || 'All / Functional'
+                    case_type: caseType || 'All / Functional',
+                    session_id: window.reqRun.session(),
+                    target: { kind: 'generated', req_id: item.reqId, index: item.index }
                 };
                 if (requirementText) payload.requirement_text = requirementText;
                 fetch(API_BASE + '/requirement-analysis/create-case', {
@@ -11350,7 +11235,7 @@
                     progressText.textContent = 'Pushing... ' + doneCount + ' of ' + flat.length + ' done';
                     if (data && data.success && data.testrail_id) {
                         okCount++;
-                        updateRowAsPushed(item.reqId, item.index, data.testrail_id);
+                        markReqTestPushed({ kind: 'generated', req_id: item.reqId, index: item.index }, 'created', data.testrail_id);
                     }
                     runNext(i + 1);
                 }).catch(function (e) {
@@ -12604,6 +12489,10 @@
         window.qaLineClass = function (line) {
             const bare = _bare(line);
             if (/^BLOCKED:/.test(bare)) return 'qa-line-blocked';
+            // shared/session.sh run_step's "▶ [02/05] Scope" / "✓ [02/05] Scope — 2s":
+            // the same step headers the requirements console draws.
+            if (/^\u25B6 \[\d+\/\d+\]/.test(bare)) return 'qa-line-step';
+            if (/^\u2713 \[\d+\/\d+\]/.test(bare)) return 'qa-line-done';
             // An agent's own failure line is prose on the stdout channel, so it
             // rendered in the same grey as everything else and a run that failed
             // read as a run that worked. Narrow on purpose: the markers the
@@ -12613,6 +12502,16 @@
                 return 'qa-line-error';
             }
             return '';
+        };
+
+        // One blank line before each step header, like the requirements console.
+        // Runs recorded before the agents printed that blank line get one here;
+        // newer runs already have it, so it is not doubled.
+        window.qaStepGap = function (target, div) {
+            const prev = target.lastElementChild;
+            if (div.className === 'qa-line-step' && prev && prev.textContent.trim()) {
+                target.appendChild(document.createElement('div'));
+            }
         };
 
         // A collapsed build should still say WHY it failed, so the one visible
@@ -13028,6 +12927,7 @@
                     const div = document.createElement('div');
                     div.className = window.qaLineClass(line);
                     window.qaRenderLine(line, BASE).forEach(function (n) { div.appendChild(n); });
+                    window.qaStepGap(target, div);
                     target.appendChild(div);
                 }
                 if (atBottom) el.scrollTop = el.scrollHeight;
@@ -14673,6 +14573,7 @@
                     // A BLOCKED line outranks the event kind it arrived as.
                     div.className = window.qaLineClass(text) || ('qa-line-' + cls);
                     window.qaRenderLine(text, AGENT_BASE).forEach(function (n) { div.appendChild(n); });
+                    window.qaStepGap(target, div);
                     target.appendChild(div);
                 }
                 con.scrollTop = con.scrollHeight;
@@ -16757,6 +16658,7 @@
                     const div = document.createElement('div');
                     div.className = window.qaLineClass(line);
                     window.qaRenderLine(line, BASE).forEach(function (n) { div.appendChild(n); });
+                    window.qaStepGap(target, div);
                     target.appendChild(div);
                 }
                 if (atBottom) el.scrollTop = el.scrollHeight;
@@ -17460,6 +17362,9 @@
                     // will authenticate. start() clears its own timer, so calling it
                     // again on a re-check is a no-op.
                     if (window.agentGate) window.agentGate.start();
+                    // Same for Requirements → Tests: load History and reattach to a
+                    // running analysis. init() only reattaches on its first call.
+                    if (window.reqRun) window.reqRun.init();
                 } else {
                     appShell.style.display = 'none';
                     if (data.status === 'pending_approval' || (pendingEl && pendingEl.style.display === 'flex' && !authEl.style.display.includes('flex'))) {

@@ -168,7 +168,7 @@ class TestStreamTrim:
 
     def test_trim_result_for_stream_preserves_recommended_e2e_set(self):
         """_trim_result_for_stream preserves recommended_e2e_set and coverage_gap_reason_per_req."""
-        from backend.api.customer.routes import _trim_result_for_stream
+        from backend.services.requirement_runs import _trim_result_for_stream
 
         result = {
             "success": True,
@@ -184,7 +184,7 @@ class TestStreamTrim:
         assert out.get("coverage_gap_reason_per_req") == result["coverage_gap_reason_per_req"]
 
     def test_trim_requirement_result_preserves_related_tests_and_needing_update(self):
-        from backend.api.customer.routes import _trim_requirement_result_for_stream
+        from backend.services.requirement_runs import _trim_requirement_result_for_stream
 
         data = {
             "requirement": {"id": "REQ-1", "title": "Login", "description": "Login flow"},
