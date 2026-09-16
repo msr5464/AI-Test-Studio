@@ -6394,11 +6394,14 @@
         }
 
         #qaLiveCard.terminal-completed,
-        #healLiveCard.terminal-completed  { border-left-color: #10b981; }
+        #healLiveCard.terminal-completed,
+        #adaptLiveCard.terminal-completed { border-left-color: #10b981; }
         #qaLiveCard.terminal-failed,
-        #healLiveCard.terminal-failed     { border-left-color: #ef4444; }
+        #healLiveCard.terminal-failed,
+        #adaptLiveCard.terminal-failed    { border-left-color: #ef4444; }
         #qaLiveCard.terminal-cancelled,
-        #healLiveCard.terminal-cancelled  { border-left-color: #94a3b8; }
+        #healLiveCard.terminal-cancelled,
+        #adaptLiveCard.terminal-cancelled { border-left-color: #94a3b8; }
 
         .qa-live-header {
             display: flex;
@@ -7848,15 +7851,9 @@
                         </div>
                     </div>
 
-                    <!-- Queue — shown only when items are pending -->
-                    <div class="qa-card" id="qaQueueCard" style="display:none;margin-top:18px;border-left:3px solid var(--primary);">
-                        <h3>⏳ Pending Queue <span class="qa-live-badge badge-running" id="qaQueueCount" style="font-size:11px;">0</span></h3>
-                        <p style="font-size:12px;color:var(--text-light);margin:0 0 12px 0;">
-                            A run is currently in progress. The tasks below will start automatically one by one once the active run finishes.
-                        </p>
-                        <div id="qaQueueWrap"></div>
-                    </div>
+                    <div id="qaResult" style="margin-top:18px;"></div>
 
+                    <!-- Queue — shown only when items are pending -->
                     <!-- History -->
                     <div class="qa-card" style="margin-top:18px;">
                         <h3>🕓 History <button type="button" class="qa-btn qa-btn-ghost"
@@ -8315,6 +8312,8 @@
                             <span id="healLiveResult"></span>
                         </div>
                     </div>
+
+                    <div id="healResult" style="margin-top:18px;"></div>
 
                     <div class="qa-card" style="margin-top:18px;">
                         <h3>🕓 History <button type="button" class="qa-btn qa-btn-ghost"
@@ -9095,6 +9094,9 @@
                         }
                         if (tab === 'adapt' && window.qaAdapt) {
                             window.qaAdapt.renderEmpty();
+                        }
+                        if (tab === 'agents' && window.qaAgents) {
+                            window.qaAgents.renderEmpty();
                         }
                         return;
                     }
@@ -11925,6 +11927,106 @@
                 + '<th>Time</th><th>LLM calls</th><th>Output</th><th>Cost</th>'
                 + '</tr></thead><tbody>' + rows + total + '</tbody></table>';
         }
+        // One session-detail body for all three agents.
+        //
+        // The same gesture — clicking a history row — used to mean three different
+        // things: authoring dumped raw step JSON, healing rendered markdown
+        // reports, adaptation rendered its own result HTML. That was downstream of
+        // the server, which returned a different payload shape per agent. It now
+        // returns one (`steps` and `reports` always share a key set), so one
+        // renderer covers every agent and a fourth gets it for free.
+        //
+        // config: {
+        //   steps:     [[key, label, stepNumber|null], …]  — order is display order;
+        //              stepNumber is null for artefacts that are not resumable steps
+        //              (authoring's validate_api, adaptation's explore halves).
+        //   meta:      [[label, valueHtml], …]
+        //   body:      agent-specific result html, placed between the metrics and
+        //              the step reports. Adaptation's change items and escalations
+        //              live here; without this slot, unifying the modal would have
+        //              thrown that detail away to gain consistency, which is a bad
+        //              trade. Optional.
+        //   retryHtml: fn(stepNumber, label) -> html, or null when the agent has no
+        //              resume (healing re-investigates internally; the server 405s).
+        // }
+        function QA_SESSION_DETAIL(d, config) {
+            const reports = d.reports || {};
+            const steps = d.steps || {};
+            let out = '';
+
+            if (config.meta && config.meta.length) {
+                out += '<div class="qa-live-meta">' + config.meta.map(function (m) {
+                    return '<div class="qa-live-meta-item">'
+                         + '<span class="qa-live-meta-label">' + escapeHtml(m[0]) + '</span>'
+                         + '<span class="qa-live-meta-value">' + m[1] + '</span></div>';
+                }).join('') + '</div>';
+            }
+            if (d.pr_url) {
+                out += '<p style="margin:12px 0 0 0;"><a href="' + QA_ESC_ATTR(d.pr_url)
+                     + '" target="_blank" rel="noopener">View PR →</a></p>';
+            }
+            const stageTable = QA_STAGE_TABLE(d.metrics);
+            if (stageTable) {
+                out += '<h4 style="margin:16px 0 6px 0;font-size:13px;">Time &amp; cost</h4>'
+                     + stageTable;
+            }
+            if (config.body) out += config.body;
+
+            (config.steps || []).forEach(function (row) {
+                const key = row[0], label = row[1], stepNumber = row[2];
+                // `key + '_md'` is the pre-unification healing shape. Kept for one
+                // release so a page held open against a newer server still renders
+                // something; drop it once both repos have shipped.
+                const md = reports[key] || reports[key + '_md'];
+                const raw = steps[key];
+                // A run that died mid-pipeline has no artefacts for its later
+                // steps, and authoring's API-only path writes no validate_web
+                // markdown at all. Both are normal, so say nothing rather than
+                // rendering an empty section.
+                if (!md && !raw) return;
+
+                const retry = (stepNumber && config.retryHtml)
+                    ? config.retryHtml(stepNumber, label) : '';
+                out += '<div class="qa-modal-section"><h4>' + escapeHtml(label)
+                     + (retry ? ' ' + retry : '') + '</h4>';
+                if (md) {
+                    out += '<pre class="qa-console" style="max-height:260px;white-space:pre-wrap;">'
+                         + escapeHtml(md) + '</pre>';
+                }
+                if (raw) {
+                    // The markdown is the report; this is the evidence behind it.
+                    // Authoring used to show only this, so collapsing it rather than
+                    // dropping it keeps that debugging path — and gives it to the
+                    // other two agents, which never had it.
+                    out += '<details style="margin-top:6px;">'
+                         + '<summary style="cursor:pointer;font-size:12px;color:var(--text-light);">'
+                         + 'raw step JSON</summary><pre style="max-height:260px;overflow:auto;">'
+                         + escapeHtml(JSON.stringify(raw, null, 2)) + '</pre></details>';
+                }
+                out += '</div>';
+            });
+
+            return out || '<div class="qa-empty-hint">This session recorded no step output.</div>';
+        }
+        // The post-run Result card. Adaptation had one and the other two panels
+        // did not, so the same run told you more or less about itself depending on
+        // which tab produced it. One wrapper keeps the three identical; each panel
+        // still supplies its own body, because what counts as a result genuinely
+        // differs (locators fixed vs files written vs items adapted).
+        function QA_RESULT_CARD(targetId, bodyHtml, status) {
+            const el = document.getElementById(targetId);
+            if (!el) return;
+            // A cancelled run has no result — it was stopped before producing one.
+            // Rendering the card anyway gave a heading over a row of em-dashes,
+            // which reads as "the run finished and achieved nothing" rather than
+            // "you stopped it". The console and the status badge already say what
+            // happened.
+            if (String(status || '').toLowerCase() === 'cancelled') { el.innerHTML = ''; return; }
+            el.innerHTML = bodyHtml
+                ? '<div class="qa-card"><h3>📋 Result</h3>' + bodyHtml + '</div>' : '';
+        }
+        window.QA_RESULT_CARD = QA_RESULT_CARD;
+        window.QA_SESSION_DETAIL = QA_SESSION_DETAIL;
         window.QA_STAGE_TABLE = QA_STAGE_TABLE;
         window.QA_STEP_SUFFIX = QA_STEP_SUFFIX;
         window.QA_UPDATE_METRIC_TILES = QA_UPDATE_METRIC_TILES;
@@ -12500,7 +12602,17 @@
         // not "something went wrong". Colouring every Warning: line too would
         // put amber on half the console and this line would stop standing out.
         window.qaLineClass = function (line) {
-            return /^BLOCKED:/.test(_bare(line)) ? 'qa-line-blocked' : '';
+            const bare = _bare(line);
+            if (/^BLOCKED:/.test(bare)) return 'qa-line-blocked';
+            // An agent's own failure line is prose on the stdout channel, so it
+            // rendered in the same grey as everything else and a run that failed
+            // read as a run that worked. Narrow on purpose: the markers the
+            // agents already write for "this did not work", not every line that
+            // happens to contain the word error.
+            if (/^\s*(?:ERROR|FATAL|STOP)\b/.test(bare) || /^\s*\u2717/.test(bare)) {
+                return 'qa-line-error';
+            }
+            return '';
         };
 
         // A collapsed build should still say WHY it failed, so the one visible
@@ -12945,6 +13057,40 @@
                 }, 1000);
             }
 
+            function stopElapsed() {
+                if (state.elapsedTimer) { clearInterval(state.elapsedTimer); state.elapsedTimer = null; }
+            }
+
+            // The browser caps concurrent connections per origin at six, and a
+            // stream left open by a navigation still counts against that cap.
+            function closeStream() {
+                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+            }
+
+            // One dispatch for both transports. The live stream and the historical
+            // replay carry the same frames, so a branch added to only one of them
+            // is a bug that shows up in exactly one of the two ways you can open a
+            // run — which is how `status` went unhandled here for so long.
+            function applyEvent(kind, d) {
+                if (kind === 'stdout') appendLog(d.line || '');
+                else if (kind === 'step') markStep(d.key, d.status, d);
+                else if (kind === 'error') appendLog('[error] ' + (d.message || ''));
+                else if (kind === 'status') {
+                    // The server emits this for every agent — at run start, and
+                    // again with 'cancelling' when Stop is pressed. Without it the
+                    // badge kept reading "running…" until the process actually died.
+                    const sb = $('healLiveStatus');
+                    if (sb && d.status) {
+                        sb.textContent = d.status;
+                        sb.className = 'qa-live-badge badge-running';
+                    }
+                }
+                else if (kind === 'done') {
+                    QA_UPDATE_METRIC_TILES('heal', (d || {}).metrics);
+                    finish(d);
+                }
+            }
+
             function run() {
                 setError('');
                 const test = ($('healTestName') || {}).value;
@@ -13008,6 +13154,7 @@
                     card.classList.remove('terminal-completed', 'terminal-failed', 'terminal-cancelled');
                 }
                 if ($('healConsole')) $('healConsole').innerHTML = '';
+                if ($('healResult')) $('healResult').innerHTML = '';
                 QA_RESET_METRIC_TILES('heal');
                 if ($('healLiveElapsed')) $('healLiveElapsed').textContent = '00:00';
                 state.sawOutput = false;
@@ -13020,15 +13167,35 @@
                     $('healLiveStatus').className = 'qa-live-badge badge-running';
                 }
                 STEPS.forEach(function (k) { markStep(k, null); });
-                startElapsed();
                 if (isReplay) {
+                    // A replay has no clock to run, but a live run's may still be
+                    // going — opening a past run from the history while one is in
+                    // flight would otherwise leave that timer ticking over this one.
+                    // The recorded `done` frame carries duration_s: null for a run
+                    // the gate stopped, so counting up from zero would report a
+                    // four-minute run as 00:00. '—' says "not recorded".
+                    stopElapsed();
+                    if ($('healLiveElapsed')) $('healLiveElapsed').textContent = '—';
                     QA_STOP_RUN_WATCH('heal');
+                    replayHistory();
                 } else {
+                    startElapsed();
                     QA_START_RUN_WATCH('heal', BASE,
                         function () { return state.session; },
-                        function (sid, moduleName) { openRun(sid, moduleName); });
+                        function (sid, moduleName) { openRun(sid, moduleName); },
+                        function (body) {
+                            // Queued rows live in the history table, and their
+                            // positions shift as runs finish. Refresh only when the
+                            // count actually changed, so the table is not rebuilt
+                            // every five seconds for nothing.
+                            var n = body && body.capacity ? body.capacity.queued : 0;
+                            if (n !== state._lastQueuedCount) {
+                                state._lastQueuedCount = n;
+                                loadHistory();
+                            }
+                        });
+                    connect();
                 }
-                if (isReplay) { replayHistory(); } else { connect(); }
             }
 
             // A finished session's events are already complete, so fetch them in
@@ -13048,13 +13215,7 @@
                             if (typeof ev.seq === 'number') {
                                 state.lastSeq = Math.max(state.lastSeq, ev.seq);
                             }
-                            if (ev.kind === 'stdout') appendLog(d.line || '');
-                            else if (ev.kind === 'step') markStep(d.key, d.status, d);
-                            else if (ev.kind === 'error') appendLog('[error] ' + (d.message || ''));
-                            else if (ev.kind === 'done') {
-                                QA_UPDATE_METRIC_TILES('heal', d.metrics);
-                                finish(d);
-                            }
+                            applyEvent(ev.kind, d);
                         });
                     })
                     .catch(function (e) {
@@ -13078,21 +13239,14 @@
                     try { ev = JSON.parse(msg.data); } catch (e) { return; }
                     if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
                     const d = ev.data || {};
-                    if (kind === 'stdout') appendLog(d.line || '');
-                    else if (kind === 'step') markStep(d.key, d.status, d);
-                    else if (kind === 'error') appendLog('[error] ' + (d.message || ''));
-                    else if (kind === 'done') {
-                        QA_UPDATE_METRIC_TILES('heal', (d || {}).metrics);
-                        // Close THIS stream, not just whichever one state points at.
-                        // finish() only closes state.eventSource, so a stream that
-                        // has since been superseded would stay open — and the
-                        // browser caps concurrent connections per origin, so a few
-                        // orphans are enough to stall every later request on the
-                        // page. Observed as a 20s delay opening a session after
-                        // repeatedly viewing logs.
-                        es.close();
-                        finish(d);
-                    }
+                    // Close THIS stream, not just whichever one state points at.
+                    // finish() only closes state.eventSource, so a stream that has
+                    // since been superseded would stay open — and the browser caps
+                    // concurrent connections per origin, so a few orphans are enough
+                    // to stall every later request on the page. Observed as a 20s
+                    // delay opening a session after repeatedly viewing logs.
+                    if (kind === 'done') es.close();
+                    applyEvent(kind, d);
                 }
                 ['stdout', 'step', 'status', 'error', 'done'].forEach(function (kind) {
                     es.addEventListener(kind, function (msg) { handle(kind, msg); });
@@ -13109,8 +13263,8 @@
 
             function finish(d) {
                 state.terminal = true;
-                clearInterval(state.elapsedTimer);
-                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+                stopElapsed();
+                closeStream();
 
                 // Historical replay sends duration_s; the live path sends duration.
                 // A finished session stays in the runner's memory for a while, so
@@ -13267,6 +13421,7 @@
                             bits.push('<a href="' + esc(s.pr_url) + '" target="_blank" rel="noopener" class="qa-btn qa-btn-ghost" style="padding:4px 10px;font-size:12px;">View PR →</a>');
                         }
                         el.innerHTML = bits.join(' ');
+                        renderResultCard(s, bits);
                     })
                     .catch(function (err) {
                         // Never blank the panel silently — an empty result box after a
@@ -13279,6 +13434,40 @@
                             'could not load the result summary: ' + esc(err && err.message || err) +
                             '</span>';
                     });
+            }
+
+            // The Result card under the live console — the same shell authoring and
+            // adaptation use. The footer badges scroll away with the console; this
+            // keeps what happened on screen, and says WHY when the gate stopped.
+            function renderResultCard(s, bits) {
+                const meta = function (label, value) {
+                    return '<div class="qa-live-meta-item">' +
+                           '<span class="qa-live-meta-label">' + label + '</span>' +
+                           '<span class="qa-live-meta-value">' + value + '</span></div>';
+                };
+                let body = '<div class="qa-live-meta">' +
+                    meta('Test', esc(s.test_name || s.build_tag || '—')) +
+                    // failure_headline is the sentence a human wrote; failure_shape
+                    // is the enum behind it and reads badly on its own ("queued").
+                    meta('Diagnosis', esc(s.failure_headline || s.failure_shape || '—')) +
+                    meta('Located', esc(String(s.located_deterministically || 0)) +
+                                    ' without a model call') +
+                    meta('Fixes', esc(String(s.distinct_fixes || 0)) + ' → ' +
+                                  esc(String(s.tests_fixed || 0)) + ' green') +
+                    '</div>';
+                if (bits && bits.length) {
+                    body += '<p style="margin:12px 0 0 0;">' + bits.join(' ') + '</p>';
+                }
+                // A run the gate stopped did its job — it worked out that the test is
+                // not failing on a locator and declined to edit anything. Say that in
+                // words rather than leaving a bare "no changes" badge to be read as
+                // a failure.
+                if (s.gate_stopped && s.failure_headline) {
+                    body += '<div class="qa-draft-banner"><span>🛑</span><div>' +
+                            '<strong>Stopped before editing</strong> — ' +
+                            esc(s.failure_headline) + '</div></div>';
+                }
+                QA_RESULT_CARD('healResult', body, s.status);
             }
 
             function retryForced() {
@@ -13316,7 +13505,15 @@
             function cancel() {
                 if (!state.session) return;
                 fetchJson(BASE + '/run/' + encodeURIComponent(state.session) + '/cancel', { method: 'POST' })
-                    .then(function () { appendLog('[stream] cancellation requested'); });
+                    .then(function (res) {
+                        if (res.ok) { appendLog('[cancel] requested'); return; }
+                        appendLog('[cancel] failed: ' + ((res.body && res.body.error) || 'unknown'));
+                    })
+                    // A cancel that never reached the server used to look identical
+                    // to one that worked: nothing was written either way.
+                    .catch(function (e) {
+                        appendLog('[cancel] failed: ' + (e && e.message || 'unknown'));
+                    });
             }
 
             function copyLogs() {
@@ -13552,6 +13749,14 @@
             // shared themed ones, so map rather than invent new colours.
             const PILL_CLASS = window.QA_PILL_CLASS;
             const STATUS_LABEL = window.QA_STATUS_LABEL;
+            // [key, label, stepNumber|null] for the session-detail modal. Null
+            // throughout: this agent has no resume-from-step, so no retry button.
+            const STEP_ORDER = [
+                ['reproduce', 'Reproduce', null],
+                ['locate', 'Locate', null],
+                ['fix', 'Fix', null],
+                ['ship', 'Ship', null],
+            ];
 
             // The verdict that accounts for most of a Locate run, in words a
             // human reads: LOCATOR_DRIFT -> "locator drift", NO_BASELINE ->
@@ -13691,7 +13896,12 @@
 
             function cancelSession(sessionId) {
                 fetchJson(BASE + '/run/' + encodeURIComponent(sessionId) + '/cancel',
-                          { method: 'POST' }).then(function () {
+                          { method: 'POST' }).then(function (res) {
+                    if (!res.ok) {
+                        showToast('Failed to stop run: ' +
+                                  ((res.body && res.body.error) || 'unknown'), 'warning');
+                        return;
+                    }
                     showToast('■ Stopping "' + sessionId + '"', 'info');
                     loadHistory();
                 });
@@ -13723,40 +13933,21 @@
                 modal.classList.add('active');
                 fetchJson(BASE + '/sessions/' + encodeURIComponent(sessionId)).then(function (res) {
                     const d = res.body || {};
-                    const reports = d.reports || {};
-                    const section = function (title, md) {
-                        if (!md) return '';
-                        return '<h4 style="margin:16px 0 6px 0;font-size:13px;">' + esc(title) + '</h4>' +
-                               '<pre class="qa-console" style="max-height:260px;white-space:pre-wrap;">' +
-                               esc(md) + '</pre>';
-                    };
-                    const meta =
-                        '<div class="qa-live-meta">' +
-                        // The history row shows only the time ordinal, so this is the
-                        // one place the audit folder name can be read in full.
-                        '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Session</span>' +
-                        '<span class="qa-live-meta-value">' + esc(sessionId) + '</span></div>' +
-                        '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Test</span>' +
-                        '<span class="qa-live-meta-value">' + esc(d.test_name || d.build_tag || '—') + '</span></div>' +
-                        '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Mode</span>' +
-                        '<span class="qa-live-meta-value">' + esc(d.mode || '—') + '</span></div>' +
-                        '<div class="qa-live-meta-item"><span class="qa-live-meta-label">Result</span>' +
-                        '<span class="qa-live-meta-value">' + resultSummary(d) + '</span></div>' +
-                        '</div>' +
-                        (d.pr_url ? '<p style="margin:12px 0 0 0;"><a href="' + esc(d.pr_url) +
-                                    '" target="_blank" rel="noopener">View PR →</a></p>' : '');
-                    // Stage-level time and cost, above the step reports.
-                    const stageTable = QA_STAGE_TABLE(d.metrics);
-                    const metricsHtml = stageTable
-                        ? '<h4 style="margin:16px 0 6px 0;font-size:13px;">Time &amp; cost</h4>'
-                          + stageTable
-                        : '';
-                    const reportsHtml =
-                        section('Reproduce', reports.reproduce_md) +
-                        section('Locate', reports.locate_md) +
-                        section('Fix', reports.fix_md) +
-                        section('Ship', reports.ship_md);
-                    body.innerHTML = meta + metricsHtml + reportsHtml;
+                    body.innerHTML = QA_SESSION_DETAIL(d, {
+                        // The history row shows only the time ordinal, so the modal
+                        // is the one place the audit folder name reads in full.
+                        meta: [
+                            ['Session', esc(sessionId)],
+                            ['Test', esc(d.test_name || d.build_tag || '—')],
+                            ['Mode', esc(d.mode || '—')],
+                            ['Result', resultSummary(d)],
+                        ],
+                        steps: STEP_ORDER,
+                        // No resume: healing re-investigates a failure through its
+                        // own internal retry loop, so there is no partial pipeline
+                        // to resume into and the server returns 405 for it.
+                        retryHtml: null,
+                    });
                 }).catch(function (e) {
                     body.innerHTML = '<div class="qa-empty-hint">Failed: ' + esc(e && e.message || e) + '</div>';
                 });
@@ -13784,6 +13975,7 @@
                 if (first) {
                     const box = $('healAutoPush');
                     if (box) box.addEventListener('change', syncLocalMode);
+                    window.addEventListener('beforeunload', closeStream);
                 }
                 // Every call refreshes: the first open may have happened while the
                 // server was down, leaving the catalogue and defaults unfetched.
@@ -13866,6 +14058,16 @@
             }
 
             // ─ Module files ─
+            // #qaModulePreview is referenced by JS but has never existed in the
+            // markup, so writing to it directly threw a TypeError and aborted the
+            // caller — on precisely the two paths whose job is to explain why the
+            // list is empty. One guarded helper, so a future reference cannot
+            // reintroduce it.
+            function setPreview(text) {
+                const el = $('qaModulePreview');
+                if (el) el.textContent = text;
+            }
+
             async function loadModuleFiles(preselectName) {
                 const sel = $('qaModuleSelect');
                 sel.innerHTML = '<option value="">Loading…</option>';
@@ -13875,7 +14077,7 @@
                     state.moduleCache = {};
                     if (!items.length) {
                         sel.innerHTML = '<option value="">No module files yet</option>';
-                        $('qaModulePreview').textContent = 'Create a module file to get started.';
+                        setPreview('Create a module file to get started.');
                         return;
                     }
                     sel.innerHTML = '<option value="">— select —</option>' +
@@ -13896,7 +14098,7 @@
                     }
                 } catch (e) {
                     sel.innerHTML = '<option value="">Failed to load</option>';
-                    $('qaModulePreview').textContent = 'Error: ' + (e.message || 'unknown');
+                    setPreview('Error: ' + (e.message || 'unknown'));
                 }
             }
 
@@ -14168,35 +14370,16 @@
                 }
             }
 
+            // Queued runs render as rows at the top of the history table, the same
+            // way healing and adaptation show theirs. This panel used to ALSO have a
+            // "Pending Queue" card above the history, so the same items appeared
+            // twice — the card is gone and only the shared shape remains.
             async function loadQueue() {
                 try {
                     const body = await apiFetch(AGENT_BASE + '/run/queue');
-                    renderQueue(body.queue || []);
+                    _currentQueue = (body && body.queue) || [];
                     loadHistory();
                 } catch (_) {}
-            }
-
-            function renderQueue(items) {
-                _currentQueue = items || [];
-                const card = $('qaQueueCard');
-                const wrap = $('qaQueueWrap');
-                if (!items.length) {
-                    card.style.display = 'none';
-                    wrap.innerHTML = '';
-                    $('qaQueueCount').textContent = '0';
-                    return;
-                }
-                card.style.display = '';
-                $('qaQueueCount').textContent = items.length;
-                wrap.innerHTML = items.map(function(item) {
-                    return '<div class="qa-queue-item">'
-                        + '<span class="qa-queue-pos">' + item.position + '</span>'
-                        + '<span class="qa-queue-module">' + escapeHtml(item.module) + '</span>'
-                        + (item.auto_push ? '<span style="font-size:11px;color:var(--text-light);">auto-push</span>' : '')
-                        + '<button class="qa-queue-remove" title="Remove from queue" '
-                        + 'onclick="qaAgents.removeFromQueue(' + item.index + ')">✕</button>'
-                        + '</div>';
-                }).join('');
             }
 
             async function removeFromQueue(index) {
@@ -14210,9 +14393,13 @@
                             cancelledAt: new Date().toISOString(),
                         });
                     }
-                    renderQueue(body.queue || []);
+                    _currentQueue = (body && body.queue) || [];
                     loadHistory();
-                } catch (_) {}
+                } catch (e) {
+                    // Swallowing this left the row sitting there with no explanation,
+                    // as though the click had not registered.
+                    showToast('Could not remove: ' + (e && e.message || 'unknown'), 'warning');
+                }
             }
 
             function attachLiveRun(sessionId, moduleFile, offset, isReplay) {
@@ -14224,6 +14411,7 @@
                 state.startTs = Date.now();
                 resetStepUI();
                 $('qaConsole').innerHTML = '';
+                if ($('qaResult')) $('qaResult').innerHTML = '';
                 QA_RESET_METRIC_TILES('qa');
                 state.buildEl = null; state.buildSummary = null; state.buildLines = 0;
                 $('qaLiveResult').textContent = '';
@@ -14237,13 +14425,21 @@
                 $('qaLiveCard').classList.remove('terminal-completed', 'terminal-failed', 'terminal-cancelled');
                 $('qaCancelBtn').disabled = false;
                 $('qaCancelBtn').style.display = '';
-                startElapsed();
                 // Switcher + capacity. Live runs only: a replay is a finished
                 // session, and offering to switch away from it to a running one
                 // would silently swap what the panel is showing.
                 if (isReplay) {
+                    // A replay has no clock to run, but a live run's may still be
+                    // going — opening a past run from the history while one is in
+                    // flight would otherwise leave that timer ticking over this one.
+                    // The recorded `done` frame carries duration_s: null for a run
+                    // the gate stopped, so counting up from zero would report a
+                    // four-minute run as 00:00. '—' says "not recorded".
+                    stopElapsed();
+                    $('qaLiveElapsed').textContent = '—';
                     QA_STOP_RUN_WATCH('qa');
                 } else {
+                    startElapsed();
                     QA_START_RUN_WATCH('qa', AGENT_BASE,
                         function () { return state.activeSession; },
                         function (sid, moduleName) { attachLiveRun(sid, moduleName, 0); },
@@ -14348,8 +14544,12 @@
                             setStep(key, 'done');
                             const idx = STEPS.indexOf(key);
                             if (idx >= 0) STEPS.slice(0, idx).forEach(function (s) { setStep(s, 'done'); });
-                            appendLine('step', '✓ ' + (payload.display || key)
-                                + QA_STEP_SUFFIX(payload));
+                            // No line here: run.sh already prints
+                            // "✓ <stage> — <duration> · <spend>" as the stage ends,
+                            // in stream order. Appending a second one when these
+                            // metrics arrived put a duplicate ✓ after later stages'
+                            // output, reading as if the run had gone backwards.
+                            // The step chips and the stage table still show this.
                             // A step that just succeeded doesn't need its retry button
                             // anymore — clear it explicitly rather than relying only on
                             // attachLiveRun's one-time reset at the start of the run, so
@@ -14431,6 +14631,7 @@
                     if (!isOk) {
                         showStepRetryButtons(state.activeSession);
                     }
+                    renderResultCard(state.activeSession, resultHtml);
                     closeStream();
                     loadHistory();
                     // Refresh queue — next item may have auto-started
@@ -14549,6 +14750,40 @@
             // Result column: the review verdict and whether the test actually ran
             // green — "completed" alone does not distinguish an approved suite
             // from one that shipped needing review.
+            // The Result card under the live console. The footer badges say the
+            // verdict in three words; this says what actually happened, and stays
+            // on screen after the console scrolls away.
+            async function renderResultCard(sessionId, badgesHtml) {
+                if (!sessionId) return;
+                try {
+                    const s = await apiFetch(AGENT_BASE + '/sessions/' + encodeURIComponent(sessionId));
+                    const meta = function (label, value) {
+                        return '<div class="qa-live-meta-item">' +
+                               '<span class="qa-live-meta-label">' + label + '</span>' +
+                               '<span class="qa-live-meta-value">' + value + '</span></div>';
+                    };
+                    let body = '<div class="qa-live-meta">' +
+                        meta('File', escapeHtml(s.module || '—')) +
+                        meta('Tests', s.test_passed === true ? 'green'
+                                      : (s.test_passed === false ? 'failing' : 'not run')) +
+                        meta('Files written', escapeHtml(String(s.files_count == null ? '—' : s.files_count))) +
+                        meta('Verdict', escapeHtml(s.verdict || '—')) +
+                        '</div>';
+                    if (badgesHtml) body += '<p style="margin:12px 0 0 0;">' + badgesHtml + '</p>';
+                    const ship = (s.steps && s.steps.ship) || {};
+                    if (ship.detail) {
+                        body += '<div class="qa-draft-banner"><span>⚠️</span><div>' +
+                                '<strong>Ship failed</strong> — ' + escapeHtml(ship.detail) +
+                                '</div></div>';
+                    }
+                    QA_RESULT_CARD('qaResult', body, s.status);
+                } catch (e) {
+                    // The run itself already reported; a missing summary is not a
+                    // second failure worth a banner.
+                    QA_RESULT_CARD('qaResult', '');
+                }
+            }
+
             function authoringResult(s) {
                 const bits = [];
                 if (s.verdict) {
@@ -14684,42 +14919,38 @@
                     + 'onclick="qaAgents.retrySession(\'' + escapeHtml(sessionId) + '\',' + stepNum + ')">↻ Retry from here</button>';
             }
 
+            // [key, label, stepNumber|null] — display order for the modal.
+            // validate_api sits immediately after validate_web because it runs in
+            // the SAME step-02 slot in run.sh; it is not a numbered step of its
+            // own, so it carries no retry target.
+            const DETAIL_STEP_ORDER = [
+                ['parse', 'Parse', 1],
+                ['validate_web', 'Validate', 2],
+                ['validate_api', 'Validate API', null],
+                ['generate', 'Generate', 3],
+                ['run_and_fix', 'Run & Fix', 4],
+                ['ship', 'Ship', 5],
+            ];
+
             function renderSessionDetail(d) {
-                const body = $('qaSessionDetail');
-                const sections = [];
-                sections.push('<div class="qa-modal-section"><h4>Summary</h4><pre>' + escapeHtml(JSON.stringify({
-                    session_id: d.session_id, module: d.module, status: d.status,
-                    started_at: d.started_at, ended_at: d.ended_at, pr_url: d.pr_url,
-                }, null, 2)) + '</pre></div>');
-                // Stage-level time and cost, above the raw step dumps.
-                const stageHtml = QA_STAGE_TABLE(d.metrics);
-                if (stageHtml) {
-                    sections.push('<div class="qa-modal-section"><h4>Time &amp; cost</h4>'
-                        + stageHtml + '</div>');
-                }
-                const steps = d.steps || {};
-                // Retrying resumes a session in place — only offer it once the session
-                // is no longer actively running (nothing to resume into otherwise), and
-                // never for step 1 (Parse): "from step 1" isn't a resume, it's a fresh
-                // run, which already exists as the main Run action.
+                // Retrying resumes a session in place — only offer it once the
+                // session is no longer actively running (nothing to resume into
+                // otherwise), and never for step 1 (Parse): "from step 1" isn't a
+                // resume, it's a fresh run, which already exists as Run Agent.
                 const canRetry = d.status !== 'running' && d.status !== 'in_progress';
-                const sessionId = d.session_id;
-                STEPS.forEach(function (key, idx) {
-                    if (!steps[key]) return;
-                    const stepNum = idx + 1;
-                    const label = STEP_LABELS[key] || key;
-                    let header = '<h4>' + escapeHtml(label) + '</h4>';
-                    if (canRetry && stepNum >= 2) {
-                        header = '<h4>' + escapeHtml(label) + ' ' + retryButtonHtml(sessionId, stepNum, label) + '</h4>';
-                    }
-                    sections.push('<div class="qa-modal-section">' + header + '<pre>' + escapeHtml(JSON.stringify(steps[key], null, 2)) + '</pre></div>');
-                    // validate_api runs alongside validate_web in the SAME step-2 slot in
-                    // run.sh (not its own numbered step) — surface it right after, if present.
-                    if (key === 'validate_web' && steps.validate_api) {
-                        sections.push('<div class="qa-modal-section"><h4>Validate API</h4><pre>' + escapeHtml(JSON.stringify(steps.validate_api, null, 2)) + '</pre></div>');
-                    }
+                $('qaSessionDetail').innerHTML = QA_SESSION_DETAIL(d, {
+                    meta: [
+                        ['Session', escapeHtml(d.session_id || '—')],
+                        ['File', escapeHtml(d.module || '—')],
+                        ['Status', escapeHtml(d.status || '—')],
+                        ['Result', authoringResult(d)],
+                    ],
+                    steps: DETAIL_STEP_ORDER,
+                    retryHtml: function (stepNum, label) {
+                        if (!canRetry || stepNum < 2) return '';
+                        return retryButtonHtml(d.session_id, stepNum, label);
+                    },
                 });
-                body.innerHTML = sections.join('');
             }
 
             function hideStepRetryButtons() {
@@ -14860,6 +15091,18 @@
                                              'qaLocalNote');
             }
 
+            // Why the list is empty, in the select itself. Leaving it on a stale
+            // "Loading…" or a blank list made the page look broken on top of the
+            // offline banner already saying what is wrong — the same reason the
+            // healing and adaptation panels paint their pickers when the server
+            // is down.
+            function renderEmpty() {
+                const sel = $('qaModuleSelect');
+                if (sel) sel.innerHTML =
+                    '<option value="">— unavailable while the agent server is offline —</option>';
+                setPreview('Start the agent server to load your module files.');
+            }
+
             async function init() {
                 if (!state.initialised) {
                     state.initialised = true;
@@ -14872,10 +15115,8 @@
                 checkHealth();
                 applyAgentDefaults();
                 loadModuleFiles();
-                loadHistory();
-                // The card renders from renderQueue(), which only loadQueue()
-                // calls — so without this a reload showed "Pending Queue 0"
-                // while the API was reporting a queued run.
+                // loadQueue() refreshes _currentQueue (which removeFromQueue reads)
+                // and calls loadHistory() itself, so it covers the history too.
                 loadQueue();
                 // Re-attach to any active run
                 try {
@@ -14888,6 +15129,7 @@
 
             return {
                 init: init,
+                renderEmpty: renderEmpty,
                 checkHealth: checkHealth,
                 loadModuleFiles: loadModuleFiles,
                 saveModuleFile: saveModuleFile,
@@ -14905,6 +15147,13 @@
                 loadQueue: loadQueue,
                 removeFromQueue: removeFromQueue,
                 closeSessionModal: closeSessionModal,
+                // Healing and adaptation expose openSession/closeSession; this panel
+                // only ever exposed closeSessionModal, so the three public APIs
+                // disagreed on the name for the same thing. Aliases rather than a
+                // rename: closeSessionModal is wired into inline onclick handlers in
+                // the markup, and those break silently.
+                openSession: openSessionModal,
+                closeSession: closeSessionModal,
                 retrySession: retrySession,
                 copyLogs: copyLogs,
             };
@@ -16171,6 +16420,33 @@
                     });
                     if (match) { $('adaptModule').value = match.module; renderClasses(); }
                 }
+                // The chips are the real scope, but leaving the pickers reading
+                // "select a class" / "pick a class first" looks like the note failed
+                // to load. Point them at the first named test so the note's scope is
+                // visible without re-picking it. onTestChange only loads the intent
+                // pane — chips are added by addSelected() alone, so nothing is
+                // selected twice here.
+                if (state.selected.length && $('adaptClass')) {
+                    const first = state.selected[0];
+                    const hash = first.indexOf('#');
+                    const qualified = hash === -1 ? first : first.slice(0, hash);
+                    const cls = (state.catalog || []).find(function (c) {
+                        return c.qualified_name === qualified;
+                    });
+                    if (cls) {
+                        // A note may name tests from a module its own header omits.
+                        if ($('adaptModule') && $('adaptModule').value !== cls.module) {
+                            $('adaptModule').value = cls.module;
+                            renderClasses();
+                        }
+                        $('adaptClass').value = cls.qualified_name;
+                        renderMethods();
+                        if ($('adaptTest')) {
+                            $('adaptTest').value = hash === -1 ? '__CLASS__' : first.slice(hash + 1);
+                            onTestChange();
+                        }
+                    }
+                }
                 renderSelected();
                 // A note the healing agent drafted is a claim, not a fact.
                 const isDraft = /^\s*#\s*DRAFT/.test(text || '');
@@ -16408,6 +16684,38 @@
                 }
             }
 
+            // Retry a session named by the history modal, which may not be the one
+            // the Live Run card is currently showing — retryFrom() above resumes
+            // state.session and cannot serve that. Mirrors qaAgents.retrySession.
+            async function retryFromStep(sessionId, fromStep) {
+                if (!sessionId || !fromStep) return;
+                const label = (DETAIL_STEP_ORDER.find(function (r) { return r[2] === fromStep; })
+                               || [null, 'step ' + fromStep])[1];
+                if (!confirm('Retry "' + sessionId + '" starting from ' + label + '?\n\n'
+                    + 'Steps before this are reused as-is. Any previous output for this '
+                    + 'step onward will be discarded and regenerated.')) return;
+                try {
+                    const body = await api('/sessions/' + encodeURIComponent(sessionId) + '/retry', {
+                        method: 'POST',
+                        body: JSON.stringify({ from_step: fromStep,
+                                               auto_push: depthPayload().auto_push }),
+                    });
+                    closeSession();
+                    if (body.queued) {
+                        showToast('⏳  Queued at position ' + body.position + '.', 'info');
+                        loadHistory();
+                        return;
+                    }
+                    openRun(body.session_id, body.note || body.module || '—');
+                    loadHistory();
+                    const card = $('adaptLiveCard');
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } catch (e) {
+                    appendLog('[error] retry failed: ' + (e && e.message || e));
+                    showToast('Could not retry: ' + e.message, 'warning');
+                }
+            }
+
             async function retryFrom(step) {
                 if (!state.session) return;
                 try {
@@ -16429,8 +16737,12 @@
                 if (!state.session) return;
                 try {
                     await api('/run/' + encodeURIComponent(state.session) + '/cancel', { method: 'POST' });
-                    showToast('■ Stopping "' + state.session + '"', 'info');
-                } catch (e) { setError('Cancel failed: ' + e.message); }
+                    // Console, not a toast or the form's error box: this is detail
+                    // about the run, and it belongs with the run's other output.
+                    appendLog('[cancel] requested');
+                } catch (e) {
+                    appendLog('[cancel] failed: ' + (e && e.message || 'unknown'));
+                }
             }
 
             // ── Live run ─────────────────────────────────────────────────────
@@ -16492,6 +16804,36 @@
                 }, 1000);
             }
 
+            // The browser caps concurrent connections per origin at six, and a
+            // stream left open by a navigation still counts against that cap.
+            function closeStream() {
+                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+            }
+
+            // One dispatch for both transports. The live stream and the historical
+            // replay carry the same frames, so a branch added to only one of them
+            // is a bug that shows up in exactly one of the two ways you can open a
+            // run — which is how `status` went unhandled here for so long.
+            function applyEvent(kind, d) {
+                if (kind === 'stdout') appendLog(d.line || '');
+                else if (kind === 'step') markStep(d.key, d.status, d);
+                else if (kind === 'error') appendLog('[error] ' + (d.message || d.line || ''));
+                else if (kind === 'status') {
+                    // The server emits this for every agent — at run start, and
+                    // again with 'cancelling' when Stop is pressed. Without it the
+                    // badge kept reading "running…" until the process actually died.
+                    const sb = $('adaptLiveStatus');
+                    if (sb && d.status) {
+                        sb.textContent = d.status;
+                        sb.className = 'qa-live-badge badge-running';
+                    }
+                }
+                else if (kind === 'done') {
+                    QA_UPDATE_METRIC_TILES('adapt', (d || {}).metrics);
+                    finish(d);
+                }
+            }
+
             function openRun(sessionId, note, isReplay) {
                 state.session = sessionId;
                 state.lastSeq = 0;
@@ -16501,7 +16843,10 @@
                 state.buildEl = null; state.buildSummary = null; state.buildLines = 0;
 
                 const card = $('adaptLiveCard');
-                if (card) card.style.display = 'block';
+                if (card) {
+                    card.style.display = 'block';
+                    card.classList.remove('terminal-completed', 'terminal-failed', 'terminal-cancelled');
+                }
                 if ($('adaptConsole')) $('adaptConsole').innerHTML = '';
                 QA_RESET_METRIC_TILES('adapt');
                 if ($('adaptResult')) $('adaptResult').innerHTML = '';
@@ -16536,7 +16881,18 @@
                     startElapsed();
                     QA_START_RUN_WATCH('adapt', BASE,
                         function () { return state.session; },
-                        function (sid, moduleName) { openRun(sid, moduleName); });
+                        function (sid, moduleName) { openRun(sid, moduleName); },
+                        function (body) {
+                            // Queued rows live in the history table, and their
+                            // positions shift as runs finish. Refresh only when the
+                            // count actually changed, so the table is not rebuilt
+                            // every five seconds for nothing.
+                            var n = body && body.capacity ? body.capacity.queued : 0;
+                            if (n !== state._lastQueuedCount) {
+                                state._lastQueuedCount = n;
+                                loadHistory();
+                            }
+                        });
                     connect();
                 }
             }
@@ -16555,13 +16911,7 @@
                         events.forEach(function (ev) {
                             const d = ev.data || {};
                             if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
-                            if (ev.kind === 'stdout') appendLog(d.line || '');
-                            else if (ev.kind === 'step') markStep(d.key, d.status, d);
-                            else if (ev.kind === 'error') appendLog('[error] ' + (d.message || d.line || ''));
-                            else if (ev.kind === 'done') {
-                                QA_UPDATE_METRIC_TILES('adapt', d.metrics);
-                                finish(d);
-                            }
+                            applyEvent(ev.kind, d);
                         });
                     })
                     .catch(function (e) {
@@ -16587,18 +16937,12 @@
                     catch (err) { console.warn('qaAdapt: unparsable SSE frame', err); return; }
                     if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
                     const d = ev.data || {};
-                    if (kind === 'stdout') appendLog(d.line || '');
-                    else if (kind === 'step') markStep(d.key, d.status, d);
-                    else if (kind === 'error') appendLog('[error] ' + (d.message || d.line || ''));
-                    else if (kind === 'done') {
-                        QA_UPDATE_METRIC_TILES('adapt', (d || {}).metrics);
-                        // Close THIS stream, not just whichever one state points
-                        // at: a superseded stream would stay open, and the browser
-                        // caps connections per origin, so a few orphans stall
-                        // every later request on the page.
-                        es.close();
-                        finish(d);
-                    }
+                    // Close THIS stream, not just whichever one state points at: a
+                    // superseded stream would stay open, and the browser caps
+                    // connections per origin, so a few orphans stall every later
+                    // request on the page.
+                    if (kind === 'done') es.close();
+                    applyEvent(kind, d);
                 }
                 ['stdout', 'step', 'status', 'error', 'done'].forEach(function (kind) {
                     es.addEventListener(kind, function (raw) { handle(kind, raw); });
@@ -16613,7 +16957,7 @@
             async function finish(d) {
                 state.terminal = true;
                 stopElapsed();
-                if (state.eventSource) { state.eventSource.close(); state.eventSource = null; }
+                closeStream();
                 setRunBtnLoading(false);
 
                 // Historical replay sends duration_s; the live path sends
@@ -16631,14 +16975,20 @@
                 try {
                     const s = await api('/sessions/' + encodeURIComponent(state.session));
                     if ($('adaptLiveResult')) $('adaptLiveResult').innerHTML = resultBadges(s);
-                    const body = resultHtml(s, false);
-                    if ($('adaptResult')) $('adaptResult').innerHTML = body
-                        ? '<div class="qa-card"><h3>📋 Result</h3>' + body + '</div>' : '';
+                    QA_RESULT_CARD('adaptResult', resultHtml(s, false), s.status);
                     const status = (s.status || 'unknown').toLowerCase();
                     const badge = $('adaptLiveStatus');
                     if (badge) {
                         badge.textContent = STATUS_LABEL[status] || status;
                         badge.className = 'qa-live-badge badge-' + (PILL_CLASS[status] || 'cancelled');
+                    }
+                    // Border accent, the same signal the other two panels give.
+                    const liveCard = $('adaptLiveCard');
+                    if (liveCard) {
+                        liveCard.classList.toggle('terminal-completed', status === 'completed');
+                        liveCard.classList.toggle('terminal-failed',
+                            status !== 'completed' && status !== 'cancelled');
+                        liveCard.classList.toggle('terminal-cancelled', status === 'cancelled');
                     }
                 } catch (e) {
                     appendLog('[error] could not load the result: ' + (e && e.message || e));
@@ -16841,7 +17191,12 @@
 
             function cancelSession(sessionId) {
                 fetchJson(BASE + '/run/' + encodeURIComponent(sessionId) + '/cancel',
-                          { method: 'POST' }).then(function () {
+                          { method: 'POST' }).then(function (res) {
+                    if (!res.ok) {
+                        showToast('Failed to stop run: ' +
+                                  ((res.body && res.body.error) || 'unknown'), 'warning');
+                        return;
+                    }
                     showToast('■ Stopping "' + sessionId + '"', 'info');
                     loadHistory();
                 });
@@ -16856,9 +17211,26 @@
                             session_id: item.session_id || '',
                         });
                     }
+                    // No success toast: loadHistory() repaints the row as "✕ Cancelled".
+                    if (!res.ok) {
+                        showToast('Could not remove: ' + ((res.body && res.body.error) || 'unknown'), 'warning');
+                    }
                     loadHistory();
                 });
             }
+
+            // [key, label, stepNumber|null] — display order for the modal. The
+            // explore halves sit under the combined Explore step they feed; neither
+            // is a numbered step, so neither carries a retry target.
+            const DETAIL_STEP_ORDER = [
+                ['parse_change', 'Parse Change', 1],
+                ['scope', 'Scope', 2],
+                ['explore', 'Explore', 3],
+                ['explore_web', 'Explore — Web', null],
+                ['explore_api', 'Explore — API', null],
+                ['adapt', 'Adapt', 4],
+                ['ship', 'Ship', 5],
+            ];
 
             async function openSession(sessionId) {
                 const modal = $('adaptSessionModal');
@@ -16868,7 +17240,27 @@
                 modal.classList.add('active');
                 try {
                     const s = await api('/sessions/' + encodeURIComponent(sessionId));
-                    detail.innerHTML = resultHtml(s, true);
+                    const canRetry = s.status !== 'running' && s.status !== 'in_progress';
+                    detail.innerHTML = QA_SESSION_DETAIL(s, {
+                        meta: [
+                            ['Session', esc(sessionId)],
+                            ['Change note', esc(s.note || s.module || '—')],
+                            ['Status', esc(s.status || '—')],
+                            ['Result', adaptationResult(s)],
+                        ],
+                        // resultHtml's own meta row is suppressed — the renderer
+                        // above already drew one, and two would just disagree.
+                        body: resultHtml(s, false),
+                        steps: DETAIL_STEP_ORDER,
+                        retryHtml: function (stepNum, label) {
+                            if (!canRetry || stepNum < 2) return '';
+                            return '<button class="qa-action-btn qa-action-btn-retry" ' +
+                                'title="Re-run from ' + QA_ESC_ATTR(label) +
+                                ', reusing everything before it" ' +
+                                'onclick="qaAdapt.retryFromStep(\'' + QA_ESC_ATTR(sessionId) +
+                                '\',' + stepNum + ')">↻ Retry from here</button>';
+                        },
+                    });
                 } catch (e) {
                     detail.innerHTML = '<div class="qa-empty-hint">Could not open ' +
                         esc(sessionId) + ': ' + esc(e.message) + '</div>';
@@ -16902,6 +17294,7 @@
             function wireOnce() {
                 if (_wired) return;
                 _wired = true;
+                window.addEventListener('beforeunload', closeStream);
                 const depth = $('adaptDepth');
                 if (depth) depth.addEventListener('change', syncLocalMode);
                 document.querySelectorAll('#adaptProgressSteps .qa-step-retry-btn')
@@ -16921,6 +17314,16 @@
                     loadHistory();
                     onFormChange();
                     msg('');
+                    // Re-attach to a run already in flight, as authoring and
+                    // healing do — without it, landing on this tab while a run
+                    // was going showed no console until you clicked "view".
+                    // Guarded so re-entering the tab does not restart the
+                    // stream this panel is already showing.
+                    const active = await api('/run/active').catch(function () { return null; });
+                    if (active && active.active && active.session_id
+                        && active.session_id !== state.session) {
+                        openRun(active.session_id, active.module || '—');
+                    }
                 } catch (e) {
                     renderEmpty();
                     msg('Could not reach the agent server: ' + e.message, true);
@@ -16933,7 +17336,7 @@
                 addSelected, removeSelected, seedStep,
                 onNoteChange, saveNote, openNote, onOutcomeEdit,
                 onRawEdit, resetToForm,
-                run, cancel, copyLogs, loadHistory, viewLogs,
+                run, cancel, copyLogs, loadHistory, viewLogs, retryFromStep,
                 cancelSession, removeFromQueue, openSession, closeSession,
             };
         })();

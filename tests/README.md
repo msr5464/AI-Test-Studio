@@ -154,6 +154,26 @@ Then:
 | 5 | **Generated tests** tab: **Select all** / **Select none** links, **Push selected to TestRail** button, one checkbox per generated test. |
 | 6 | Push options (when generated tests exist): hint text, **Use same section as related tests** / **Choose section manually**, Project/Suite/Section if manual. |
 
+### Agent tabs (`http://localhost:5001/` → Tests → Automation Code / Auto-Heal Tests / Adapt to Product Changes)
+
+Needs the QA-Agent-Network server running (`bash scripts/run-server.sh` in that repo).
+
+These three panels are near-copies of each other, and fixes have historically been
+applied to one and not the others. **Run every row below on all three tabs** — a row
+that passes on two tabs and fails on the third is the bug this checklist exists to catch.
+
+| Step | What to check (identical on all three tabs) |
+|------|----------------------------------------------|
+| 1 | Start a run, switch to another tab, come back: the console is already streaming — no need to click **view**. |
+| 2 | Click **view** on a past run in History: the console replays and the elapsed field reads `—`, **not** a clock counting up from 00:00. |
+| 3 | Click a History **row**: the modal shows meta, a Time & cost table, and one section per step with its markdown report and a collapsible **raw step JSON**. |
+| 4 | Click **Stop** on a live run: the status badge changes to `cancelling` immediately, not after the process dies. |
+| 5 | Let a run finish: a **📋 Result** card appears under the live console, and the card's left border takes the status colour (green / red / grey). |
+| 6 | Queue a second run: it appears as a pending row at the top of History. There is no separate "Pending Queue" card on any tab. |
+| 7 | Stop the agent server and reload: an offline banner **and** pickers that say why they are empty, rather than blank or stuck on "Loading…". |
+| 8 | Start a run and navigate away: no orphaned EventSource left open (DevTools → Network → EventStream). |
+| 9 | Cancel/retry failures are written to the **run console**, not to a toast or the form's error box. Toasts are only for queue notices ("Queued at position N"). |
+
 ### Admin portal (`http://localhost:5001/admin`)
 
 | Step | What to check |
