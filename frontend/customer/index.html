@@ -13591,8 +13591,9 @@
                 sel.innerHTML =
                     '<option value="__CLASS__">Whole class (every failing test in it)</option>' +
                     cls.methods.map(function (m) {
-                        // Read like a test plan, not a list of identifiers.
-                        const label = (m.description || m.name) +
+                        // Method name first so it's findable; description for context.
+                        const label = m.name +
+                                      (m.description && m.description !== m.name ? ' - ' + m.description : '') +
                                       (m.enabled ? '' : '  (disabled)');
                         return '<option value="' + esc(m.name) + '"' +
                                (m.enabled ? '' : ' style="opacity:.55;"') + '>' +
@@ -15951,8 +15952,10 @@
                 sel.innerHTML =
                     '<option value="__CLASS__">Whole class (every test in it)</option>' +
                     cls.methods.map(function (m) {
-                        // Read like a test plan, not a list of identifiers.
-                        const label = (m.description || m.name) + (m.enabled ? '' : '  (disabled)');
+                        // Method name first so it's findable; description for context.
+                        const label = m.name +
+                                      (m.description && m.description !== m.name ? ' - ' + m.description : '') +
+                                      (m.enabled ? '' : '  (disabled)');
                         return '<option value="' + esc(m.name) + '"' +
                                (m.enabled ? '' : ' style="opacity:.55;"') + '>' +
                                esc(label) + '</option>';
@@ -16951,6 +16954,7 @@
                 if (c.applied) bits.push('<span class="qa-live-badge badge-completed">' + esc(c.applied) + ' applied</span>');
                 if (c.verified) bits.push('<span class="qa-live-badge badge-completed">' + esc(c.verified) + ' verified</span>');
                 if (c.proposed) bits.push('<span class="qa-live-badge">' + esc(c.proposed) + ' proposed</span>');
+                if (c.covered) bits.push('<span class="qa-live-badge">' + esc(c.covered) + ' covered by another item</span>');
                 if (c.escalated) bits.push('<span class="qa-live-badge">⚠️ ' + esc(c.escalated) + ' escalated</span>');
                 if (c.rejected) bits.push('<span class="qa-live-badge badge-failed">' + esc(c.rejected) + ' rejected</span>');
                 if (!bits.length) {
@@ -17026,6 +17030,7 @@
                 const bits = [];
                 if (c.applied) bits.push(c.applied + ' applied');
                 if (c.proposed) bits.push(c.proposed + ' proposed');
+                if (c.covered) bits.push(c.covered + ' covered by another item');
                 if (c.escalated) bits.push(c.escalated + ' escalated');
                 if (c.rejected) bits.push(c.rejected + ' rejected');
                 if (bits.length) return esc(bits.join(' · '));
