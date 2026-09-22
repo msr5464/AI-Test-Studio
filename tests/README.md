@@ -154,7 +154,7 @@ Then:
 | 5 | **Generated tests** tab: **Select all** / **Select none** links, **Push selected to TestRail** button, one checkbox per generated test. |
 | 6 | Push options (when generated tests exist): hint text, **Use same section as related tests** / **Choose section manually**, Project/Suite/Section if manual. |
 
-### Agent tabs (`http://localhost:5001/` → Tests → Automation Code / Auto-Heal Tests / Adapt to Product Changes)
+### Agent tabs (`http://localhost:5001/` → Tests → Automation Code / Auto-Heal Failing Tests / Adapt to Product Changes)
 
 Needs the QA-Agent-Network server running (`bash scripts/run-server.sh` in that repo).
 

@@ -5788,7 +5788,8 @@
             padding: 11px 24px;
             font-size: 14px;
         }
-        #tabPanelAgents .analyze-textarea {
+        #tabPanelAgents .analyze-textarea,
+        #tabPanelAdapt .analyze-textarea {
             padding: 12px 14px;
             font-size: 13px;
             border-radius: 8px;
@@ -5811,39 +5812,47 @@
             margin-right: 10px;
         }
 
-        #tabPanelAgents .analyze-input-zone {
+        #tabPanelAgents .analyze-input-zone,
+        #tabPanelAdapt .analyze-input-zone {
             margin-bottom: 10px;
         }
 
         /* ── Agent tabs: inline label layout ── */
-        #tabPanelAgents .qa-form-row {
+        #tabPanelAgents .qa-form-row,
+        #tabPanelAdapt .qa-form-row {
             display: flex;
             flex-direction: row;
             align-items: center;
             gap: 12px;
             margin-bottom: 10px;
         }
-        #tabPanelAgents .qa-form-row label {
+        #tabPanelAgents .qa-form-row label,
+        #tabPanelAdapt .qa-form-row label {
             white-space: nowrap;
             flex-shrink: 0;
             margin-bottom: 0;
         }
         #tabPanelAgents .qa-form-row > input,
         #tabPanelAgents .qa-form-row > select,
-        #tabPanelAgents .qa-form-row > .qa-row-inline {
+        #tabPanelAgents .qa-form-row > .qa-row-inline,
+        #tabPanelAdapt .qa-form-row > input,
+        #tabPanelAdapt .qa-form-row > select,
+        #tabPanelAdapt .qa-form-row > .qa-row-inline {
             flex: 1;
             min-width: 0;
         }
 
         /* ── Agent tab buttons: constrain height to match AI Test Generator (emojis inflate line-height) ── */
         /* Count badge would vanish into the active tab's cyan gradient */
-        #tabPanelHealing .analyze-tab.active .qa-live-badge {
+        #tabPanelHealing .analyze-tab.active .qa-live-badge,
+        #tabPanelAdapt .analyze-tab.active .qa-live-badge {
             background: rgba(255, 255, 255, 0.25);
             color: #fff;
         }
 
         #tabPanelAgents .analyze-tab,
-        #tabPanelHealing .analyze-tab {
+        #tabPanelHealing .analyze-tab,
+        #tabPanelAdapt .analyze-tab {
             display: inline-flex;
             align-items: center;
             height: 37px;
@@ -6061,6 +6070,12 @@
         .qa-step.failed .qa-step-icon {
             background: #ef4444;
             color: white;
+        }
+
+        /* Ran nothing — an earlier stage left it no work. Not a success, not a failure. */
+        .qa-step.skipped {
+            border-style: dashed;
+            color: var(--text-light);
         }
 
         @keyframes qa-pulse {
@@ -6579,7 +6594,9 @@
             grid-template-columns: 1fr 1fr;
             gap: 14px;
             margin-top: 16px;
-            align-items: start;
+            /* Side by side, the write box grows to the reference pane's height
+               (itself capped), so neither column ends with a gap. */
+            align-items: stretch;
         }
 
         @media (max-width: 900px) {
@@ -6590,6 +6607,19 @@
            box takes the whole width rather than sitting beside an empty panel. */
         .qa-adapt-grid.qa-adapt-grid-single { grid-template-columns: 1fr; }
 
+        .qa-adapt-write { display: flex; flex-direction: column; }
+        /* Global textarea rule caps height at 200px (~L2729); lift it so this can match the pane. */
+        .qa-adapt-write textarea { flex: 1 0 auto; max-height: none; }
+
+        /* select.qa-select forces width:100% !important; this one only needs
+           to be as wide as its options. */
+        #tabPanelAdapt select.qa-select.qa-select-fit {
+            width: auto !important;
+            max-width: 100%;
+        }
+
+        #tabPanelAdapt .qa-form-row > .qa-chip-row { flex: 1; margin-top: 0; }
+
         .qa-inline-field {
             display: flex;
             align-items: center;
@@ -6597,15 +6627,6 @@
         }
 
         .qa-inline-field .qa-live-meta-label { white-space: nowrap; }
-        .qa-inline-field .qa-select { min-width: 260px; }
-
-        .qa-adapt-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-
         .qa-intent-pane {
             border: 1px solid var(--border, rgba(128, 128, 128, 0.25));
             border-radius: 10px;
@@ -7196,7 +7217,7 @@
                     style="margin-top: 12px;">📋 Requirements → Tests</button>
                 <button class="nav-item" data-nav="agents" onclick="showTab('agents')">🤖 Tests → Automation
                     Code</button>
-                <button class="nav-item" data-nav="healing" onclick="showTab('healing')">🔧 Auto-Heal Tests</button>
+                <button class="nav-item" data-nav="healing" onclick="showTab('healing')">🔧 Auto-Heal Failing Tests</button>
                 <button class="nav-item" data-nav="adapt" onclick="showTab('adapt')">🔁 Adapt to Product
                     Changes</button>
                 <button class="nav-item" data-nav="ask" onclick="showTab('ask')">💬 Talk to your Tests</button>
@@ -7543,9 +7564,10 @@
                             <div class="qa-form-row" style="margin-top:6px;margin-bottom:0;">
                                 <label for="qaNewModuleName">Save as <span
                                         style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
-                                <div class="qa-row-inline">
+                                <div class="qa-row-inline" style="flex-wrap:wrap;">
                                     <input type="text" id="qaNewModuleName" class="qa-input"
                                         placeholder="e.g. payments" maxlength="64" style="max-width:280px;" />
+                                    <a href="#" class="qa-hint" style="white-space:nowrap;" onclick="qaAgents.saveModuleFile();return false;">Save without running</a>
                                     <span id="qaSaveStatus"
                                         style="font-size:12px;color:var(--text-light);white-space:nowrap;"></span>
                                 </div>
@@ -7754,15 +7776,41 @@
                     </div>
 
                     <div class="analyze-box">
-                        <!-- Which note we are writing into. The filename is an
-                             implementation detail (run.sh reads queue/$MODULE.txt),
-                             so it is derived and only editable under Advanced. -->
-                        <div class="qa-form-row" style="margin-bottom:0;">
-                            <label class="qa-live-meta-label" for="adaptNoteSelect">Change note</label>
-                            <select id="adaptNoteSelect" class="qa-select" style="margin-top:6px;"
-                                    onchange="qaAdapt.onNoteChange()">
-                                <option value="__NEW__">＋ New change note</option>
-                            </select>
+                        <!-- Same tab bar as Authoring and Healing. Write and Saved Notes
+                             share the form below; switching keeps each one's contents. -->
+                        <div class="analyze-method" role="tablist" aria-label="Change note source">
+                            <button type="button" class="analyze-tab active" data-adapt-mode="new"
+                                role="tab" aria-selected="true"
+                                onclick="qaAdapt.switchMode('new')">✏️ Write</button>
+                            <!-- The badge counts drafts test-healing-agent left in the queue
+                                 (a page it found rebuilt, not broken); hidden when there are none. -->
+                            <button type="button" class="analyze-tab" data-adapt-mode="saved"
+                                role="tab" aria-selected="false"
+                                onclick="qaAdapt.switchMode('saved')">📂 Saved Notes
+                                <span class="qa-live-badge badge-running" id="adaptFromHealingCount"
+                                      title="Drafts from the healing agent"
+                                      style="font-size:11px;margin-left:6px;display:none;">0</span></button>
+                        </div>
+                        <p id="adaptTabHint" style="font-size:12px;color:var(--text-muted);margin:6px 0 10px;">Describe what changed in the product — the agent updates the tests to match.</p>
+                        <!-- Loading a note, or reaching the server, reports here. -->
+                        <div id="adaptRunMsg" class="qa-card-sub" style="margin-bottom:6px;"></div>
+
+                        <!-- Saved Notes: the picked note opens in the form below. The
+                             filename is an implementation detail (run.sh reads
+                             queue/$MODULE.txt); "Save as" in step 3 overrides it. -->
+                        <div id="adaptSavedPane" class="analyze-pane">
+                            <div class="qa-form-row" style="margin-bottom:10px;">
+                                <label for="adaptNoteSelect">Saved note</label>
+                                <div class="qa-row-inline">
+                                    <select id="adaptNoteSelect" class="qa-select"
+                                            onchange="qaAdapt.onNoteChange()">
+                                        <option value="">— select a saved note —</option>
+                                    </select>
+                                    <button type="button" class="qa-btn qa-btn-ghost"
+                                        onclick="qaAdapt.refreshNotes()" style="flex-shrink:0;padding:10px 14px;"
+                                        title="Refresh list">⟳</button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- A note the healing agent drafted is a claim about the product, not a fact -->
@@ -7774,76 +7822,84 @@
                         </div>
 
                         <!-- Which tests the change reaches -->
-                        <div class="qa-adapt-row" style="margin-top:14px;">
-                            <div style="flex:1;min-width:140px;">
-                                <label class="qa-live-meta-label" for="adaptModule">Module</label>
-                                <select id="adaptModule" class="qa-select" style="margin-top:6px;"
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
+                            <div class="qa-form-row" style="margin-bottom:0;">
+                                <label for="adaptModule">Module</label>
+                                <select id="adaptModule" class="qa-select"
                                         onchange="qaAdapt.onModuleChange()"><option value="">All modules</option></select>
                             </div>
-                            <div style="flex:1.4;min-width:180px;">
-                                <label class="qa-live-meta-label" for="adaptClass">Class</label>
-                                <select id="adaptClass" class="qa-select" style="margin-top:6px;"
+                            <div class="qa-form-row" style="margin-bottom:0;">
+                                <label for="adaptClass">Class</label>
+                                <select id="adaptClass" class="qa-select"
                                         onchange="qaAdapt.onClassChange()"><option value="">— select a class —</option></select>
                             </div>
                         </div>
-                        <div class="qa-adapt-row" style="margin-top:10px;">
-                            <div style="flex:2;min-width:230px;">
-                                <label class="qa-live-meta-label" for="adaptTest">Test</label>
-                                <select id="adaptTest" class="qa-select" style="margin-top:6px;"
+                        <div class="qa-form-row" style="margin-top:12px;">
+                            <label for="adaptTest">Test</label>
+                            <div class="qa-row-inline">
+                                <select id="adaptTest" class="qa-select"
                                         onchange="qaAdapt.onTestChange()"><option value="">— pick a class first —</option></select>
+                                <button type="button" class="qa-btn qa-btn-ghost" id="adaptAddBtn"
+                                        style="flex-shrink:0;padding:8px 14px;"
+                                        onclick="qaAdapt.addSelected()">＋ Add</button>
                             </div>
-                            <button type="button" class="qa-btn qa-btn-ghost" id="adaptAddBtn"
-                                    onclick="qaAdapt.addSelected()">＋ Add</button>
                         </div>
 
-                        <div id="adaptSelectedWrap" class="qa-chip-row" style="display:none;"></div>
+                        <!-- Always visible: with nothing added, it says what Save/Run
+                             will adopt (adoptPick) instead of doing it silently. -->
+                        <div class="qa-form-row">
+                            <label>In scope</label>
+                            <div id="adaptSelectedWrap" class="qa-chip-row"><span class="qa-hint">Nothing yet — pick a test and click ＋ Add.</span></div>
+                        </div>
 
-                        <label class="analyze-option" style="margin-top:10px;"
+                        <label class="analyze-option"
                                title="Off = only the tests listed above. On = every test that shares their page objects and helpers.">
                             <input type="checkbox" id="adaptWiden" onchange="qaAdapt.onFormChange()" />
                             Also check tests that share this code
                             <span class="qa-hint">(wider blast radius, slower run)</span>
                         </label>
 
-                        <!-- Read on the left, write on the right -->
-                        <div class="qa-adapt-grid qa-adapt-grid-single">
+                        <!-- What changed: the reference pane appears left of it once a test is picked -->
+                        <div class="qa-adapt-grid qa-adapt-grid-single analyze-input-zone">
                             <div class="qa-intent-pane" id="adaptIntentPane" style="display:none;"></div>
-                            <div>
-                                <label class="qa-live-meta-label" for="adaptChanged">What changed</label>
-                                <textarea id="adaptChanged" class="analyze-textarea" rows="9"
-                                          style="margin-top:6px;width:100%;"
+                            <div class="qa-adapt-write">
+                                <textarea id="adaptChanged" class="analyze-textarea" rows="8"
+                                          aria-label="What changed"
+                                          style="width:100%;"
                                           oninput="qaAdapt.onFormChange()"
-                                          placeholder="Describe the change to the PRODUCT, one numbered item each:&#10;&#10;1. After login a &quot;Choose workspace&quot; screen now appears before the dashboard.&#10;2. The 3-step checkout wizard is now 2 steps."></textarea>
-                                <label class="qa-live-meta-label" for="adaptOutcome"
-                                       style="margin-top:10px;display:block;">Expected outcome unchanged
-                                    <span id="adaptOutcomeDerived" class="qa-intent-badge"
-                                          style="display:none;">from the test</span></label>
-                                <input id="adaptOutcome" class="qa-input" style="margin-top:6px;"
-                                       placeholder="what the flow must still achieve"
-                                       oninput="qaAdapt.onOutcomeEdit()" />
-                                <p class="qa-hint" style="margin:6px 0 0 0;">
-                                    What must still be true once the change ships. The agent explores
-                                    toward it, and if it names something irreversible — placing an order,
-                                    paying, deleting — it stops before that step and escalates instead.
-                                </p>
+                                          placeholder="Describe what changed — in the product, or in what a test should do — one numbered item each:&#10;&#10;1. After login a &quot;Choose workspace&quot; screen now appears before the dashboard.&#10;2. The &quot;Checkout: Overview&quot; page was removed, and the check on its total goes with it.&#10;3. The product did not change: drop step 7 (logout) and its login-page check."></textarea>
                             </div>
                         </div>
 
+                        <div class="qa-form-row" style="margin-bottom:4px;">
+                            <label for="adaptOutcome">Expected outcome</label>
+                            <div class="qa-row-inline">
+                                <select id="adaptOutcomeWord" class="qa-select qa-select-fit"
+                                        aria-label="Has the expected outcome changed?"
+                                        onchange="qaAdapt.onOutcomeWordChange()">
+                                    <option value="unchanged">Same as today</option>
+                                    <option value="changed">Changed</option>
+                                </select>
+                                <input id="adaptOutcome" class="qa-input" style="flex:1 1 220px;min-width:0;margin-bottom:0;"
+                                       placeholder="what the flow must achieve"
+                                       oninput="qaAdapt.onOutcomeEdit()" />
+                                <span id="adaptOutcomeDerived" class="qa-intent-badge"
+                                      style="display:none;">from the test</span>
+                            </div>
+                        </div>
+                        <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
+                            What must be true once the change ships — the agent explores toward it
+                            and stops before anything irreversible it names (ordering, paying, deleting).
+                        </p>
+
                         <details class="qa-advanced" id="adaptAdvanced">
-                            <summary>Advanced — note name, entry URL, raw note</summary>
-                            <div class="qa-adapt-row" style="margin-top:10px;">
-                                <div style="flex:1;min-width:170px;">
-                                    <label class="qa-live-meta-label" for="adaptNoteName">Saved as</label>
-                                    <input id="adaptNoteName" class="qa-input" style="margin-top:6px;"
-                                           placeholder="checkout" />
-                                </div>
-                                <div style="flex:1.6;min-width:220px;">
-                                    <label class="qa-live-meta-label" for="adaptUrl">Entry URL <span
-                                        style="font-weight:400;color:var(--text-muted);">(optional — the agent finds the module's own otherwise)</span></label>
-                                    <input id="adaptUrl" class="qa-input" style="margin-top:6px;"
-                                           placeholder="https://www.saucedemo.com/"
-                                           oninput="qaAdapt.onFormChange()" />
-                                </div>
+                            <summary>Advanced — entry URL, raw note</summary>
+                            <div class="qa-form-row" style="margin-top:10px;">
+                                <label for="adaptUrl">Entry URL <span
+                                    style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
+                                <input id="adaptUrl" class="qa-input" style="margin-bottom:0;"
+                                       placeholder="https://www.saucedemo.com/ — the module's own URL if blank"
+                                       oninput="qaAdapt.onFormChange()" />
                             </div>
                             <p id="adaptRawNotice" class="qa-card-sub" style="display:none;">
                                 Editing the raw note — form changes will not overwrite it.
@@ -7854,21 +7910,22 @@
                                       oninput="qaAdapt.onRawEdit()"></textarea>
                         </details>
 
+                        <!-- Same as Authoring: Run saves the note first. The link is for a
+                             note written before the product change reaches the environment. -->
+                        <div class="qa-form-row" style="margin-top:6px;margin-bottom:0;">
+                            <label for="adaptNoteName">Save as <span
+                                    style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
+                            <div class="qa-row-inline" style="flex-wrap:wrap;">
+                                <input id="adaptNoteName" class="qa-input" style="max-width:280px;"
+                                       placeholder="named from the module if blank" maxlength="64" />
+                                <a href="#" class="qa-hint" style="white-space:nowrap;" onclick="qaAdapt.saveNote();return false;">Save without running</a>
+                                <span id="adaptSaveStatus" class="qa-hint" style="white-space:nowrap;"></span>
+                            </div>
+                        </div>
+
                         <div class="analyze-actions" id="adaptRunActions">
-                            <button type="button" class="qa-btn qa-btn-ghost"
-                                    onclick="qaAdapt.saveNote()">💾 Save note</button>
-                            <!-- One ordinal choice, not three booleans. They were
-                                 never independent: a PR needs applied edits, and
-                                 explore-only stops before either. "Apply off + PR on"
-                                 was reachable and did nothing. -->
-                            <label class="qa-inline-field">
-                                <span class="qa-live-meta-label">How far to go</span>
-                                <select id="adaptDepth" class="qa-select">
-                                    <option value="explore">Explore only — map the new flow, change nothing</option>
-                                    <option value="propose">Propose changes — show the diffs, write nothing</option>
-                                    <option value="apply">Apply changes — write and verify, no PR</option>
-                                    <option value="apply_pr">Apply and raise PR</option>
-                                </select>
+                            <label class="analyze-option">
+                                <input type="checkbox" id="adaptAutoPush" /> Auto-push PR on success
                             </label>
                             <span class="qa-inline-field">
                                 <label class="qa-live-meta-label" for="adaptBaseBranch"
@@ -7896,19 +7953,8 @@
                                 </span>
                             </button>
                         </div>
-                        <div id="adaptRunMsg" class="qa-card-sub" style="margin-top:8px;"></div>
                         <p class="qa-local-note" id="adaptLocalNote" hidden style="font-size:12px;color:var(--text-light);margin:8px 0 0 0;">Runs in your local checkout (uncommitted changes included) — edits are left uncommitted there for you to review and commit.</p>
                         <p id="adaptRunError" style="font-size:12px;color:#ef4444;margin:10px 0 0 0;display:none;"></p>
-                    </div>
-
-                    <!-- Draft notes handed over by the healing agent -->
-                    <div class="qa-card" id="adaptFromHealingCard" style="display:none;margin-top:18px;">
-                        <h3>📥 From Healing <span class="qa-live-badge badge-running" id="adaptFromHealingCount" style="font-size:11px;">0</span></h3>
-                        <p style="font-size:12px;color:var(--text-light);margin:0 0 12px 0;">
-                            Pages test-healing-agent found rebuilt rather than broken. Nobody runs these
-                            automatically — read what it observed, then edit and run.
-                        </p>
-                        <div id="adaptFromHealingWrap"></div>
                     </div>
 
                     <!-- Live run -->
@@ -12708,6 +12754,18 @@
             function render(input) {
                 const menu = menuFor(input);
                 if (!menu) return;
+                // Pinned to the local checkout (see applyLocalMode): there is no
+                // base to choose. Say so — a chevron that opens nothing read as
+                // "the branch list is broken".
+                if (input.readOnly) {
+                    const why = document.createElement('div');
+                    why.className = 'qa-combo-empty';
+                    why.textContent = 'This run works in your local checkout (' + input.value +
+                        ') and raises no PR, so there is no base branch to choose. ' +
+                        'Branches are listed for runs that raise a PR.';
+                    menu.replaceChildren(why);
+                    return;
+                }
                 const all = _branches[input.id] || [];
                 const typed = input.value.trim().toLowerCase();
                 // When the box already holds a whole branch name — which it does
@@ -12745,9 +12803,6 @@
             }
 
             function open(input) {
-                // Pinned to the local branch: there is nothing to choose, and a
-                // menu that opens over a read-only field reads as a bug.
-                if (input.readOnly) return;
                 render(input);
                 const menu = menuFor(input);
                 if (!menu) return;
@@ -12976,7 +13031,7 @@
             function markStep(key, status, payload) {
                 const el = document.querySelector('#healProgressSteps .qa-step[data-step="' + key + '"]');
                 if (!el) return;
-                el.classList.remove('running', 'done', 'failed');
+                el.classList.remove('running', 'done', 'failed', 'skipped');
                 if (status) el.classList.add(status);
                 // Time and cost for the stage go in the console, not on the chip.
                 const suffix = payload ? QA_STEP_SUFFIX(payload) : '';
@@ -13102,6 +13157,12 @@
                 if ($('healLiveSession')) $('healLiveSession').textContent = sessionId;
                 if ($('healLiveTarget')) $('healLiveTarget').textContent = target || '—';
                 if ($('healLiveResult')) $('healLiveResult').innerHTML = '';
+                // finish() hides it; without this every run after the first had
+                // no Cancel. Only a live run can be cancelled.
+                if ($('healCancelBtn')) {
+                    $('healCancelBtn').style.display = isReplay ? 'none' : '';
+                    $('healCancelBtn').disabled = false;
+                }
                 if ($('healLiveStatus')) {
                     $('healLiveStatus').textContent = 'running…';
                     $('healLiveStatus').className = 'qa-live-badge badge-running';
@@ -13177,7 +13238,13 @@
                 function handle(kind, msg) {
                     let ev;
                     try { ev = JSON.parse(msg.data); } catch (e) { return; }
-                    if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
+                    // Skip what is already on screen: see onerror below. Never
+                    // `done` — served from history after a server restart, frames
+                    // are renumbered from 1, and the run must still finish.
+                    if (typeof ev.seq === 'number') {
+                        if (kind !== 'done' && ev.seq <= state.lastSeq) return;
+                        state.lastSeq = Math.max(state.lastSeq, ev.seq);
+                    }
                     const d = ev.data || {};
                     // Close THIS stream, not just whichever one state points at.
                     // finish() only closes state.eventSource, so a stream that has
@@ -13196,7 +13263,9 @@
                     // background; only the current one is allowed to recover.
                     if (state.eventSource !== es) { es.close(); return; }
                     if (state.terminal) { es.close(); return; }
-                    // The browser reconnects on its own; offset= replays anything missed.
+                    // The browser reconnects on its own, but with this stream's
+                    // original URL (offset=0) — the server ignores Last-Event-ID —
+                    // so it replays the whole run; handle() drops the repeats.
                     appendLog('[stream] connection dropped — reconnecting…');
                 };
             }
@@ -13443,16 +13512,26 @@
             }
 
             function cancel() {
-                if (!state.session) return;
+                if (!state.session || state.terminal) return;
+                const btn = $('healCancelBtn');
+                // One request per run: the `cancelling` status and `done` follow.
+                if (btn) btn.disabled = true;
                 fetchJson(BASE + '/run/' + encodeURIComponent(state.session) + '/cancel', { method: 'POST' })
                     .then(function (res) {
                         if (res.ok) { appendLog('[cancel] requested'); return; }
-                        appendLog('[cancel] failed: ' + ((res.body && res.body.error) || 'unknown'));
+                        const why = (res.body && res.body.error) || 'unknown';
+                        appendLog('[cancel] failed: ' + why);
+                        // The server's 404: the run already ended — nothing left to cancel.
+                        if (btn) {
+                            if (/already finished|not found/i.test(why)) btn.style.display = 'none';
+                            else btn.disabled = false;
+                        }
                     })
                     // A cancel that never reached the server used to look identical
                     // to one that worked: nothing was written either way.
                     .catch(function (e) {
                         appendLog('[cancel] failed: ' + (e && e.message || 'unknown'));
+                        if (btn) btn.disabled = false;
                     });
             }
 
@@ -13962,6 +14041,11 @@
                 moduleCache: {},
                 terminal: false,
                 loadedContent: '',   // tracks content when a file was loaded, to detect edits
+                // Write and Saved Drafts share one textarea. It holds one tab's
+                // text at a time; the other tab's waits here, so switching never
+                // throws away what someone typed.
+                editorOwner: 'new',
+                drafts: {},
             };
 
             function $(id) { return document.getElementById(id); }
@@ -14011,6 +14095,7 @@
 
             async function loadModuleFiles(preselectName) {
                 const sel = $('qaModuleSelect');
+                const keep = sel.value;
                 sel.innerHTML = '<option value="">Loading…</option>';
                 try {
                     const body = await apiFetch(AGENT_BASE + '/queue');
@@ -14036,6 +14121,10 @@
                                 break;
                             }
                         }
+                    } else if (keep && state.moduleCache[keep]) {
+                        // A refresh (tab switch, page re-entry) keeps the pick —
+                        // and not re-previewing it keeps any edits in the editor.
+                        sel.value = keep;
                     }
                 } catch (e) {
                     sel.innerHTML = '<option value="">Failed to load</option>';
@@ -14043,19 +14132,33 @@
                 }
             }
 
+            // A file's text belongs to Saved Drafts. Callers don't await this, and
+            // the user may switch tabs mid-load (or it is loaded from the TestRail
+            // tab), so who gets it is decided when it arrives: the editor if Saved
+            // Drafts holds it by then, otherwise that tab's parked draft.
+            function putExisting(content) {
+                if (state.editorOwner === 'existing') {
+                    $('qaSpecContent').value = content;
+                    state.loadedContent = content;
+                    setModifiedHint(false);
+                } else {
+                    state.drafts.existing = { content: content, loaded: content };
+                }
+            }
+
             async function previewModule(name) {
                 const ta = $('qaSpecContent');
-                setModifiedHint(false);
-                if (!name) { ta.value = ''; state.loadedContent = ''; return; }
-                ta.value = 'Loading…';
-                ta.disabled = true;
+                if (!name) { putExisting(''); return; }
+                if (state.editorOwner === 'existing') {
+                    setModifiedHint(false);
+                    ta.value = 'Loading…';
+                    ta.disabled = true;
+                }
                 try {
                     const body = await apiFetch(AGENT_BASE + '/queue/' + encodeURIComponent(name));
-                    ta.value = (body && body.content) || '';
-                    state.loadedContent = ta.value;
+                    putExisting((body && body.content) || '');
                 } catch (e) {
-                    ta.value = '';
-                    state.loadedContent = '';
+                    putExisting('');
                 } finally {
                     ta.disabled = false;
                 }
@@ -14066,21 +14169,39 @@
                 if (hint) hint.style.display = show ? 'inline' : 'none';
             }
 
+            // Write tab's fields as a queue file, or null after reporting what's
+            // missing. Run and "Save without running" both go through this.
+            function newDraft(errEl) {
+                const moduleName = $('qaNewModule').value.trim();
+                const steps = $('qaSpecContent').value.trim();
+                const problem = !moduleName ? 'Module name is required.'
+                    : !steps ? 'Please enter your test steps.' : '';
+                if (problem) {
+                    errEl.textContent = problem;
+                    errEl.style.display = 'block';
+                    return null;
+                }
+                const content = 'Module: ' + moduleName + '\nType: ' + $('qaNewType').value + '\n\nSteps:\n' + steps;
+                // Auto-generate a queue file name if the user left it blank
+                const rawName = $('qaNewModuleName').value.trim();
+                const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+                const name = rawName || (moduleName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + ts);
+                return { name: name, content: content };
+            }
+
             async function saveModuleFile() {
-                const name = $('qaNewModuleName').value.trim();
-                const content = $('qaSpecContent').value;
+                const errEl = $('qaRunError');
+                errEl.style.display = 'none';
+                const draft = newDraft(errEl);
+                if (!draft) return;
                 const statusEl = $('qaSaveStatus');
-                if (!name) { statusEl.textContent = 'Name required'; statusEl.style.color = '#ef4444'; return; }
-                if (!content.trim()) { statusEl.textContent = 'Content required'; statusEl.style.color = '#ef4444'; return; }
                 statusEl.textContent = 'Saving…';
                 statusEl.style.color = 'var(--text-light)';
                 try {
-                    await apiFetch(AGENT_BASE + '/queue', { method: 'POST', body: JSON.stringify({ name: name, content: content }) });
+                    await apiFetch(AGENT_BASE + '/queue', { method: 'POST', body: JSON.stringify(draft) });
                     statusEl.textContent = 'Saved ✓';
                     statusEl.style.color = '#10b981';
-                    await loadModuleFiles();
-                    $('qaModuleSelect').value = name;
-                    switchMode('existing');
+                    switchMode('existing', draft.name);
                 } catch (e) {
                     statusEl.textContent = 'Failed: ' + (e.message || 'unknown');
                     statusEl.style.color = '#ef4444';
@@ -14143,10 +14264,19 @@
                 if (trSec) trSec.style.display = isTestrail ? '' : 'none';
 
                 var ta = $('qaSpecContent');
+                // Only Write <-> Saved Drafts moves text in and out of the shared
+                // editor; TestRail just hides it, and re-clicking a tab is a no-op.
+                if ((isNew || isExisting) && state.editorOwner !== mode) {
+                    state.drafts[state.editorOwner] = { content: ta.value, loaded: state.loadedContent };
+                    var d = state.drafts[mode] || { content: '', loaded: '' };
+                    ta.value = d.content;
+                    state.loadedContent = d.loaded;
+                    setModifiedHint(isExisting && d.loaded !== '' && d.content !== d.loaded);
+                    ta.disabled = false;
+                    state.editorOwner = mode;
+                }
                 if (isNew) {
                     ta.placeholder = specPlaceholderFor($('qaNewType') ? $('qaNewType').value : 'web');
-                    ta.value = '';
-                    $('qaNewModule').value = '';
                 } else if (isExisting) {
                     ta.placeholder = specPlaceholderFor('web');
                     loadModuleFiles(preselectName || null);
@@ -14174,6 +14304,12 @@
 
             function fillFromTestRail(title, type, steps) {
                 switchMode('new');
+                // Everything else keeps the Write tab's text; replacing it is the
+                // one thing that asks first.
+                if (($('qaSpecContent').value.trim() || $('qaNewModule').value.trim()) &&
+                    !confirm('Replace what you wrote in the Write tab with this TestRail case?')) return;
+                // A leftover Save-as name would make Run overwrite the earlier draft's file.
+                $('qaNewModuleName').value = '';
                 $('qaNewModule').value = title;
                 var typeEl = $('qaNewType');
                 if (typeEl && typeEl.querySelector('option[value="' + type + '"]')) typeEl.value = type;
@@ -14204,28 +14340,9 @@
                 let moduleFile;
                 try {
                     if (state.mode === 'new') {
-                        const moduleName = $('qaNewModule').value.trim();
-                        const type = $('qaNewType').value;
-                        const steps = $('qaSpecContent').value.trim();
-
-                        if (!moduleName) {
-                            errEl.textContent = 'Module name is required.';
-                            errEl.style.display = 'block';
-                            return;
-                        }
-                        if (!steps) {
-                            errEl.textContent = 'Please enter your test steps.';
-                            errEl.style.display = 'block';
-                            return;
-                        }
-
-                        // Assemble file content from structured fields
-                        const content = 'Module: ' + moduleName + '\nType: ' + type + '\n\nSteps:\n' + steps;
-
-                        // Auto-generate a queue file name if the user left it blank
-                        const rawName = $('qaNewModuleName').value.trim();
-                        const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
-                        moduleFile = rawName || (moduleName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + ts);
+                        const draft = newDraft(errEl);
+                        if (!draft) return;
+                        moduleFile = draft.name;
 
                         // Silently save to queue before running
                         const statusEl = $('qaSaveStatus');
@@ -14233,7 +14350,7 @@
                         statusEl.style.color = 'var(--text-light)';
                         await apiFetch(AGENT_BASE + '/queue', {
                             method: 'POST',
-                            body: JSON.stringify({ name: moduleFile, content: content })
+                            body: JSON.stringify(draft)
                         });
                         statusEl.textContent = 'Saved ✓';
                         statusEl.style.color = '#10b981';
@@ -14426,14 +14543,14 @@
 
             function resetStepUI() {
                 document.querySelectorAll('#qaProgressSteps .qa-step').forEach(function (el) {
-                    el.classList.remove('running', 'done', 'failed');
+                    el.classList.remove('running', 'done', 'failed', 'skipped');
                 });
             }
 
             function setStep(key, status) {
                 const el = document.querySelector('#qaProgressSteps .qa-step[data-step="' + key + '"]');
                 if (!el) return;
-                el.classList.remove('running', 'done', 'failed');
+                el.classList.remove('running', 'done', 'failed', 'skipped');
                 if (status) el.classList.add(status);
             }
 
@@ -14498,6 +14615,8 @@
                             // retrying that same step and it passing this time) can never
                             // linger past this point regardless of exactly how we got here.
                             clearStepRetryButton(key);
+                        } else if (status === 'skipped') {
+                            setStep(key, 'skipped');
                         } else if (status === 'running') {
                             setStep(key, 'running');
                             appendLine('step', '⟳ ' + (payload.display || key));
@@ -15806,11 +15925,6 @@
             // carries the other half of this comment. The keys are also the
             // data-step attributes on #adaptProgressSteps.
             const STEPS = ['parse_change', 'scope', 'explore', 'adapt', 'ship'];
-            const STEP_LABELS = {
-                parse_change: 'Parse Change', scope: 'Scope', explore: 'Explore',
-                adapt: 'Adapt', ship: 'Ship',
-            };
-
             const PILL_CLASS = window.QA_PILL_CLASS;
             const STATUS_LABEL = window.QA_STATUS_LABEL;
 
@@ -15818,10 +15932,18 @@
                 catalog: [], selected: [], note: '', intent: null,
                 rawOverride: false, intentSeq: 0, intentTimer: null,
                 preamble: [], epilogue: [], affectsRaw: '', outcomeAuto: null,
+                // The outcome line's own words ("Expected outcome unchanged",
+                // "Expected outcome") as the loaded note had them, kept until the
+                // select is touched so a save never rewrites what a human wrote.
+                outcomeHead: null, outcomeWordTouched: false,
                 intentCache: {},
                 session: null, eventSource: null, lastSeq: 0, terminal: false,
                 startTs: null, elapsedTimer: null, logs: [], sawOutput: false,
                 headers: {},   // headers a human wrote that the form has no field for
+                // Write and Saved Notes share one form. It holds one tab's note at a
+                // time (formOwner); the other tab's waits in drafts, so switching
+                // tabs never throws away what someone typed.
+                mode: 'new', formOwner: 'new', drafts: {},
             };
 
             let _currentQueue = [];
@@ -15850,8 +15972,8 @@
                 return body;
             }
 
-            function msg(text, isError) {
-                const box = $('adaptRunMsg');
+            function msg(text, isError, id) {
+                const box = $(id || 'adaptRunMsg');
                 if (box) { box.textContent = text || ''; box.style.color = isError ? '#ef4444' : ''; }
             }
             function setError(text) {
@@ -15899,6 +16021,7 @@
                     modSel.innerHTML = placeholder;
                     if ($('adaptClass')) $('adaptClass').innerHTML = placeholder;
                     if ($('adaptTest')) $('adaptTest').innerHTML = placeholder;
+                    renderSelected();
                     return;
                 }
 
@@ -15924,12 +16047,16 @@
                 const classes = visibleClasses().filter(function (c) {
                     return !module || c.module === module;
                 });
+                // init() re-renders the pickers on every visit to the page; keep
+                // the pick when it is still listed rather than resetting it.
+                const keep = sel.value;
                 sel.innerHTML = '<option value="">— select a class —</option>' +
                     classes.map(function (c) {
                         const n = c.methods.length;
                         return '<option value="' + esc(c.qualified_name) + '">' +
                                esc(c.name) + ' (' + n + ' test' + (n === 1 ? '' : 's') + ')</option>';
                     }).join('');
+                if (classes.some(function (c) { return c.qualified_name === keep; })) sel.value = keep;
                 renderMethods();
             }
 
@@ -15944,9 +16071,14 @@
                 const sel = $('adaptTest');
                 if (!sel) return;
                 const cls = currentClass();
+                // The test is kept only for the same class: a same-named method in
+                // another class is a different test.
+                const keep = (cls && sel.dataset.cls === cls.qualified_name) ? sel.value : '';
+                sel.dataset.cls = cls ? cls.qualified_name : '';
                 if (!cls) {
                     sel.innerHTML = '<option value="">— pick a class first —</option>';
                     renderIntent(null);
+                    renderSelected();
                     return;
                 }
                 sel.innerHTML =
@@ -15960,6 +16092,7 @@
                                (m.enabled ? '' : ' style="opacity:.55;"') + '>' +
                                esc(label) + '</option>';
                     }).join('');
+                if (keep && cls.methods.some(function (m) { return m.name === keep; })) sel.value = keep;
                 onTestChange();
             }
 
@@ -16000,6 +16133,7 @@
 
             function onTestChange() {
                 onFormChange();
+                renderSelected();
                 const cls = currentClass();
                 const method = ($('adaptTest') || {}).value || '';
                 if (!cls || !method || method === '__CLASS__') {
@@ -16035,11 +16169,24 @@
                 onFormChange();
             }
 
+            // With nothing added, say what adoptPick() will add on Save/Run
+            // rather than let it happen out of sight.
+            function scopeHint() {
+                if (state.rawOverride) return 'Scope comes from the raw note (Advanced).';
+                const cls = currentClass();
+                const method = ($('adaptTest') || {}).value || '';
+                if (!cls || !method) return 'Nothing yet — pick a test and click ＋ Add.';
+                return 'Nothing added — Save/Run will add ' + (method === '__CLASS__'
+                    ? 'every test in ' + cls.name : method) + '.';
+            }
+
             function renderSelected() {
                 const wrap = $('adaptSelectedWrap');
                 if (!wrap) return;
-                if (!state.selected.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
-                wrap.style.display = '';
+                if (!state.selected.length) {
+                    wrap.innerHTML = '<span class="qa-hint">' + esc(scopeHint()) + '</span>';
+                    return;
+                }
                 wrap.innerHTML = state.selected.map(function (ident) {
                     // The package prefix is the same for every row and costs the
                     // chip most of its width; the full name is in the note.
@@ -16134,8 +16281,24 @@
                         'the agent can see statically.</div>');
                 }
 
+                // One row per check, with what it expects, so a change note can say
+                // which check goes or changes. Older servers only send `verifies`.
+                const checks = data.checks || [];
                 const verifies = data.verifies || [];
-                if (verifies.length) {
+                if (checks.length) {
+                    parts.push('<div class="qa-intent-h">Checks today</div>');
+                    parts.push(checks.map(function (c, i) {
+                        const expects = (c.expected || []).length
+                            ? ' — expects “' + c.expected.join('”, “') + '”' : '';
+                        const via = c.via
+                            ? ' <span class="qa-hint">(via ' + esc(c.via) + ')</span>' : '';
+                        return '<div class="qa-intent-step">' +
+                            '<span class="qa-intent-step-n">✓</span>' +
+                            '<span>' + esc(checkLabel(c)) + esc(expects) + via + '</span>' +
+                            '<button type="button" class="qa-intent-seed" title="Write about this check" ' +
+                            'onclick="qaAdapt.seedCheck(' + i + ')">↩</button></div>';
+                    }).join(''));
+                } else if (verifies.length) {
                     parts.push('<div class="qa-intent-h">Verifies</div><ul style="margin:0;padding-left:18px;">' +
                         verifies.map(function (v) { return '<li>' + esc(v) + '</li>'; }).join('') + '</ul>');
                 }
@@ -16157,6 +16320,25 @@
                 const existing = box.value.replace(/\s+$/, '');
                 const n = (existing.match(/^\s*\d+[.)]/gm) || []).length + 1;
                 const line = n + '. Step ' + (i + 1) + ' “' + step + '” — ';
+                box.value = (existing ? existing + '\n' : '') + line;
+                box.focus();
+                box.setSelectionRange(box.value.length, box.value.length);
+                onFormChange();
+            }
+
+            function checkLabel(c) {
+                return c.message || ((c.callee || 'check') + ' in ' + (c.site || '?'));
+            }
+
+            // Same as seedStep, for a check: the note then names the check to
+            // remove or change, and the agent must declare exactly that one.
+            function seedCheck(i) {
+                const box = $('adaptChanged');
+                const check = ((state.intent || {}).checks || [])[i];
+                if (!box || !check) return;
+                const existing = box.value.replace(/\s+$/, '');
+                const n = (existing.match(/^\s*\d+[.)]/gm) || []).length + 1;
+                const line = n + '. Check “' + checkLabel(check) + '” — ';
                 box.value = (existing ? existing + '\n' : '') + line;
                 box.focus();
                 box.setSelectionRange(box.value.length, box.value.length);
@@ -16213,9 +16395,15 @@
 
             // Never overwrite something a human typed: only replace the field
             // while it still holds exactly what we last put there.
+            function outcomeWord() {
+                return (($('adaptOutcomeWord') || {}).value) || 'unchanged';
+            }
+
             function fillOutcome() {
                 const box = $('adaptOutcome');
                 if (!box) return;
+                // A changed outcome is exactly what the test cannot tell us.
+                if (outcomeWord() === 'changed') return;
                 const current = (box.value || '').trim();
                 if (current && current !== state.outcomeAuto) return;
                 const derived = deriveOutcome();
@@ -16225,6 +16413,22 @@
                 const badge = $('adaptOutcomeDerived');
                 if (badge) badge.style.display = '';
                 onFormChange();
+            }
+
+            function onOutcomeWordChange() {
+                state.outcomeWordTouched = true;
+                const box = $('adaptOutcome');
+                const badge = $('adaptOutcomeDerived');
+                if (outcomeWord() === 'changed') {
+                    // The derived text describes the old outcome; leave the box
+                    // empty for the new one rather than letting it be kept by accident.
+                    if (box && (box.value || '').trim() === state.outcomeAuto) box.value = '';
+                    if (badge) badge.style.display = 'none';
+                    onFormChange();
+                } else {
+                    fillOutcome();
+                    onFormChange();
+                }
             }
 
             function onOutcomeEdit() {
@@ -16297,7 +16501,12 @@
                 lines.push('');
                 lines.push('What changed:');
                 lines.push(changed || '1. ');
-                if (outcome) { lines.push(''); lines.push('Expected outcome unchanged: ' + outcome); }
+                if (outcome) {
+                    const head = (!state.outcomeWordTouched && state.outcomeHead)
+                        || ('Expected outcome ' + outcomeWord());
+                    lines.push('');
+                    lines.push(head + ': ' + outcome);
+                }
                 if ((state.epilogue || []).length) {
                     lines.push('');
                     (state.epilogue || []).forEach(function (l) { lines.push(l); });
@@ -16311,12 +16520,21 @@
             const KNOWN_HEADERS = ['module', 'type', 'url', 'tests', 'affects'];
             function parseNote(text) {
                 const out = { headers: {}, extra: {}, items: [], outcome: '',
-                              preamble: [], epilogue: [] };
+                              outcomeHead: '', preamble: [], epilogue: [] };
+                let inOutcome = false;
                 const lines = (text || '').split('\n');
                 let seenItem = false;
                 let seenHeader = false;
                 const body = [];
                 lines.forEach(function (raw) {
+                    // A wrapped outcome continues until a blank, numbered or `#` line.
+                    if (inOutcome) {
+                        if (raw.trim() && !/^\s*#/.test(raw) && !/^\s*\d+[.)]\s*\S/.test(raw)) {
+                            out.outcome += ' ' + raw.trim();
+                            return;
+                        }
+                        inOutcome = false;
+                    }
                     if (/^\s*#/.test(raw)) {
                         // Before any header it is a banner; after, a footer.
                         (seenHeader ? out.epilogue : out.preamble).push(raw.replace(/\s+$/, ''));
@@ -16324,8 +16542,13 @@
                     }
                     const numbered = /^\s*(\d+)[.)]\s*(.+)$/.exec(raw);
                     if (numbered) { seenItem = true; body.push(raw.trim()); return; }
-                    const outcome = /^\s*Expected outcome[^:]*:\s*(.+)$/i.exec(raw);
-                    if (outcome) { out.outcome = outcome[1].trim(); return; }
+                    const outcome = /^\s*((?:expected\s+)?outcome\b[^:]*):\s*(.*)$/i.exec(raw);
+                    if (outcome) {
+                        out.outcomeHead = outcome[1].trim();
+                        out.outcome = outcome[2].trim();
+                        inOutcome = true;
+                        return;
+                    }
                     if (!seenItem) {
                         const h = /^\s*([A-Za-z][A-Za-z ]*?)\s*:\s*(.+?)\s*$/.exec(raw);
                         if (h) {
@@ -16356,6 +16579,12 @@
                 if ($('adaptWiden')) $('adaptWiden').checked = !!h.affects;
                 if ($('adaptChanged')) $('adaptChanged').value = parsed.items.join('\n');
                 if ($('adaptOutcome')) $('adaptOutcome').value = parsed.outcome;
+                state.outcomeHead = parsed.outcomeHead || null;
+                state.outcomeWordTouched = false;
+                if ($('adaptOutcomeWord')) {
+                    $('adaptOutcomeWord').value =
+                        /\bchanged\b/i.test(parsed.outcomeHead || '') ? 'changed' : 'unchanged';
+                }
                 state.outcomeAuto = parsed.outcome ? null : state.outcomeAuto;
                 if ($('adaptOutcomeDerived')) $('adaptOutcomeDerived').style.display = 'none';
                 if (h.module && $('adaptModule')) {
@@ -16410,11 +16639,13 @@
                 state.rawOverride = true;
                 const notice = $('adaptRawNotice');
                 if (notice) notice.style.display = '';
+                renderSelected();
             }
             function resetToForm() {
                 state.rawOverride = false;
                 const notice = $('adaptRawNotice');
                 if (notice) notice.style.display = 'none';
+                renderSelected();
                 onFormChange();
             }
 
@@ -16440,133 +16671,219 @@
                        p2(d.getHours()) + p2(d.getMinutes());
             }
 
+            // The healing agent drafts notes into this queue when it finds a page
+            // rebuilt rather than broken. They are ordinary notes, so they live in
+            // Saved Notes — listed first, labelled, and counted on the tab.
+            function isHealingDraft(i) {
+                return /^\s*#\s*DRAFT/.test(i.preview || '') || /-rebuilt$/.test(i.name || '');
+            }
+
             function loadNotes() {
                 return api('/queue').then(function (body) {
                     const sel = $('adaptNoteSelect');
                     const items = body.items || [];
+                    const drafts = items.filter(isHealingDraft);
+                    const ordered = drafts.concat(items.filter(function (i) { return !isHealingDraft(i); }));
                     if (sel) {
-                        sel.innerHTML = '<option value="__NEW__">＋ New change note</option>' +
-                            items.map(function (i) {
-                                return '<option value="' + esc(i.name) + '">' + esc(i.name) + '</option>';
+                        // The pick is the Saved Notes tab's; a refresh must not re-point it.
+                        const keep = sel.value;
+                        sel.innerHTML = '<option value="">— select a saved note —</option>' +
+                            ordered.map(function (i) {
+                                const label = i.name + (isHealingDraft(i) ? ' — 📝 draft from healing' : '');
+                                return '<option value="' + esc(i.name) + '">' + esc(label) + '</option>';
                             }).join('');
-                        sel.value = (state.note && items.some(function (i) { return i.name === state.note; }))
-                            ? state.note : '__NEW__';
+                        if (items.some(function (i) { return i.name === keep; })) sel.value = keep;
+                    }
+                    const count = $('adaptFromHealingCount');
+                    if (count) {
+                        count.textContent = drafts.length;
+                        count.style.display = drafts.length ? '' : 'none';
                     }
                     return items;
                 });
             }
 
-            // The healing agent drafts notes into this queue when it finds a page
-            // rebuilt rather than broken. They are the adaptation panel's inbox.
-            function loadDrafts(items) {
-                const card = $('adaptFromHealingCard');
-                const wrap = $('adaptFromHealingWrap');
-                if (!card || !wrap) return;
-                const drafts = (items || []).filter(function (i) {
-                    return /^\s*#\s*DRAFT/.test(i.preview || '') || /-rebuilt$/.test(i.name || '');
+            function refreshNotes() {
+                return loadNotes().catch(function (e) {
+                    msg('Could not reach the agent server: ' + e.message, true);
                 });
-                if (!drafts.length) { card.style.display = 'none'; return; }
-                card.style.display = 'block';
-                const count = $('adaptFromHealingCount');
-                if (count) count.textContent = drafts.length;
-                wrap.innerHTML = drafts.map(function (d) {
-                    return '<div class="qa-queue-item"><div><strong>' + esc(d.name) + '</strong>' +
-                        '<div class="qa-card-sub">' + esc(d.preview || '') + '</div></div>' +
-                        '<button type="button" class="qa-btn qa-btn-ghost" ' +
-                        'onclick="qaAdapt.openNote(\'' + esc(d.name) + '\')">Open →</button></div>';
-                }).join('');
             }
 
-            function openNote(name) {
+            // ── Tabs ─────────────────────────────────────────────────────────
+            // Write and Saved Notes share the form, which holds one tab's note at
+            // a time. Leaving one parks its contents; coming back puts them back
+            // exactly — pickers, chips, the test pane, text, raw-note override.
+            // Explicit id lists rather than a scrape of the form, so the run
+            // options (auto-push, base branch), which are shared, stay out of it.
+            const FORM_VALUES = ['adaptModule', 'adaptClass', 'adaptTest', 'adaptWiden', 'adaptChanged',
+                                 'adaptOutcomeWord', 'adaptOutcome', 'adaptNoteName', 'adaptUrl', 'adaptNoteBody'];
+            // Restored before the values, so the selects have their options again.
+            const FORM_HTML = ['adaptClass', 'adaptTest', 'adaptIntentPane', 'adaptSelectedWrap'];
+            const FORM_SHOWN = ['adaptIntentPane', 'adaptOutcomeDerived', 'adaptRawNotice', 'adaptDraftBanner'];
+            const FORM_STATE = ['selected', 'note', 'headers', 'preamble', 'epilogue', 'affectsRaw',
+                                'outcomeAuto', 'outcomeHead', 'outcomeWordTouched', 'rawOverride', 'intent'];
+
+            function snapshotForm() {
+                const s = { html: {}, val: {}, shown: {}, state: {} };
+                FORM_HTML.forEach(function (id) { s.html[id] = $(id).innerHTML; });
+                FORM_VALUES.forEach(function (id) {
+                    const el = $(id);
+                    s.val[id] = el.type === 'checkbox' ? el.checked : el.value;
+                });
+                FORM_SHOWN.forEach(function (id) { s.shown[id] = $(id).style.display; });
+                FORM_STATE.forEach(function (k) {
+                    s.state[k] = JSON.parse(JSON.stringify(state[k] === undefined ? null : state[k]));
+                });
+                return s;
+            }
+
+            function restoreForm(s) {
+                FORM_STATE.forEach(function (k) { state[k] = s.state[k]; });
+                FORM_HTML.forEach(function (id) { $(id).innerHTML = s.html[id]; });
+                FORM_VALUES.forEach(function (id) {
+                    const el = $(id);
+                    if (el.type === 'checkbox') el.checked = s.val[id]; else el.value = s.val[id];
+                });
+                FORM_SHOWN.forEach(function (id) { $(id).style.display = s.shown[id]; });
+                // Pane shown with no intent is real (whole class, read error), so
+                // go by what was on screen, and let showPane fix the grid to match.
+                showPane(s.shown.adaptIntentPane !== 'none');
+                $('adaptTest').dataset.cls = $('adaptClass').value;
+            }
+
+            // A new note: every field, the pickers and the test pane blank.
+            function resetForm() {
+                state.note = '';
+                state.headers = {};
+                state.preamble = []; state.epilogue = []; state.affectsRaw = '';
+                state.selected = [];
+                state.rawOverride = false;
+                state.outcomeAuto = null;
+                state.outcomeHead = null;
+                state.outcomeWordTouched = false;
+                ['adaptNoteName', 'adaptUrl', 'adaptChanged', 'adaptOutcome'].forEach(function (id) {
+                    if ($(id)) $(id).value = '';
+                });
+                if ($('adaptOutcomeWord')) $('adaptOutcomeWord').value = 'unchanged';
+                if ($('adaptWiden')) $('adaptWiden').checked = false;
+                ['adaptRawNotice', 'adaptDraftBanner', 'adaptOutcomeDerived'].forEach(function (id) {
+                    if ($(id)) $(id).style.display = 'none';
+                });
+                // renderClasses keeps a still-listed class, and with no module
+                // every class is listed — so clear it here, not by re-rendering.
+                if ($('adaptModule')) $('adaptModule').value = '';
+                if ($('adaptClass')) $('adaptClass').value = '';
+                renderClasses();
+                onFormChange();
+            }
+
+            const TAB_HINTS = {
+                new: 'Describe what changed in the product — the agent updates the tests to match.',
+                saved: 'Pick a saved change note, review or edit it, then run. Drafts the healing ' +
+                       'agent left (a page it found rebuilt, not broken) are listed first.',
+            };
+
+            function switchMode(mode) {
+                state.mode = mode;
+                document.querySelectorAll('#tabPanelAdapt [data-adapt-mode]').forEach(function (btn) {
+                    const on = btn.dataset.adaptMode === mode;
+                    btn.classList.toggle('active', on);
+                    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+                });
+                $('adaptTabHint').textContent = TAB_HINTS[mode] || '';
+                $('adaptSavedPane').classList.toggle('active', mode === 'saved');
+                setError('');
+                if (state.formOwner === mode) return;   // re-clicking the active tab
+
+                // Nothing still in flight for the old tab may paint the new one.
+                clearTimeout(state.intentTimer);
+                state.intentSeq++;
+                msg('', false, 'adaptSaveStatus');
+                state.drafts[state.formOwner] = snapshotForm();
+                state.formOwner = mode;
+                const parked = state.drafts[mode];
+                state.drafts[mode] = null;
                 const sel = $('adaptNoteSelect');
-                if (sel) sel.value = name;
-                onNoteChange();
-                const box = $('adaptChanged');
-                if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (parked) restoreForm(parked);
+                else if (mode === 'saved' && sel && sel.value) onNoteChange();
+                else resetForm();
             }
 
             async function onNoteChange() {
-                const name = ($('adaptNoteSelect') || {}).value || '__NEW__';
-                state.rawOverride = false;
-                const notice = $('adaptRawNotice');
-                if (notice) notice.style.display = 'none';
-                if (name === '__NEW__') {
-                    state.note = '';
-                    state.headers = {};
-                    state.preamble = []; state.epilogue = []; state.affectsRaw = '';
-                    state.selected = [];
-                    ['adaptNoteName', 'adaptUrl', 'adaptChanged', 'adaptOutcome'].forEach(function (id) {
-                        if ($(id)) $(id).value = '';
-                    });
-                    if ($('adaptWiden')) $('adaptWiden').checked = false;
-                    if ($('adaptDraftBanner')) $('adaptDraftBanner').style.display = 'none';
-                    renderSelected();
-                    onFormChange();
-                    return;
-                }
+                const name = ($('adaptNoteSelect') || {}).value || '';
+                // From blank, not on top of the last note: one without `Tests:`
+                // (the healing agent's drafts) would otherwise inherit the old
+                // picks, and adoptPick would add them on Save/Run.
+                resetForm();
+                msg('', false, 'adaptSaveStatus');
+                if (!name) return;
                 state.note = name;
                 if ($('adaptNoteName')) $('adaptNoteName').value = name;
                 try {
                     const body = await api('/queue/' + encodeURIComponent(name));
+                    // Left Saved Notes while it loaded: don't paint it into Write.
+                    // Coming back finds no parked copy and loads it again.
+                    if (state.formOwner !== 'saved') { state.drafts.saved = null; return; }
                     if ($('adaptNoteBody')) $('adaptNoteBody').value = body.content || '';
                     applyParsedNote(body.content || '');
                     msg('');
                 } catch (e) { msg('Could not read ' + name + ': ' + e.message, true); }
             }
 
+            // A save can finish after the user has switched tabs. Its result goes
+            // to the tab that saved — live or parked — so one tab never picks up
+            // the other's note name (and its next save overwrite that file).
+            function noteSaved(owner, name) {
+                if (state.formOwner === owner) {
+                    state.note = name;
+                    if ($('adaptNoteName')) $('adaptNoteName').value = name;
+                    msg('Saved as ' + name + '.txt', false, 'adaptSaveStatus');
+                } else if (state.drafts[owner]) {
+                    state.drafts[owner].state.note = name;
+                    state.drafts[owner].val.adaptNoteName = name;
+                }
+                if (owner === 'saved' && $('adaptNoteSelect')) $('adaptNoteSelect').value = name;
+            }
+
             async function saveNote() {
+                const owner = state.formOwner;
                 adoptPick();
                 const name = suggestedName();
                 const content = noteText();
-                if (!content.trim()) { msg('The note is empty.', true); return; }
+                if (!content.trim()) { msg('The note is empty.', true, 'adaptSaveStatus'); return; }
                 try {
                     await api('/queue', {
                         method: 'POST',
                         body: JSON.stringify({ name: name, content: content }),
                     });
-                    state.note = name;
-                    if ($('adaptNoteName')) $('adaptNoteName').value = name;
-                    const items = await loadNotes();
-                    loadDrafts(items);
-                    if ($('adaptNoteSelect')) $('adaptNoteSelect').value = name;
-                    msg('Saved as ' + name + '.txt');
-                } catch (e) { msg('Save failed: ' + e.message, true); }
+                    await loadNotes();
+                    noteSaved(owner, name);
+                } catch (e) { msg('Save failed: ' + e.message, true, 'adaptSaveStatus'); }
             }
 
-            // ── Run depth ────────────────────────────────────────────────────
-            // One ordinal control on the way in, three env flags on the way out.
-            // The server still takes explore_only / apply / auto_push separately —
-            // this is only about not making a human assemble them.
-            const DEPTHS = {
-                explore:  { explore_only: true,  apply: false, auto_push: false },
-                propose:  { explore_only: false, apply: false, auto_push: false },
-                apply:    { explore_only: false, apply: true,  auto_push: false },
-                apply_pr: { explore_only: false, apply: true,  auto_push: true  },
-            };
-
-            function depthPayload() {
-                return DEPTHS[($('adaptDepth') || {}).value] || DEPTHS.propose;
+            // ── Auto-push ────────────────────────────────────────────────────
+            // Ticked = write the edits and raise a PR. Unticked = auto_push off (runs in
+            // the local checkout); whether edits are applied comes from ADAPTATION_APPLY.
+            function pushPayload() {
+                return ($('adaptAutoPush') || {}).checked
+                    ? { apply: true, auto_push: true } : { auto_push: false };
             }
 
-            // The effective default is whatever config/.env says, expressed as the
-            // matching rung rather than as two checkboxes the user has to reconcile.
+            // Seed the box from config/.env, as Authoring does: its value overrides
+            // the .env setting, so a box that always starts unticked is a silent dry run.
             function applyDefaults() {
                 qaBranchField.seed('adaptBaseBranch', 'adaptBranchList', BASE);
                 return fetchJson(BASE + '/config').then(function (res) {
-                    if (!res.ok || !res.body) return;
-                    const sel = $('adaptDepth');
-                    if (!sel) return;
-                    sel.value = !res.body.adapt_apply_default ? 'propose'
-                        : (res.body.auto_push_default ? 'apply_pr' : 'apply');
-                }).catch(function () { /* leave the select as-is */ })
+                    const box = $('adaptAutoPush');
+                    if (res.ok && res.body && box) box.checked = !!res.body.auto_push_default;
+                }).catch(function () { /* leave the box as-is */ })
                   .then(syncLocalMode);
             }
 
-            // Only `apply_pr` raises a PR; the other three rungs all send
-            // auto_push:false and therefore run in the developer's own checkout.
+            // Auto-push off runs in the developer's own checkout.
             function syncLocalMode() {
-                const depth = ($('adaptDepth') || {}).value;
-                qaBranchField.applyLocalMode('adaptBaseBranch', depth !== 'apply_pr',
+                const box = $('adaptAutoPush');
+                qaBranchField.applyLocalMode('adaptBaseBranch', !(box && box.checked),
                                              'adaptLocalNote');
             }
 
@@ -16582,6 +16899,7 @@
 
             async function run() {
                 setError('');
+                const owner = state.formOwner;
                 adoptPick();
                 const name = suggestedName();
                 const content = noteText();
@@ -16597,6 +16915,11 @@
                              + 'with a dash. Say what changed about that step.');
                     return;
                 }
+                if (outcomeWord() === 'changed' && !(($('adaptOutcome') || {}).value || '').trim()) {
+                    setError('Say what the expected outcome is now — the agent explores '
+                             + 'toward it, and it is how an irreversible last step is caught.');
+                    return;
+                }
 
                 setRunBtnLoading(true);
                 try {
@@ -16604,11 +16927,10 @@
                     // rather than sending the body — same shape as the authoring panel.
                     await api('/queue', { method: 'POST',
                         body: JSON.stringify({ name: name, content: content }) });
-                    state.note = name;
                     await loadNotes();
-                    if ($('adaptNoteSelect')) $('adaptNoteSelect').value = name;
+                    noteSaved(owner, name);
 
-                    const payload = Object.assign({ module: name }, depthPayload(),
+                    const payload = Object.assign({ module: name }, pushPayload(),
                                                   qaBranchField.payload('adaptBaseBranch'));
                     const body = await api('/run', { method: 'POST', body: JSON.stringify(payload) });
                     setRunBtnLoading(false);
@@ -16642,7 +16964,7 @@
                     const body = await api('/sessions/' + encodeURIComponent(sessionId) + '/retry', {
                         method: 'POST',
                         body: JSON.stringify({ from_step: fromStep,
-                                               auto_push: depthPayload().auto_push }),
+                                               auto_push: pushPayload().auto_push }),
                     });
                     closeSession();
                     if (body.queued) {
@@ -16666,7 +16988,7 @@
                     const body = await api('/sessions/' + encodeURIComponent(state.session) + '/retry', {
                         method: 'POST',
                         body: JSON.stringify({ from_step: step,
-                                               auto_push: depthPayload().auto_push }),
+                                               auto_push: pushPayload().auto_push }),
                     });
                     if (body.queued) {
                         showToast('⏳  Queued at position ' + body.position + '.', 'info');
@@ -16678,14 +17000,23 @@
             }
 
             async function cancel() {
-                if (!state.session) return;
+                if (!state.session || state.terminal) return;
+                const btn = $('adaptCancelBtn');
+                // One request per run: the `cancelling` status and `done` follow.
+                if (btn) btn.disabled = true;
                 try {
                     await api('/run/' + encodeURIComponent(state.session) + '/cancel', { method: 'POST' });
                     // Console, not a toast or the form's error box: this is detail
                     // about the run, and it belongs with the run's other output.
                     appendLog('[cancel] requested');
                 } catch (e) {
-                    appendLog('[cancel] failed: ' + (e && e.message || 'unknown'));
+                    const why = (e && e.message) || 'unknown';
+                    appendLog('[cancel] failed: ' + why);
+                    // The server's 404: the run already ended — nothing left to cancel.
+                    if (btn) {
+                        if (/already finished|not found/i.test(why)) btn.style.display = 'none';
+                        else btn.disabled = false;
+                    }
                 }
             }
 
@@ -16718,7 +17049,7 @@
             function markStep(key, status, payload) {
                 const el = document.querySelector('#adaptProgressSteps .qa-step[data-step="' + key + '"]');
                 if (!el) return;
-                el.classList.remove('running', 'done', 'failed');
+                el.classList.remove('running', 'done', 'failed', 'skipped');
                 if (status) el.classList.add(status);
                 // Time and cost for the stage go in the console, not on the chip.
                 const suffix = payload ? QA_STEP_SUFFIX(payload) : '';
@@ -16804,6 +17135,11 @@
                         : '—';
                 }
                 if ($('adaptLiveResult')) $('adaptLiveResult').innerHTML = '';
+                // Only a live run can be cancelled; finish() hides it again.
+                if ($('adaptCancelBtn')) {
+                    $('adaptCancelBtn').style.display = isReplay ? 'none' : '';
+                    $('adaptCancelBtn').disabled = false;
+                }
                 if ($('adaptLiveStatus')) {
                     $('adaptLiveStatus').textContent = 'running…';
                     $('adaptLiveStatus').className = 'qa-live-badge badge-running';
@@ -16880,7 +17216,16 @@
                     let ev;
                     try { ev = JSON.parse(raw.data); }
                     catch (err) { console.warn('qaAdapt: unparsable SSE frame', err); return; }
-                    if (typeof ev.seq === 'number') state.lastSeq = Math.max(state.lastSeq, ev.seq);
+                    // The browser reconnects with this stream's original URL
+                    // (offset=0) and the server ignores Last-Event-ID, so a drop
+                    // replays the whole run — skip what is already on screen.
+                    // Never `done`: served from history after a server restart,
+                    // frames are renumbered from 1, and dropping it would leave
+                    // the run never finishing.
+                    if (typeof ev.seq === 'number') {
+                        if (kind !== 'done' && ev.seq <= state.lastSeq) return;
+                        state.lastSeq = Math.max(state.lastSeq, ev.seq);
+                    }
                     const d = ev.data || {};
                     // Close THIS stream, not just whichever one state points at: a
                     // superseded stream would stay open, and the browser caps
@@ -16904,6 +17249,7 @@
                 stopElapsed();
                 closeStream();
                 setRunBtnLoading(false);
+                if ($('adaptCancelBtn')) $('adaptCancelBtn').style.display = 'none';
 
                 // Historical replay sends duration_s; the live path sends
                 // duration. Either may be null, in which case whatever is already
@@ -16955,6 +17301,7 @@
                 if (c.verified) bits.push('<span class="qa-live-badge badge-completed">' + esc(c.verified) + ' verified</span>');
                 if (c.proposed) bits.push('<span class="qa-live-badge">' + esc(c.proposed) + ' proposed</span>');
                 if (c.covered) bits.push('<span class="qa-live-badge">' + esc(c.covered) + ' covered by another item</span>');
+                if (c.checks_changed) bits.push('<span class="qa-live-badge">⚠️ ' + esc(c.checks_changed) + ' check(s) changed</span>');
                 if (c.escalated) bits.push('<span class="qa-live-badge">⚠️ ' + esc(c.escalated) + ' escalated</span>');
                 if (c.rejected) bits.push('<span class="qa-live-badge badge-failed">' + esc(c.rejected) + ' rejected</span>');
                 if (!bits.length) {
@@ -16969,7 +17316,6 @@
             }
 
             function resultHtml(s, withMeta) {
-                const reports = s.reports || {};
                 const h4 = function (t) { return '<h4 style="margin:16px 0 6px 0;font-size:13px;">' + t + '</h4>'; };
                 const meta = function (label, value) {
                     return '<div class="qa-live-meta-item"><span class="qa-live-meta-label">' + label +
@@ -17008,19 +17354,84 @@
                         }).join('') + '</ul></div></div>');
                 }
 
+                // The digest: what each change item came to, the checks it changed,
+                // the tests that proved it, and the flow it was built from. The raw
+                // scope/explore/adapt reports are not shown: they buried this under
+                // excluded-test lists and a checkmark per guard. They stay in the
+                // audit folder and the PR body for whoever needs the detail.
+                // 12.5px to match the escalation banner beside it.
+                const digestStart = parts.length;
+                const items = s.items || [];
+                if (items.length) {
+                    parts.push(h4('Change items') + '<ol style="margin:0;padding-left:20px;">' +
+                        items.map(function (i) {
+                            return '<li style="margin-bottom:8px;"><strong>' + esc(i.text || ('item ' + i.index)) +
+                                '</strong> — ' + esc(itemOutcome(i)) +
+                                (itemDetail(i) ? '<div class="qa-card-sub">' + esc(itemDetail(i)) + '</div>' : '') +
+                                '</li>';
+                        }).join('') + '</ol>');
+                }
+
+                const changed = [];
+                items.forEach(function (i) {
+                    (i.check_changes || []).forEach(function (r) { changed.push(r); });
+                });
+                if (changed.length) {
+                    parts.push(h4('⚠️ Checks changed') + '<ul style="margin:0;padding-left:20px;">' +
+                        changed.map(function (r) {
+                            return '<li style="margin-bottom:6px;"><strong>“' + esc(r.message || '') + '”</strong> — ' +
+                                esc(r.action === 'remove' ? 'removed' : 'changed') +
+                                (r.evidence ? ' <span class="qa-card-sub">(evidence: ' + esc(r.evidence) + ')</span>' : '') +
+                                (r.why ? '<div class="qa-card-sub">' + esc(r.why) + '</div>' : '') + '</li>';
+                        }).join('') + '</ul>');
+                }
+
+                const tests = s.tests || {};
+                const passed = tests.passed || [], failed = tests.failed || [];
+                if (passed.length || failed.length) {
+                    const name = function (t) { return String(t).split('#').pop(); };
+                    parts.push(h4('Tests re-run') + '<p style="margin:0;">' +
+                        esc(passed.length + '/' + (passed.length + failed.length) + ' passed') +
+                        (failed.length ? ' — <strong>failing: ' + esc(failed.map(name).join(', ')) + '</strong>' : '') +
+                        '<span class="qa-card-sub"> · ' + esc(passed.map(name).join(', ')) + '</span></p>');
+                }
+
+                if ((s.flow || []).length) {
+                    parts.push(h4('Flow the agent walked') + '<ol style="margin:0;padding-left:20px;">' +
+                        s.flow.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ol>');
+                }
+
+                if (parts.length > digestStart) {
+                    parts.push('<div style="font-size:12.5px;line-height:1.5;">' +
+                        parts.splice(digestStart).join('') + '</div>');
+                }
+
                 // Live, the console's per-stage "✓ Stage — time · cost" lines already
                 // say this, as in Authoring; only the history modal needs the table.
                 const stageTable = withMeta && QA_STAGE_TABLE(s.metrics);
                 if (stageTable) parts.push(h4('Time &amp; cost') + stageTable);
 
-                ['scope', 'explore', 'adapt'].forEach(function (key) {
-                    if (!reports[key]) return;
-                    parts.push(h4(esc(STEP_LABELS[key] || key) + ' report') +
-                        '<pre class="qa-console" style="max-height:260px;white-space:pre-wrap;">' +
-                        esc(reports[key]) + '</pre>');
-                });
-
                 return parts.join('');
+            }
+
+            // "partial" means some tests failed at the time; whether any still fail
+            // is the Tests line's job, and a carried-forward "partial" whose tests all
+            // pass now read as broken.
+            function itemOutcome(i) {
+                switch (i.status) {
+                    case 'applied': case 'partial': return 'applied' + (i.attempt ? ' (attempt ' + i.attempt + ')' : '');
+                    case 'proposed': return 'proposed — nothing written';
+                    case 'covered': return 'covered by item ' + i.covered_by;
+                    case 'rolled_back': return 'rolled back';
+                    default: return i.status || '—';
+                }
+            }
+
+            // Declined and escalated items already have their reason in the banner.
+            function itemDetail(i) {
+                if (i.status === 'declined' || i.status === 'escalated') return 'reason in “Escalated to a human” above';
+                if (['rejected', 'rolled_back', 'failed'].indexOf(i.status) >= 0) return i.reason || '';
+                return i.summary || '';
             }
 
             // No counts does not mean no outcome — a run the gate stopped still
@@ -17031,6 +17442,7 @@
                 if (c.applied) bits.push(c.applied + ' applied');
                 if (c.proposed) bits.push(c.proposed + ' proposed');
                 if (c.covered) bits.push(c.covered + ' covered by another item');
+                if (c.checks_changed) bits.push(c.checks_changed + ' check(s) changed');
                 if (c.escalated) bits.push(c.escalated + ' escalated');
                 if (c.rejected) bits.push(c.rejected + ' rejected');
                 if (bits.length) return esc(bits.join(' · '));
@@ -17231,6 +17643,7 @@
                     const sel = $(id);
                     if (sel) sel.innerHTML = placeholder;
                 });
+                renderSelected();
                 const note = $('adaptNoteSelect');
                 if (note && note.options.length <= 1) {
                     note.innerHTML = '<option value="">— agent server offline —</option>';
@@ -17242,8 +17655,8 @@
                 if (_wired) return;
                 _wired = true;
                 window.addEventListener('beforeunload', closeStream);
-                const depth = $('adaptDepth');
-                if (depth) depth.addEventListener('change', syncLocalMode);
+                const pushBox = $('adaptAutoPush');
+                if (pushBox) pushBox.addEventListener('change', syncLocalMode);
                 document.querySelectorAll('#adaptProgressSteps .qa-step-retry-btn')
                     .forEach(function (btn) {
                         btn.addEventListener('click', function (e) {
@@ -17256,8 +17669,7 @@
             async function init() {
                 wireOnce();
                 try {
-                    const [items] = await Promise.all([loadNotes(), loadCatalog(), applyDefaults()]);
-                    loadDrafts(items);
+                    await Promise.all([loadNotes(), loadCatalog(), applyDefaults()]);
                     loadHistory();
                     onFormChange();
                     msg('');
@@ -17280,8 +17692,9 @@
             return {
                 init, renderEmpty, renderPicker,
                 onModuleChange, onClassChange, onTestChange, onFormChange,
-                addSelected, removeSelected, seedStep,
-                onNoteChange, saveNote, openNote, onOutcomeEdit,
+                addSelected, removeSelected, seedStep, seedCheck,
+                onNoteChange, saveNote, onOutcomeEdit, onOutcomeWordChange,
+                switchMode, refreshNotes,
                 onRawEdit, resetToForm,
                 run, cancel, copyLogs, loadHistory, viewLogs, retryFromStep,
                 cancelSession, removeFromQueue, openSession, closeSession,
