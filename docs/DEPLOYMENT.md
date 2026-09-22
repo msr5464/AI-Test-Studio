@@ -562,22 +562,17 @@ Install Gunicorn:
 pip install gunicorn
 ```
 
-Run with Gunicorn:
+Run with the shipped config (or `./scripts/run-production.sh`, which uses it):
 ```bash
-gunicorn -w 4 -b 0.0.0.0:5001 backend.app:create_app()
+gunicorn -c gunicorn_config.py "backend.app:create_app()"
 ```
 
-Or create `gunicorn_config.py`:
-```python
-bind = "0.0.0.0:5001"
-workers = 4
-timeout = 120
-```
+Keep **one worker** (`workers = 1` in `gunicorn_config.py`) and scale with threads (`GUNICORN_THREADS`). Several processes break the app rather than speeding it up:
+- they would share one ChromaDB directory, which is not safe across processes;
+- Requirements → Tests runs, their live streams and Cancel live in the worker's memory, so a request that lands on another worker cannot find the run;
+- the login rate limit and the embedding caches are per process.
 
-Run:
-```bash
-gunicorn -c gunicorn_config.py backend.app:create_app()
-```
+Keep `timeout` high (the config uses 900 s): analyses and agent streams are long-lived.
 
 ### Production Deployment (Detailed)
 
@@ -589,14 +584,14 @@ When you run `python backend/app.py` or `scripts/run.sh`, you may see a warning 
 
 #### Why Use a Production WSGI Server?
 
-A production WSGI server like **Gunicorn** provides multi-worker architecture, process management, and better security and scalability.
+A production WSGI server like **Gunicorn** provides process management, threaded request handling, and better security. This app runs a single Gunicorn worker with many threads; see Option 3 for why.
 
 #### Gunicorn Setup (Detailed)
 
 1. **Install Gunicorn**: `pip install gunicorn` (often already in requirements.txt).
 2. **Run**: `gunicorn -c gunicorn_config.py "backend.app:create_app()"` or use `./scripts/run-production.sh` if present.
 
-Configuration (e.g. `gunicorn_config.py`): set `bind = "0.0.0.0:5001"`, `workers = 4` (or `(CPU cores * 2) + 1` for mixed workload), `timeout = 120` for long-running LLM queries.
+Configuration: use the shipped `gunicorn_config.py` (1 worker, `gthread`, `GUNICORN_THREADS` threads, 900 s timeout, no periodic worker recycling). Do not raise `workers`; see Option 3.
 
 #### Systemd Service (Linux)
 
@@ -606,7 +601,7 @@ Create `/etc/systemd/system/rag-system.service` with `Type=notify`, `ExecStart=.
 
 - Change **SECRET_KEY** in `config/.env`; set **FLASK_DEBUG=False**; change default admin password.
 - Use **HTTPS** (reverse proxy such as Nginx with SSL).
-- Configure **firewall**; set up **log rotation** and **backups**; tune **worker count** and **resource limits**.
+- Configure **firewall**; set up **log rotation** and **backups**; tune **GUNICORN_THREADS** and **resource limits** (keep one worker).
 
 #### Security
 
@@ -618,7 +613,7 @@ Health check: `curl http://localhost:5001/health`. For production, redirect Guni
 
 #### Performance Tuning
 
-Set workers to `(CPU_cores * 2) + 1` for mixed workload; use `timeout = 120` for LLM calls. Set resource limits in systemd or Docker. Enable ChromaDB persistence and embedding/query caches.
+Keep one worker and raise `GUNICORN_THREADS` if many people keep pages open (each open page holds a thread per live stream); keep the long `timeout` from `gunicorn_config.py`. Set resource limits in systemd or Docker. Enable ChromaDB persistence and embedding/query caches.
 
 ---
 

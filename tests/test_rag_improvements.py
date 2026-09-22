@@ -318,8 +318,8 @@ class TestVectorstoreSessionCache:
             svc.find_related_tests("some requirement", k=5, vectorstore=mock_vs)
 
         svc._get_fresh_vectorstore_from_disk.assert_not_called()
-        # The passed vectorstore was assigned to rag.vectorstore
-        assert svc.rag.vectorstore is mock_vs
+        # The passed vectorstore goes straight to retrieval; shared state is not swapped
+        assert svc.rag.retrieve_documents_with_scores.call_args.kwargs["vectorstore"] is mock_vs
 
     def test_requirement_analysis_passes_session_vectorstore(self):
         """

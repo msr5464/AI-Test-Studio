@@ -69,6 +69,19 @@ def _llm_delay_sec() -> float:
     return 0.0
 
 
+def coverage_min_similarity() -> float:
+    """REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY (0-100), default 70.
+
+    Read in one place: its call sites used to fall back to 60, 70 or 80 when it was
+    unset, so a fresh install scored coverage inconsistently. Callers keep their clamps.
+    """
+    try:
+        v = os.getenv("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", "").strip()
+        return float(v) if v else 70.0
+    except ValueError:
+        return 70.0
+
+
 def _coverage_sufficient_shortcut(related_tests: List[Dict]) -> bool:
     """
     If we already have enough related tests with strong similarity, consider coverage sufficient
@@ -79,16 +92,13 @@ def _coverage_sufficient_shortcut(related_tests: List[Dict]) -> bool:
     if not related_tests or len(related_tests) < 3:
         return False
     min_tests = 5
-    min_sim_pct = 70.0
     try:
         v = os.getenv("REQUIREMENT_COVERAGE_SUFFICIENT_MIN_TESTS", "").strip()
         if v:
             min_tests = max(2, min(20, int(v)))
-        v = os.getenv("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", "").strip()
-        if v:
-            min_sim_pct = max(50.0, min(100.0, float(v)))
     except (ValueError, TypeError):
         pass
+    min_sim_pct = max(50.0, min(100.0, coverage_min_similarity()))
     if len(related_tests) < min_tests:
         return False
     # similarity_score from find_related_tests can be 0-1 or 0-100 depending on RAG
@@ -129,13 +139,7 @@ def _compute_generate_priorities(
             min_per_priority = max(1, min(10, int(v)))
     except (ValueError, TypeError):
         pass
-    min_sim_pct = 70.0
-    try:
-        v = os.getenv("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", "").strip()
-        if v:
-            min_sim_pct = max(0.0, min(100.0, float(v)))
-    except (ValueError, TypeError):
-        pass
+    min_sim_pct = max(0.0, min(100.0, coverage_min_similarity()))
     min_sim_01 = min_sim_pct / 100.0
 
     # Only count tests that meet the similarity threshold (scores may be 0-1 or 0-100)
@@ -192,17 +196,12 @@ def _compute_coverage_metrics(
     Mirrors Gate 1 exactly: ok_ids (LLM-validated tests) count as strong so coverage % matches gate decision.
     """
     min_per_priority = 3
-    min_sim_pct = 70.0
     try:
         v = os.getenv("REQUIREMENT_MIN_TESTS_PER_PRIORITY", "3")
         min_per_priority = max(1, min(10, int(v)))
     except (ValueError, TypeError):
         pass
-    try:
-        v = os.getenv("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", "70")
-        min_sim_pct = max(50.0, min(100.0, float(v)))
-    except (ValueError, TypeError):
-        pass
+    min_sim_pct = max(50.0, min(100.0, coverage_min_similarity()))
 
     min_sim_01 = min_sim_pct / 100.0
 
@@ -790,7 +789,7 @@ class RequirementAnalysisService:
         # Need-update band: tests with similarity >= retrieval_threshold AND < coverage_min_similarity go to
         # "Need update" tab; tests with similarity >= coverage_min_similarity go to "Reuse as-is".
         retrieval_threshold_pct = getattr(config, "requirement_tests_similarity_threshold", 50.0)
-        needs_update_similarity_ceiling_pct = float(os.getenv("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", "80"))
+        needs_update_similarity_ceiling_pct = coverage_min_similarity()
 
         total_reqs = len(requirements)
         # Extract source Confluence page IDs (all input URLs) so we can exclude them from
@@ -1213,13 +1212,7 @@ class RequirementAnalysisService:
         # Primary detection: case_type == "FCT / Regression" (stored in ChromaDB metadata after sync).
         # Fallback for tests indexed before this field was added: "e2e" in title or "type: fct" in content.
         # Only include tests above REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY to avoid weak matches.
-        _e2e_min_sim = 60.0
-        try:
-            v = os.getenv("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", "").strip()
-            if v:
-                _e2e_min_sim = max(0.0, min(100.0, float(v)))
-        except (ValueError, TypeError):
-            pass
+        _e2e_min_sim = max(0.0, min(100.0, coverage_min_similarity()))
         existing_e2e_tests: List[Dict[str, Any]] = []
         _seen_e2e_ids: set = set()
         for _tests in related_tests.values():
@@ -1321,7 +1314,9 @@ class RequirementAnalysisService:
                     related_specs.append(s)
 
         pushed: List[Dict] = []
-        if push_to_testrail and generated_tests:
+        # Checked again here, not via _run_cancelled: a Cancel during E2E generation
+        # must still stop cases from being created in TestRail.
+        if push_to_testrail and generated_tests and not _cancelled():
             default_section = target_section_id or 0
             push_enabled = getattr(config, "testrail_push_enabled", False) or os.getenv("TESTRAIL_PUSH_ENABLED", "").lower() == "true"
             if push_enabled:

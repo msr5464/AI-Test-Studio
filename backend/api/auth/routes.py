@@ -4,10 +4,16 @@ Authentication API Routes
 Endpoints for user authentication (login, logout, user management).
 """
 
+import re
 from flask import Blueprint, request, jsonify, session, current_app
 from functools import wraps
 
 auth_bp = Blueprint('auth', __name__)
+
+# Usernames are rendered in the admin UI, including inside inline handlers, so
+# restrict them at creation rather than trusting every sink to escape correctly.
+_USERNAME_RE = re.compile(r'^[A-Za-z0-9._@+-]{3,64}$')
+_USERNAME_ERROR = 'Username must be 3-64 characters: letters, digits and . _ @ + -'
 
 
 def require_auth(admin_only: bool = False):
@@ -36,11 +42,21 @@ def require_auth(admin_only: bool = False):
     return decorator
 
 
-# Brute force protection: track failed login attempts per IP
+# Brute force protection: track attempts per IP
 import time as _time
-_login_attempts: dict = {}  # {ip: [timestamp, timestamp, ...]}
+_login_attempts: dict = {}   # {ip: [timestamp, ...]} failed logins
+_signup_attempts: dict = {}  # {ip: [timestamp, ...]} every signup: each one costs a pbkdf2 hash
 _LOGIN_MAX_ATTEMPTS = 10
 _LOGIN_LOCKOUT_SECONDS = 900  # 15 minutes
+
+
+def _lockout_seconds(attempts: dict, ip: str, now: float):
+    """Seconds this IP must still wait, or None. Prunes attempts outside the window."""
+    recent = [t for t in attempts.get(ip, []) if now - t < _LOGIN_LOCKOUT_SECONDS]
+    attempts[ip] = recent
+    if len(recent) >= _LOGIN_MAX_ATTEMPTS:
+        return int(_LOGIN_LOCKOUT_SECONDS - (now - recent[0]))
+    return None
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -49,12 +65,8 @@ def login():
     # Rate limit check
     _ip = request.remote_addr or 'unknown'
     _now = _time.time()
-    _attempts = _login_attempts.get(_ip, [])
-    # Prune old attempts
-    _attempts = [t for t in _attempts if _now - t < _LOGIN_LOCKOUT_SECONDS]
-    _login_attempts[_ip] = _attempts
-    if len(_attempts) >= _LOGIN_MAX_ATTEMPTS:
-        _wait = int(_LOGIN_LOCKOUT_SECONDS - (_now - _attempts[0]))
+    _wait = _lockout_seconds(_login_attempts, _ip, _now)
+    if _wait is not None:
         return jsonify({
             'success': False,
             'error': f'Too many login attempts. Try again in {_wait} seconds.'
@@ -91,6 +103,18 @@ def login():
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
     """Self-service signup endpoint."""
+    # Unauthenticated, and every call hashes a password: without a limit a signup
+    # loop is both account spam and a cheap way to keep the server busy.
+    _ip = request.remote_addr or 'unknown'
+    _now = _time.time()
+    _wait = _lockout_seconds(_signup_attempts, _ip, _now)
+    if _wait is not None:
+        return jsonify({
+            'success': False,
+            'error': f'Too many signup attempts. Try again in {_wait} seconds.'
+        }), 429
+    _signup_attempts.setdefault(_ip, []).append(_now)
+
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -100,6 +124,9 @@ def signup():
             'success': False,
             'error': 'Username and password required'
         }), 400
+
+    if not isinstance(username, str) or not _USERNAME_RE.fullmatch(username):
+        return jsonify({'success': False, 'error': _USERNAME_ERROR}), 400
 
     auth_service = current_app.config.get('AUTH_SERVICE')
     if not auth_service:
@@ -187,6 +214,9 @@ def create_user():
             'success': False,
             'error': 'Username and password required'
         }), 400
+
+    if not isinstance(username, str) or not _USERNAME_RE.fullmatch(username):
+        return jsonify({'success': False, 'error': _USERNAME_ERROR}), 400
     
     if role not in ['admin', 'customer']:
         return jsonify({

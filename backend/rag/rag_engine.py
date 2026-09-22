@@ -411,19 +411,9 @@ class BaseRAG:
     def _load_vectorstore_if_needed(self):
         """Load vectorstore if it doesn't exist (needed for duplicate checking)."""
         if self.vectorstore is None:
-            from langchain_core.documents import Document
-            empty_docs = [Document(page_content="temp")]
-            self.vectorstore = self._get_or_create_vectorstore(empty_docs, show_log=True)
-            # Remove the temp document if it was added
-            try:
-                results = self.vectorstore._collection.get()
-                if results.get('ids') and results.get('documents'):
-                    for idx, doc in enumerate(results.get('documents', [])):
-                        if doc == "temp":
-                            self.vectorstore._collection.delete(ids=[results['ids'][idx]])
-                            break
-            except:
-                pass
+            # Opening with no documents gets or creates the collection. It used to add a
+            # "temp" document and then read the whole collection to find and delete it.
+            self.vectorstore = self._get_or_create_vectorstore([], show_log=True)
     
     def _remove_existing_documents(self, file_paths: List[Path], replace_if_exists: bool) -> int:
         """
@@ -752,6 +742,7 @@ class BaseRAG:
         min_similarity_threshold_override: Optional[float] = None,
         use_hybrid_search_override: Optional[bool] = None,
         use_reranking_override: Optional[bool] = None,
+        vectorstore: Optional[Any] = None,
     ) -> List[Tuple[Any, Optional[float]]]:
         """
         Retrieve documents using the same pipeline as Chat: optional hybrid search,
@@ -765,12 +756,15 @@ class BaseRAG:
             min_similarity_threshold_override: Override threshold (0-100); use REQUIREMENT_TESTS_SIMILARITY_THRESHOLD.
             use_hybrid_search_override: Override hybrid search; use REQUIREMENT_USE_HYBRID_SEARCH.
             use_reranking_override: Override reranking; use REQUIREMENT_USE_RERANKING.
+            vectorstore: Search this instead of the shared self.vectorstore attribute, so
+                concurrent callers never depend on another request swapping it.
 
         Returns:
             List of (Document, similarity_score) where similarity_score is 0.0-1.0 or None.
             Only documents passing min_similarity_threshold are included (or top few if none pass).
         """
-        if not self.vectorstore:
+        vs = vectorstore if vectorstore is not None else self.vectorstore
+        if not vs:
             return []
         # Over-fetch aggressively so the full set of threshold-passing docs is in the candidate pool.
         # K is applied last (after threshold), so the multiplier only affects ChromaDB query size.
@@ -801,7 +795,7 @@ class BaseRAG:
                     if _cache_hit:
                         _E_norm, _docs_raw, _metas_raw = self._exact_emb_cache[_cache_key]
                 if not _cache_hit:
-                    _col = self.vectorstore._collection
+                    _col = vs._collection
                     _col_results = _col.get(
                         where=metadata_filter,
                         include=["documents", "metadatas", "embeddings"]
@@ -836,7 +830,7 @@ class BaseRAG:
         if not _exact_search_done:
             try:
                 if metadata_filter:
-                    raw_scored = self.vectorstore.similarity_search_with_score(
+                    raw_scored = vs.similarity_search_with_score(
                         query, k=search_k, filter=metadata_filter
                     )
                 elif use_hybrid and self.hybrid_retriever:
@@ -846,7 +840,7 @@ class BaseRAG:
                     if hybrid_docs:
                         # Use a wider window than search_k so BM25-only docs (not in top-N semantic)
                         # still get their similarity scores recovered.
-                        scored_all = self.vectorstore.similarity_search_with_score(query, k=min(search_k * 3, 500))
+                        scored_all = vs.similarity_search_with_score(query, k=min(search_k * 3, 500))
                         score_map = {d.page_content: dist for d, dist in scored_all}
                         # Only keep hybrid docs that exist in the scored set (have a similarity score)
                         raw_scored = [(doc, score_map.get(doc.page_content)) for doc in hybrid_docs]
@@ -855,7 +849,7 @@ class BaseRAG:
                     else:
                         raw_scored = []
                 else:
-                    raw_scored = self.vectorstore.similarity_search_with_score(query, k=search_k)
+                    raw_scored = vs.similarity_search_with_score(query, k=search_k)
             except Exception:
                 return []
 

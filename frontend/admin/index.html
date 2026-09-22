@@ -2606,7 +2606,7 @@
                                     style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; background: #ef4444; color: white; border: none; border-radius: 8px;">
                                 ❌ Reject
                             </button>
-                            <button class="btn btn-danger" onclick="deleteUser('${user.user_id}', '${escapeHtml(user.username)}')"
+                            <button class="btn btn-danger" data-username="${escapeHtml(user.username)}" onclick="deleteUser('${user.user_id}', this.dataset.username)"
                                     style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 8px;">
                                 🗑️ Delete
                             </button>
@@ -2623,11 +2623,11 @@
                                 <option value="active" ${user.status === 'active' ? 'selected' : ''}>Active</option>
                                 <option value="suspended" ${user.status === 'suspended' ? 'selected' : ''}>Suspended</option>
                             </select>
-                            <button class="btn btn-reset" onclick="resetUserPassword('${user.user_id}', '${escapeHtml(user.username)}')" 
+                            <button class="btn btn-reset" data-username="${escapeHtml(user.username)}" onclick="resetUserPassword('${user.user_id}', this.dataset.username)" 
                                     style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 8px;">
                                 🔑 Reset
                             </button>
-                            <button class="btn btn-danger" onclick="deleteUser('${user.user_id}', '${escapeHtml(user.username)}')"
+                            <button class="btn btn-danger" data-username="${escapeHtml(user.username)}" onclick="deleteUser('${user.user_id}', this.dataset.username)"
                                     ${isCurrentUser ? 'disabled title="Cannot delete your own account"' : ''}
                                     style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 8px;">
                                 🗑️ Delete

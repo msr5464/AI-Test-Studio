@@ -129,8 +129,6 @@ def create_app():
             if vs is None:
                 return
             rag_obj = rag_service.rag
-            old_vs = rag_obj.vectorstore
-            rag_obj.vectorstore = vs
             dummy_q = "account payment transfer"
             dummy_emb = _np.array(rag_obj.embeddings.embed_query(dummy_q), dtype=float)
             dummy_norm = dummy_emb / (_np.linalg.norm(dummy_emb) + 1e-10)
@@ -154,7 +152,6 @@ def create_app():
                         print(f"[startup] Pre-warmed exact-scan cache: {len(embs)} docs for {cache_key}")
                 except Exception as e:
                     print(f"[startup] Pre-warm failed for {filt}: {e}")
-            rag_obj.vectorstore = old_vs
         except Exception as e:
             print(f"[startup] Pre-warm thread error: {e}")
     threading.Thread(target=_prewarm_exact_scan_cache, daemon=True, name="exact-scan-prewarm").start()
@@ -165,8 +162,15 @@ def create_app():
     app.register_blueprint(customer_bp, url_prefix='/api/customer')
     app.register_blueprint(agents_bp, url_prefix='/api/agents')
     
-    # Serve frontend files
+    # Serve frontend files. Each customer page has its own URL so a reload keeps
+    # the page and it can be bookmarked; keep in sync with TAB_PATHS in customer/index.html.
     @app.route('/')
+    @app.route('/customer')
+    @app.route('/test-generator')
+    @app.route('/authoring-agent')
+    @app.route('/healing-agent')
+    @app.route('/adaptation-agent')
+    @app.route('/talk-to-tests')
     def index():
         return send_from_directory(app.static_folder, 'customer/index.html')
     
@@ -177,10 +181,6 @@ def create_app():
     @app.route('/admin/login')
     def admin_login():
         return send_from_directory(app.static_folder, 'admin/login.html')
-    
-    @app.route('/customer')
-    def customer():
-        return send_from_directory(app.static_folder, 'customer/index.html')
     
     @app.route('/<path:path>')
     def serve_static(path):

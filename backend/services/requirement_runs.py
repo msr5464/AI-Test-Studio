@@ -23,6 +23,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
+from backend.rag.rag_settings import get_config
+from backend.services.requirement_analysis_service import coverage_min_similarity
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 _SID_RE = re.compile(r"\d{8}-\d{6}-req-[0-9a-f]{6}")
@@ -214,14 +217,6 @@ class _Run:
 _LIVE: Dict[str, _Run] = {}
 
 
-def _pct_env(name: str, default: float) -> float:
-    try:
-        raw = os.getenv(name, "").strip()
-        return max(0.0, min(100.0, float(raw))) if raw else default
-    except ValueError:
-        return default
-
-
 def _unlink_all(paths) -> None:
     for path in paths:
         try:
@@ -263,8 +258,9 @@ def start(svc, *, user_id: str, text: Optional[str], file_paths: List[Path],
         "session_id": sid,
         "source": source,
         "generate_p2_p3_tests": bool(opts.get("generate_p2_p3_tests")),
-        "coverage_min_similarity": _pct_env("REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY", 60.0),
-        "retrieval_similarity_threshold": _pct_env("REQUIREMENT_TESTS_SIMILARITY_THRESHOLD", 45.0),
+        # Same sources the analysis itself uses, so the page's thresholds match its results.
+        "coverage_min_similarity": max(0.0, min(100.0, coverage_min_similarity())),
+        "retrieval_similarity_threshold": get_config().requirement_tests_similarity_threshold,
         "generate_new_tests": meta["generate_new_tests"],
     })
     threading.Thread(target=_work, args=(run, svc, text, file_paths, confluence_urls, opts),

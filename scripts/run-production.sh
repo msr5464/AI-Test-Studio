@@ -74,25 +74,13 @@ echo "   Working directory: $PROJECT_ROOT"
 # Run with Gunicorn
 echo ""
 echo "Starting Gunicorn WSGI server..."
-echo "   Workers: ${GUNICORN_WORKERS:-auto}"
+echo "   Workers: 1 (threads: ${GUNICORN_THREADS:-auto}; see gunicorn_config.py)"
 echo "   Port: $PORT"
 echo "   Access: http://0.0.0.0:$PORT"
 echo ""
 
-# Use gunicorn_config.py if it exists, otherwise use command line args
-if [ -f "gunicorn_config.py" ]; then
-    gunicorn -c gunicorn_config.py "backend.app:create_app()"
-else
-    WORKERS=${GUNICORN_WORKERS:-$(($(nproc) * 2 + 1))}
-    gunicorn \
-        --chdir "$PROJECT_ROOT" \
-        --bind "0.0.0.0:$PORT" \
-        --workers "$WORKERS" \
-        --worker-class sync \
-        --timeout 120 \
-        --access-logfile - \
-        --error-logfile - \
-        --log-level info \
-        "backend.app:create_app()"
-fi
+# Always the shipped config: it pins the single worker the app depends on (one
+# ChromaDB process, in-memory run registry), which a generic multi-worker
+# command line would break.
+gunicorn -c gunicorn_config.py "backend.app:create_app()"
 
