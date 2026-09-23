@@ -13031,10 +13031,14 @@
                 el.classList.remove('running', 'done', 'failed', 'skipped');
                 if (status) el.classList.add(status);
                 // Time and cost for the stage go in the console, not on the chip.
+                // Only for a FAILED step: run.sh already logs its own
+                // "✓ <label> — <time> · <spend>" as each step ends, in stream
+                // order, so appending a second one here put a duplicate ✓ —
+                // with the metrics that happened to have arrived, often none —
+                // ahead of the real one. A failed step has no such line.
                 const suffix = payload ? QA_STEP_SUFFIX(payload) : '';
-                if (suffix && (status === 'done' || status === 'failed')) {
-                    appendLog((status === 'done' ? '\u2713 ' : '\u2717 ')
-                        + (payload.display || key) + suffix);
+                if (suffix && status === 'failed') {
+                    appendLog('\u2717 ' + (payload.display || key) + suffix);
                 }
             }
 
@@ -17049,10 +17053,14 @@
                 el.classList.remove('running', 'done', 'failed', 'skipped');
                 if (status) el.classList.add(status);
                 // Time and cost for the stage go in the console, not on the chip.
+                // Only for a FAILED step: run.sh already logs its own
+                // "✓ <label> — <time> · <spend>" as each step ends, in stream
+                // order, so appending a second one here put a duplicate ✓ —
+                // with the metrics that happened to have arrived, often none —
+                // ahead of the real one. A failed step has no such line.
                 const suffix = payload ? QA_STEP_SUFFIX(payload) : '';
-                if (suffix && (status === 'done' || status === 'failed')) {
-                    appendLog((status === 'done' ? '\u2713 ' : '\u2717 ')
-                        + (payload.display || key) + suffix);
+                if (suffix && status === 'failed') {
+                    appendLog('\u2717 ' + (payload.display || key) + suffix);
                 }
             }
 
