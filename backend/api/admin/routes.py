@@ -49,9 +49,8 @@ def upload_document():
             
             if result['success']:
                 return jsonify(result), 200
-            else:
-                return jsonify(result), 500
-                
+            return jsonify(result), 400 if result.get('validation_error') else 500
+
         except Exception as e:
             return jsonify({
                 'success': False,
@@ -405,8 +404,8 @@ def get_agent_settings():
     """Proxy the QA-Agent-Network settings schema + values for the Agent Settings page.
 
     Deliberately served from the admin blueprint rather than /api/agents/*: the
-    agents proxy enforces no auth at all (see the comment at the top of
-    proxy.py), and this endpoint's sibling PUT writes GITHUB_TOKEN.
+    agents proxy only requires a signed-in user, not an admin, and this
+    endpoint's sibling PUT writes GITHUB_TOKEN.
     """
     return _forward_json('GET', '/settings')
 
@@ -446,7 +445,7 @@ def get_analytics():
     """Combined time/cost analytics across every AI flow in the Studio.
 
     Admin-only for the same documented reason as agent-settings: /api/agents/*
-    enforces no auth at all, and spend is not customer-facing data.
+    admits any signed-in user, and spend is not customer-facing data.
 
     The two halves are returned SEPARATELY and never summed into one figure:
     agent cost is reported by the Claude CLI (exact), Studio cost is estimated
@@ -533,9 +532,9 @@ def _analytics_baselines() -> dict:
         except (TypeError, ValueError, AttributeError):
             return float(default)
     return {
-        'min_per_test_authored': _get('analytics_min_per_test_authored', 120),
-        'min_per_test_fixed': _get('analytics_min_per_test_fixed', 45),
-        'min_per_test_adapted': _get('analytics_min_per_test_adapted', 30),
+        'min_per_test_authored': _get('analytics_min_per_test_authored', 240),
+        'min_per_test_fixed': _get('analytics_min_per_test_fixed', 60),
+        'min_per_test_adapted': _get('analytics_min_per_test_adapted', 150),
         'min_per_test_case_written': _get('analytics_min_per_test_case_written', 15),
     }
 
@@ -545,11 +544,12 @@ def _time_saved(agents: dict, studio: dict, baselines: dict) -> dict:
     overall = (agents or {}).get('overall') or {}
     outcomes = (studio or {}).get('outcomes') or {}
 
-    agent_gross = (
-        int(overall.get('tests_created') or 0) * baselines['min_per_test_authored']
-        + int(overall.get('tests_fixed') or 0) * baselines['min_per_test_fixed']
-        + int(overall.get('items_adapted') or 0) * baselines['min_per_test_adapted']
-    )
+    def gross(rollup: dict) -> float:
+        return (int(rollup.get('tests_created') or 0) * baselines['min_per_test_authored']
+                + int(rollup.get('tests_fixed') or 0) * baselines['min_per_test_fixed']
+                + int(rollup.get('items_adapted') or 0) * baselines['min_per_test_adapted'])
+
+    agent_gross = gross(overall)
     studio_gross = (
         (int(outcomes.get('test_cases_generated') or 0)
          + int(outcomes.get('e2e_tests_generated') or 0))
@@ -561,6 +561,9 @@ def _time_saved(agents: dict, studio: dict, baselines: dict) -> dict:
         'agents_min': max(0.0, round(agent_gross - agent_spent, 1)),
         'studio_min': max(0.0, round(studio_gross - studio_spent, 1)),
         'total_min': max(0.0, round(agent_gross + studio_gross - agent_spent - studio_spent, 1)),
+        # Per agent for the breakdown table, so the page never re-derives this.
+        'by_agent': {name: max(0.0, round(gross(r) - float(r.get('duration_s') or 0.0) / 60.0, 1))
+                     for name, r in ((agents or {}).get('by_agent') or {}).items()},
         'basis': 'estimate',
     }
 

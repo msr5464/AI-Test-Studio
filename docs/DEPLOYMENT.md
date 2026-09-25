@@ -1,1136 +1,277 @@
 # Deployment Guide
 
-Complete guide for deploying AI Test Studio on Windows, macOS, and Linux.
+Installing, configuring and running AI Test Studio, from a laptop to a
+production server. For the five-minute version, see the
+[README Quick Start](../README.md#quick-start).
 
 ## Table of Contents
 
 - [Installation](#installation)
-  - [Windows](#windows-installation)
-  - [macOS](#macos-installation)
-  - [Linux](#linux-installation)
 - [Configuration](#configuration)
-- [Running the System](#running-the-system)
-- [Production Deployment (Detailed)](#production-deployment-detailed)
-- [Scripts Reference](#scripts-reference)
-- [Project Structure](#project-structure)
-- [API Usage](#api-usage)
+- [Running](#running)
+- [Production](#production)
+- [Connecting QA Agent Network](#connecting-qa-agent-network)
+- [Backup](#backup)
 - [Troubleshooting](#troubleshooting)
-- [Additional Resources](#additional-resources)
-- [Platform-Specific Notes](#platform-specific-notes)
 
 ---
 
 ## Installation
 
-### Windows Installation
+### Requirements
 
-#### Prerequisites
-- Python 3.9+ installed
-- PowerShell 5.1+ or Command Prompt
-- Git (optional)
-- Ollama (will be installed automatically by install script)
-- **LibreOffice** (optional, but required for `.doc` and `.ppt` files):
-  - Download from [LibreOffice website](https://www.libreoffice.org/download/)
-  - Install the standard version
-  - After installation, ensure `soffice` command is available in PATH
+- Python 3.9+ ("Add to PATH" on Windows)
+- An LLM: [Ollama](https://ollama.ai) locally (default provider), or an OpenAI or
+  Google Gemini API key
+- Optional: `antiword` for `.doc` requirement files; LibreOffice for legacy
+  `.doc` / `.ppt` documents (`.docx` / `.pptx` need neither)
 
-#### Installation Steps
+### Install script
 
-**Option 1: PowerShell (Recommended)**
-```powershell
-# Navigate to deployment folder
-cd C:\path\to\AI-Test-Studio
+| OS | Command |
+|----|---------|
+| macOS / Linux | `bash scripts/install.sh` |
+| Windows PowerShell | `.\scripts\install.ps1` (first: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`) |
+| Windows Command Prompt | `scripts\install.bat` |
 
-# Run installation script
-.\scripts\install.ps1
-```
+Every script creates `venv/`, installs `requirements.txt`, creates `config/.env`
+from `config/env.example` if missing, and initialises `storage/`. Ollama handling
+differs:
 
-**Option 2: Command Prompt**
-```cmd
-cd C:\path\to\AI-Test-Studio
-scripts\install.bat
-```
+- `install.sh` installs Ollama if missing (Homebrew on macOS, the official script
+  on Linux) and `antiword`, then prints how to start Ollama and pull a model.
+- `install.ps1` downloads and runs the Ollama installer if missing, then prints
+  the same instructions.
+- `install.bat` also starts Ollama and pulls `llama3.2:3b`.
 
-The installation script will:
-1. Check Python installation
-2. Create virtual environment
-3. Install Python dependencies
-4. Install Ollama (if not present)
-5. Start Ollama service
-6. Pull default model (llama3.2:3b)
-7. Initialize storage directories
-8. Create configuration file
+To start Ollama yourself: `ollama serve`, then `ollama pull llama3.2:3b`.
 
-#### Manual Installation (if scripts fail)
-
-```cmd
-# 1. Create virtual environment
-python -m venv venv
-
-# 2. Activate virtual environment
-venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Create storage directories
-mkdir storage\documents
-mkdir storage\chroma_db
-mkdir storage\embedding_cache
-mkdir logs
-
-# 5. Copy and edit configuration
-copy config\env.example config\.env
-REM Edit config\.env with your settings
-
-# 6. Install Ollama manually from https://ollama.ai/download/windows
-# 7. Pull model: ollama pull llama3.2:3b
-```
-
----
-
-### macOS Installation
-
-#### Prerequisites
-- Python 3.9+ (usually pre-installed, or install via Homebrew)
-- Terminal access
-- Git (optional)
-- Ollama (will be installed automatically by install script)
-- **LibreOffice** (optional, but required for `.doc` and `.ppt` files):
-  - Install via Homebrew: `brew install --cask libreoffice`
-  - Or download from [LibreOffice website](https://www.libreoffice.org/download/)
-
-#### Installation Steps
+### Manual install
 
 ```bash
-# Navigate to deployment folder
-cd /path/to/AI-Test-Studio
-
-# Make scripts executable (if needed)
-chmod +x scripts/*.sh
-
-# Run installation script
-bash scripts/install.sh
-```
-
-The installation script will:
-1. Check Python installation
-2. Create virtual environment
-3. Install Python dependencies
-4. Install Ollama via Homebrew (if available) or prompt manual install
-5. Start Ollama service
-6. Pull default model (llama3.2:3b)
-7. Initialize storage directories
-8. Create configuration file
-
-#### Using Homebrew (if Python not installed)
-
-```bash
-# Install Python via Homebrew
-brew install python@3.11
-
-# Then follow installation steps above
-```
-
-#### Manual Installation (if scripts fail)
-
-```bash
-# 1. Create virtual environment
 python3 -m venv venv
-
-# 2. Activate virtual environment
-source venv/bin/activate
-
-# 3. Install dependencies
+source venv/bin/activate            # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# 4. Create storage directories
-mkdir -p storage/documents
-mkdir -p storage/chroma_db
-mkdir -p storage/embedding_cache
-mkdir -p logs
-
-# 5. Copy and edit configuration
-cp config/env.example config/.env
-# Edit config/.env with your settings
-
-# 6. Install Ollama: brew install ollama
-# 7. Pull model: ollama pull llama3.2:3b
-```
-
----
-
-### Linux Installation
-
-#### Prerequisites
-- Python 3.9+ (check with `python3 --version`)
-- Terminal access
-- pip (usually comes with Python)
-- Git (optional)
-- Ollama (will be installed automatically by install script)
-- **LibreOffice** (optional, but required for `.doc` and `.ppt` files):
-  - **Debian/Ubuntu**: `sudo apt-get install libreoffice`
-  - **RHEL/CentOS/Fedora**: `sudo yum install libreoffice` or `sudo dnf install libreoffice`
-  - **Arch Linux**: `sudo pacman -S libreoffice-fresh`
-
-#### Installation Steps
-
-**Ubuntu/Debian:**
-```bash
-# Install Python and pip if not installed
-sudo apt-get update
-sudo apt-get install python3 python3-pip python3-venv
-
-# Navigate to deployment folder
-cd /path/to/AI-Test-Studio
-
-# Make scripts executable
-chmod +x scripts/*.sh
-
-# Run installation script
-bash scripts/install.sh
-```
-
-**CentOS/RHEL/Fedora:**
-```bash
-# Install Python and pip if not installed
-sudo yum install python3 python3-pip
-# OR for newer versions:
-sudo dnf install python3 python3-pip
-
-# Navigate to deployment folder
-cd /path/to/AI-Test-Studio
-
-# Make scripts executable
-chmod +x scripts/*.sh
-
-# Run installation script
-bash scripts/install.sh
-```
-
-The installation script will:
-1. Check Python installation
-2. Create virtual environment
-3. Install Python dependencies
-4. Install Ollama via official install script
-5. Start Ollama service
-6. Pull default model (llama3.2:3b)
-7. Initialize storage directories
-8. Create configuration file
-
-#### Manual Installation (if scripts fail)
-
-```bash
-# 1. Create virtual environment
-python3 -m venv venv
-
-# 2. Activate virtual environment
-source venv/bin/activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Create storage directories
-mkdir -p storage/documents
-mkdir -p storage/chroma_db
-mkdir -p storage/embedding_cache
-mkdir -p logs
-
-# 5. Copy and edit configuration
-cp config/env.example config/.env
-# Edit config/.env with your settings
-
-# 6. Install Ollama: curl -fsSL https://ollama.ai/install.sh | sh
-# 7. Pull model: ollama pull llama3.2:3b
+cp config/env.example config/.env   # Windows: copy config\env.example config\.env
+bash scripts/init_storage.sh        # Windows: scripts\init_storage.bat / .ps1
 ```
 
 ---
 
 ## Configuration
 
-### Environment Variables
+All settings live in `config/.env`. [`config/env.example`](../config/env.example)
+documents every one of them and is the reference — this section covers only what
+you must decide.
 
-Edit `config/.env` (created from `config/env.example`) to configure:
+### Required
 
-#### Required Settings
 ```bash
-# Flask Configuration
-SECRET_KEY=your-secret-key-here-change-in-production
+# The app refuses to start with the placeholder unless FLASK_DEBUG=true.
+SECRET_KEY=<python3 -c "import secrets; print(secrets.token_urlsafe(48))">
+FLASK_DEBUG=False
 PORT=5001
-HOST=0.0.0.0
 ```
 
-#### LLM Configuration
+### LLM provider
 
-**Option 1: Ollama (Default - Recommended)**
 ```bash
-LLM_PROVIDER=ollama
+LLM_PROVIDER=ollama                 # ollama | openai | gemini
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.2:3b
-USE_LOCAL_EMBEDDINGS=True
+
+# LLM_PROVIDER=openai
+# OPENAI_API_KEY=...  OPENAI_MODEL=gpt-4o-mini
+
+# LLM_PROVIDER=gemini
+# GOOGLE_API_KEY=...  GEMINI_MODEL=gemini-2.5-flash
 ```
 
-**Option 2: OpenAI**
-```bash
-LLM_PROVIDER=openai
-OPENAI_API_KEY=your-openai-api-key-here
-USE_LOCAL_EMBEDDINGS=False
-```
+- The LLM is created once at startup: after changing provider or model (in
+  `config/.env` or Admin → Studio Settings) **restart the app**.
+- With `openai` the embeddings switch to OpenAI's too, so the stored vectors no
+  longer match: after switching to or from OpenAI, **reset the knowledge base and
+  re-sync** (Admin → Knowledge Base, then Connectors).
 
-**Option 3: Google Gemini**
-```bash
-LLM_PROVIDER=gemini
-GOOGLE_API_KEY=your-google-api-key-here
-# Or: GEMINI_API_KEY=...
-# Optional: GEMINI_MODEL=gemini-2.5-flash (default) or gemini-2.5-pro
-```
+### Knowledge sources
 
-#### Storage Paths
+`TESTRAIL_*` and `CONFLUENCE_*` point the syncs at your instances.
+`TESTRAIL_PUSH_ENABLED=true` allows pushing generated tests back to TestRail.
+Daily auto-sync (`TESTRAIL_SCHEDULE_*`, `CONFLUENCE_SCHEDULE_*`) runs at a
+**UTC** time.
 
-**Windows:**
-```bash
-STORAGE_DIR=storage
-DOCUMENTS_DIR=storage\documents
-CHROMA_DB_DIR=storage\chroma_db
-EMBEDDING_CACHE_DIR=storage\embedding_cache
-```
+### Settings in the admin UI
 
-**macOS/Linux:**
-```bash
-STORAGE_DIR=storage
-DOCUMENTS_DIR=storage/documents
-CHROMA_DB_DIR=storage/chroma_db
-EMBEDDING_CACHE_DIR=storage/embedding_cache
-```
-
-#### RAG Base Settings
-```bash
-COLLECTION_NAME=rag_collection
-CHUNK_SIZE=1000
-CHUNK_OVERLAP=200
-```
-
-#### Chat Retrieval Settings
-```bash
-CHAT_RETRIEVAL_K=10
-CHAT_MIN_SIMILARITY_THRESHOLD=55.0
-CHAT_USE_HYBRID_SEARCH=True
-CHAT_USE_RERANKING=True
-CHAT_USE_QUERY_EXPANSION=False
-```
-
-#### Caching
-```bash
-ENABLE_QUERY_CACHE=True
-QUERY_CACHE_SIZE=1000
-ENABLE_EMBEDDING_CACHE=True
-```
-
-#### TestRail Integration (optional)
-```bash
-TESTRAIL_URL=https://yourcompany.testrail.io
-TESTRAIL_EMAIL=your-email@company.com
-TESTRAIL_API_KEY=your-api-key
-TESTRAIL_PROJECT_IDS=1,2,3         # comma-separated project IDs to sync
-TESTRAIL_DELTA_DAYS=0              # 0 = full sync; N = only cases updated in last N days
-TESTRAIL_PUSH_ENABLED=false        # allow pushing generated tests to TestRail
-TESTRAIL_SCHEDULE_ENABLED=False    # enable automatic scheduled sync
-TESTRAIL_SCHEDULE_TIME=02:00       # time of day for scheduled sync (HH:MM)
-```
-
-#### Confluence Integration (optional)
-```bash
-CONFLUENCE_URL=https://yourcompany.atlassian.net/wiki
-CONFLUENCE_EMAIL=your-email@company.com
-CONFLUENCE_API_TOKEN=your-atlassian-api-token
-CONFLUENCE_CQL=type=page           # CQL to filter pages; empty = all pages
-CONFLUENCE_DELTA_DAYS=0            # 0 = full sync; N = only pages updated in last N days
-```
-
-#### Requirement Analysis Settings (optional)
-```bash
-REQUIREMENT_TESTS_SIMILARITY_THRESHOLD=60.0   # min similarity % to consider a test "related"
-REQUIREMENT_RETRIEVAL_K=10                     # max related tests to retrieve per requirement
-REQUIREMENT_USE_HYBRID_SEARCH=True            # combine semantic + BM25 retrieval
-REQUIREMENT_USE_RERANKING=False               # re-rank results with CrossEncoder (slower)
-REQUIREMENT_MIN_TESTS_PER_PRIORITY=3          # don't generate tests for a priority if this many already exist
-REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY=70  # min similarity for a test to count toward coverage cap
-REQUIREMENT_ENRICH_WITH_CONTEXT=true          # enrich requirement titles with LLM context
-REQUIREMENT_PARALLEL_PROCESSING=true          # process requirements in parallel
-```
-
-#### QA Agent Network (optional)
-```bash
-# URL of the QA-Agent-Network server (see QA-Agent-Network repo)
-# QA_AGENT_NETWORK_URL=http://localhost:6001
-# QA_AGENT_NETWORK_TIMEOUT=30
-```
+**Admin → Studio Settings** edits most settings at runtime and writes them back
+into `config/.env` (comments and other keys are preserved), so the file stays the
+single source. Keys sent to the settings API are the lowercase schema keys
+(`chat_retrieval_k`), not the env names.
 
 ---
 
-## Running the System
+## Running
 
-### Windows
-
-**PowerShell:**
-```powershell
-.\scripts\run.ps1
-```
-
-**Command Prompt:**
-```cmd
-scripts\run.bat
-```
-
-### macOS / Linux
+### Development
 
 ```bash
-bash scripts/run.sh
+bash scripts/run.sh           # macOS / Linux
+scripts\run.bat               # Windows (or .\scripts\run.ps1)
 ```
 
-The run scripts will:
-1. Check if virtual environment exists
-2. Activate virtual environment
-3. Check if Ollama is running (start if needed)
-4. Load configuration from `config/.env`
-5. Start Flask application
+`run.sh` activates `venv`, creates `config/.env` if missing, **exits if
+`LLM_PROVIDER=ollama` and Ollama is not reachable**, offers another port if 5001
+is taken, then runs Flask's development server (`backend/app.py`, threaded,
+binding `HOST`). Equivalent by hand: `source venv/bin/activate && python backend/app.py`.
 
-### Manual Run
-
-```bash
-# Activate virtual environment
-# Windows: venv\Scripts\activate
-# macOS/Linux: source venv/bin/activate
-
-# Run application
-python backend/app.py
-```
+On first start the console prints a random password for the `admin` user, once.
 
 ---
 
-## Production Deployment
+## Production
 
-### Windows Production
+Use Gunicorn with the shipped configuration, not the development server:
 
-#### Option 1: Windows Service (NSSM)
-
-1. Download NSSM from https://nssm.cc/
-2. Extract and run:
-```cmd
-nssm install RAGSystem "C:\path\to\python.exe" "C:\path\to\AI-Test-Studio\backend\app.py"
-nssm set RAGSystem AppDirectory "C:\path\to\AI-Test-Studio"
-nssm start RAGSystem
-```
-
-#### Option 2: IIS with wfastcgi
-
-1. Install IIS and wfastcgi
-2. Configure application pool
-3. Set up wfastcgi handler
-4. Configure `web.config`
-
-#### Option 3: Docker
-
-```dockerfile
-FROM python:3.9-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-CMD ["python", "backend/app.py"]
-```
-
-Build and run:
-```cmd
-docker build -t rag-system .
-docker run -p 5001:5001 rag-system
-```
-
-### macOS Production
-
-#### Option 1: Launchd (macOS Service)
-
-Create `~/Library/LaunchAgents/com.ragsystem.plist`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.ragsystem</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/path/to/AI-Test-Studio/venv/bin/python</string>
-        <string>/path/to/AI-Test-Studio/backend/app.py</string>
-    </array>
-    <key>WorkingDirectory</key>
-    <string>/path/to/AI-Test-Studio</string>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-</dict>
-</plist>
-```
-
-Load service:
 ```bash
-launchctl load ~/Library/LaunchAgents/com.ragsystem.plist
-launchctl start com.ragsystem
+bash scripts/run-production.sh
+# or: venv/bin/gunicorn -c gunicorn_config.py "backend.app:create_app()"
 ```
 
-#### Option 2: Docker
+`gunicorn_config.py` binds `0.0.0.0:$PORT` (it ignores `HOST`) and runs **one
+worker** with many threads (`gthread`). Keep it at one worker: all threads share
+the in-memory vector store and warmed caches, and every open page holds a thread
+per live stream. Raise `GUNICORN_THREADS` (default `max(32, 4 × CPUs)`) for more
+concurrent viewers; keep the 900 s `GUNICORN_TIMEOUT`, since analyses run long.
+`run-production.sh` loads `config/.env` and warns about a placeholder
+`SECRET_KEY` or `FLASK_DEBUG=True`.
 
-Same as Linux Docker instructions below.
-
-### Linux Production
-
-#### Option 1: Systemd Service
-
-Create `/etc/systemd/system/rag-system.service`:
+### systemd
 
 ```ini
+# /etc/systemd/system/ai-test-studio.service
 [Unit]
-Description=RAG System Flask Application
-After=network.target
+Description=AI Test Studio
+After=network-online.target
 
 [Service]
-Type=simple
-User=your-user
-WorkingDirectory=/path/to/AI-Test-Studio
-Environment="PATH=/path/to/AI-Test-Studio/venv/bin"
-ExecStart=/path/to/AI-Test-Studio/venv/bin/python backend/app.py
+User=studio
+WorkingDirectory=/opt/AI-Test-Studio
+# The app loads config/.env itself; no EnvironmentFile needed.
+ExecStart=/opt/AI-Test-Studio/venv/bin/gunicorn -c gunicorn_config.py "backend.app:create_app()"
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-Enable and start:
 ```bash
-sudo systemctl enable rag-system
-sudo systemctl start rag-system
-sudo systemctl status rag-system
+sudo systemctl daemon-reload && sudo systemctl enable --now ai-test-studio
+curl http://localhost:5001/health     # {"status": "healthy", ...}
 ```
 
-#### Option 2: Docker
+### Checklist
 
-Create `Dockerfile`:
+- [ ] A real `SECRET_KEY`; `FLASK_DEBUG=False`.
+- [ ] HTTPS in front (Nginx or similar) and `SESSION_COOKIE_SECURE=true`.
+- [ ] `CORS_ALLOWED_ORIGINS` set to your public origin (never `*`).
+- [ ] The `admin` password saved, or changed in Admin → Users.
+- [ ] `storage/` writable by the service user, and backed up.
+- [ ] If you use the agent pages, the agent server connected as below.
 
-```dockerfile
-FROM python:3.9-slim
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY . .
-
-# Create storage directories
-RUN mkdir -p storage/documents storage/chroma_db storage/embedding_cache logs
-
-# Expose port
-EXPOSE 5001
-
-# Run application
-CMD ["python", "backend/app.py"]
-```
-
-Build and run:
-```bash
-docker build -t rag-system .
-docker run -d -p 5001:5001 \
-  -v $(pwd)/storage:/app/storage \
-  -v $(pwd)/config/.env:/app/config/.env \
-  --name rag-system \
-  rag-system
-```
-
-#### Option 3: Gunicorn (Production WSGI Server)
-
-Install Gunicorn:
-```bash
-pip install gunicorn
-```
-
-Run with the shipped config (or `./scripts/run-production.sh`, which uses it):
-```bash
-gunicorn -c gunicorn_config.py "backend.app:create_app()"
-```
-
-Keep **one worker** (`workers = 1` in `gunicorn_config.py`) and scale with threads (`GUNICORN_THREADS`). Several processes break the app rather than speeding it up:
-- they would share one ChromaDB directory, which is not safe across processes;
-- Requirements → Tests runs, their live streams and Cancel live in the worker's memory, so a request that lands on another worker cannot find the run;
-- the login rate limit and the embedding caches are per process.
-
-Keep `timeout` high (the config uses 900 s): analyses and agent streams are long-lived.
-
-### Production Deployment (Detailed)
-
-For production use, do not run Flask's development server. Use a WSGI server (e.g. Gunicorn) and follow the steps below.
-
-#### Understanding the Development Server Warning
-
-When you run `python backend/app.py` or `scripts/run.sh`, you may see a warning that the development server is not for production. Flask's built-in server is single-threaded, not optimized for performance, and not hardened for production.
-
-#### Why Use a Production WSGI Server?
-
-A production WSGI server like **Gunicorn** provides process management, threaded request handling, and better security. This app runs a single Gunicorn worker with many threads; see Option 3 for why.
-
-#### Gunicorn Setup (Detailed)
-
-1. **Install Gunicorn**: `pip install gunicorn` (often already in requirements.txt).
-2. **Run**: `gunicorn -c gunicorn_config.py "backend.app:create_app()"` or use `./scripts/run-production.sh` if present.
-
-Configuration: use the shipped `gunicorn_config.py` (1 worker, `gthread`, `GUNICORN_THREADS` threads, 900 s timeout, no periodic worker recycling). Do not raise `workers`; see Option 3.
-
-#### Systemd Service (Linux)
-
-Create `/etc/systemd/system/rag-system.service` with `Type=notify`, `ExecStart=.../venv/bin/gunicorn -c .../gunicorn_config.py "backend.app:create_app()"`, `Restart=always`. Then: `sudo systemctl daemon-reload`, `sudo systemctl enable rag-system`, `sudo systemctl start rag-system`.
-
-#### Production Checklist
-
-- Change **SECRET_KEY** in `config/.env`; set **FLASK_DEBUG=False**; change default admin password.
-- Use **HTTPS** (reverse proxy such as Nginx with SSL).
-- Configure **firewall**; set up **log rotation** and **backups**; tune **GUNICORN_THREADS** and **resource limits** (keep one worker).
-
-#### Security
-
-Use a reverse proxy (Nginx/Apache) with SSL for HTTPS. Restrict firewall to necessary ports. Never commit `.env`; use secure secret management. Keep dependencies updated.
-
-#### Monitoring and Logging
-
-Health check: `curl http://localhost:5001/health`. For production, redirect Gunicorn access/error logs to files and set up log rotation (e.g. logrotate). Consider Prometheus, Sentry, or APM tools.
-
-#### Performance Tuning
-
-Keep one worker and raise `GUNICORN_THREADS` if many people keep pages open (each open page holds a thread per live stream); keep the long `timeout` from `gunicorn_config.py`. Set resource limits in systemd or Docker. Enable ChromaDB persistence and embedding/query caches.
+See [SECURITY.md](../SECURITY.md) for why each matters.
 
 ---
 
-## Scripts Reference
+## Connecting QA Agent Network
 
-Platform-specific scripts live in `scripts/`:
+The agent pages proxy to [QA Agent Network](https://github.com/msr5464/QA-AI-Agent)'s
+server, which lives in its own repo (usually cloned next to this one):
 
-- **Installation:** `install.sh` (macOS/Linux), `install.ps1` / `install.bat` (Windows) — create venv, install deps, install/start Ollama, pull default model, init storage, create `config/.env` from `config/env.example`.
-- **Run:** `run.sh` (macOS/Linux), `run.ps1` / `run.bat` (Windows) — activate venv, start Flask on configured port.
-- **Storage init:** `init_storage.sh` / `init_storage.ps1` / `init_storage.bat` — create `storage/documents/`, `storage/chroma_db/`, `storage/embedding_cache/`, `logs/`.
-**Scripts not executable (macOS/Linux):** `chmod +x scripts/*.sh`  
-**PowerShell blocked (Windows):** `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`  
-**Scripts not found:** Run from project root.  
-**Manual run (if scripts fail):** Create venv, `pip install -r requirements.txt`, `bash scripts/init_storage.sh` (or Windows equivalent), copy `config/env.example` to `config/.env`, then `python backend/app.py`.
-
----
-
-## Project Structure
-
-### Directory Layout
-
-```
-AI-Test-Studio/
-│
-├── backend/                    # Backend API server
-│   ├── app.py                 # Main Flask application
-│   ├── api/                   # API routes
-│   │   ├── admin/             # Admin endpoints (upload, sync, settings)
-│   │   │   └── routes.py
-│   │   ├── customer/          # Customer endpoints (chat, generate tests)
-│   │   │   └── routes.py
-│   │   ├── auth/              # Authentication endpoints
-│   │   │   └── routes.py
-│   │   └── agents/            # Agent proxy endpoints
-│   │       └── proxy.py
-│   ├── rag/                   # RAG classes
-│   │   ├── rag_engine.py      # Core RAG engine (base class: embeddings, LLM, retrieval, query)
-│   │   ├── rag_document_loader.py  # Multi-format document loading (PDF, CSV, Excel, Word, PPT)
-│   │   ├── rag_settings.py    # RAG configuration
-│   │   ├── rag_helper.py      # Helper functions + ChromaDB utilities
-│   │   └── rag_caching.py     # Query + embedding caching
-│   ├── services/              # Business logic
-│   │   ├── rag_service.py     # RAG service layer
-│   │   ├── auth_service.py    # Authentication
-│   │   ├── settings_service.py    # Settings management
-│   │   ├── testrail_sync_service.py    # TestRail sync
-│   │   ├── confluence_sync_service.py
-│   │   ├── requirement_analysis_service.py
-│   │   └── scheduler_service.py
-│   ├── connectors/            # External integrations
-│   │   ├── testrail_connector.py
-│   │   └── confluence_connector.py
-│   ├── extractors/            # Requirement extraction
-│   │   └── requirement_extractor.py
-│   └── models/                # Data models
-│       └── user.py
-│
-├── frontend/                  # Frontend interfaces
-│   ├── admin/                 # Admin UI
-│   │   └── index.html         # Admin dashboard
-│   └── customer/              # Customer UI
-│       └── index.html         # Query interface
-│
-├── config/                    # Configuration files
-│   └── env.example           # Environment template
-│
-├── scripts/                   # Deployment scripts
-│   ├── install.sh            # macOS/Linux installation
-│   ├── install.ps1           # PowerShell installation
-│   ├── install.bat           # CMD installation
-│   ├── run.sh                # macOS/Linux run script
-│   ├── run.ps1               # PowerShell run script
-│   ├── run.bat               # CMD run script
-│   ├── init_storage.sh       # macOS/Linux storage init
-│   ├── init_storage.ps1      # PowerShell storage init
-│   └── init_storage.bat      # CMD storage init
-│
-├── storage/                   # Data storage (created at runtime)
-│   ├── documents/             # Uploaded documents
-│   ├── chroma_db/              # Vector database
-│   └── embedding_cache/       # Embedding cache
-│
-├── logs/                      # Application logs (created at runtime)
-│
-├── requirements.txt           # Python dependencies
-├── README.md                  # Main documentation
-├── docs/                     # Documentation files
-│   ├── DEPLOYMENT.md         # This file
-│   └── API.md                # API documentation
-└── .gitignore                 # Git ignore rules
-```
-
-### Component Overview
-
-**Backend (`backend/`)**:
-- **Flask Application** (`app.py`): Main entry point, configures Flask, CORS, routes
-- **API Routes** (`api/`): Admin and customer endpoints
-- **Services** (`services/`): Business logic for RAG operations
-
-**RAG core (`backend/rag/`)**:
-- **RAG Engine** (`rag_engine.py`): Core engine — embeddings, LLM, retrieval, query
-- **Format-Specific RAG**: Text, PDF, CSV/Excel processors
-- **Document Loader RAG** (`rag_document_loader.py`): Unified multi-format interface
-- **Supporting Files**: Configuration (`rag_settings.py`), helpers (`rag_helper.py`), caching (`rag_caching.py`)
-
-**Frontend (`frontend/`)**:
-- **Admin Interface**: Document upload, management, ChromaDB viewing
-- **Customer Interface**: Query interface with markdown formatting
-
-### Data Flow
-
-**Document Upload Flow:**
-1. Admin uploads file via frontend
-2. Frontend sends POST to `/api/admin/upload`
-3. Admin route validates admin key
-4. File saved temporarily
-5. RAG service processes document
-6. Document added to vectorstore
-7. File moved to `storage/documents/`
-8. Metadata saved to `storage/documents_metadata.json`
-9. Response returned to frontend
-
-**Query Flow:**
-1. Customer enters question via frontend
-2. Frontend sends POST to `/api/customer/query`
-3. Customer route validates request
-4. RAG service processes query
-5. Query checked against cache
-6. If cache miss, RAG system retrieves documents
-7. LLM generates answer
-8. Response returned to frontend
-
----
-
-## API Usage
-
-For complete API documentation with detailed examples, request/response formats, and code samples in multiple languages, see **[API.md](API.md)**.
-
-### Quick Examples
-
-**Login (get session):**
 ```bash
-curl -X POST http://localhost:5001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -c cookies.txt \
-  -d '{"username": "admin", "password": "admin123"}'
+cd ../QA-Agent-Network && bash scripts/run-server.sh    # 127.0.0.1:6001
 ```
 
-**Upload Document:**
-```bash
-curl -X POST http://localhost:5001/api/admin/upload \
-  -b cookies.txt \
-  -F "file=@document.pdf"
-```
-
-**Query System:**
-```bash
-curl -X POST http://localhost:5001/api/customer/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is the main topic?"}'
-```
-
-**List Documents:**
-```bash
-curl -X GET http://localhost:5001/api/admin/documents \
-  -b cookies.txt
-```
-
-📖 **Full API Reference**: See [API.md](API.md) for:
-- Complete endpoint documentation
-- Request/response formats
-- Authentication details
-- Error handling
-- Code examples (Python, JavaScript, cURL, PowerShell)
-- Best practices
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-#### Port Already in Use
-
-**All Platforms:**
-Change `PORT` in `config/.env`:
-```bash
-PORT=5002  # or any other available port
-```
-
-**macOS Specific (Port 5000):**
-macOS AirPlay Receiver often uses port 5000. The default port is set to 5001 to avoid conflicts. If you need to use a different port:
-
-1. **Edit Configuration**:
-   ```bash
-   # Edit config/.env
-   PORT=5002  # or any other available port
-   ```
-
-2. **Disable AirPlay Receiver** (if you want to use port 5000):
-   - System Preferences → General → AirDrop & Handoff
-   - Uncheck "AirPlay Receiver"
-
-3. **Kill Process Using Port** (if needed):
-   ```bash
-   # Find process
-   lsof -ti:5001
-   
-   # Kill process (replace PID)
-   kill -9 <PID>
-   ```
-
-The run script (`scripts/run.sh`) will automatically detect port conflicts and prompt you to use a different port.
-
-#### Python Not Found
-
-**Windows:**
-- Ensure Python is installed and added to PATH
-- Reinstall Python with "Add to PATH" option checked
-
-**macOS:**
-```bash
-# Install via Homebrew
-brew install python@3.11
-
-# Or use python3 explicitly
-python3 -m venv venv
-```
-
-**Linux:**
-```bash
-# Ubuntu/Debian
-sudo apt-get install python3 python3-pip python3-venv
-
-# CentOS/RHEL
-sudo yum install python3 python3-pip
-```
-
-#### Permission Denied (macOS/Linux)
-
-Make scripts executable:
-```bash
-chmod +x scripts/*.sh
-```
-
-#### ChromaDB / Confluence sync: "attempt to write a readonly database" (SQLite 1032)
-
-If Confluence or TestRail sync fails with:
-```
-Query error: Database error: (code: 1032) attempt to write a readonly database
-```
-
-the ChromaDB directory (or its files) is not writable by the process.
-
-**Fix:** Ensure the app has write access to `storage/chroma_db` (and `storage/`):
-
-**macOS/Linux:**
-```bash
-# From project root
-chmod -R u+rwX storage/
-# If the directory was created by another user (e.g. root), fix ownership:
-chown -R $(whoami) storage/
-```
-
-**Windows:** Ensure the user running the app has write permission to the `storage` folder (Properties → Security).
-
-On startup, the app checks that `storage/chroma_db` is writable; if not, it will fail with a clear message and the path to fix.
-
-#### LibreOffice Required for .doc and .ppt Files
-
-If you encounter errors when uploading `.doc` or `.ppt` files:
-
-**Error Message:**
-```
-soffice command was not found. Please install libreoffice
-```
-
-**Solution:**
-
-1. **macOS:**
-   ```bash
-   brew install --cask libreoffice
-   ```
-
-2. **Linux (Debian/Ubuntu):**
-   ```bash
-   sudo apt-get update
-   sudo apt-get install libreoffice
-   ```
-
-3. **Linux (RHEL/CentOS/Fedora):**
-   ```bash
-   sudo yum install libreoffice
-   # or
-   sudo dnf install libreoffice
-   ```
-
-4. **Windows:**
-   - Download and install from [LibreOffice website](https://www.libreoffice.org/download/)
-   - Ensure LibreOffice is added to your system PATH
-
-5. **Verify Installation:**
-   ```bash
-   soffice --version
-   ```
-
-**Note:** Modern formats (`.docx`, `.pptx`) work without LibreOffice. Only older formats (`.doc`, `.ppt`) require LibreOffice for conversion.
-
-**Alternative:** Convert `.doc` files to `.docx` and `.ppt` files to `.pptx` before uploading to avoid the LibreOffice requirement.
-
-#### Import Errors
-
-Ensure virtual environment is activated:
-
-**Windows:**
-```cmd
-venv\Scripts\activate
-```
-
-**macOS/Linux:**
-```bash
-source venv/bin/activate
-```
-
-#### ChromaDB Errors
-
-Ensure storage directories exist and are writable:
-
-**Windows:**
-```cmd
-mkdir storage\chroma_db
-```
-
-**macOS/Linux:**
-```bash
-mkdir -p storage/chroma_db
-chmod 755 storage/chroma_db
-```
-
-#### Ollama Not Running
-
-**Check if Ollama is running:**
-```bash
-curl http://localhost:11434/api/tags
-```
-
-**Start Ollama manually:**
-```bash
-ollama serve
-```
-
-**Pull model if missing:**
-```bash
-ollama pull llama3.2:3b
-```
-
-#### Virtual Environment Issues
-
-**Windows:**
-- If PowerShell execution policy blocks scripts:
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-**macOS/Linux:**
-- If `venv` module not found:
-```bash
-sudo apt-get install python3-venv  # Ubuntu/Debian
-sudo yum install python3-venv      # CentOS/RHEL
-```
-
-### Platform-Specific Issues
-
-#### Windows
-
-**PowerShell Execution Policy:**
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-**Long Path Names:**
-Enable long path support in Windows:
-```powershell
-New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
-```
-
-#### macOS
-
-**Homebrew Python:**
-If using Homebrew Python, ensure it's in PATH:
-```bash
-echo 'export PATH="/opt/homebrew/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-**Permission Issues:**
-```bash
-sudo chown -R $(whoami) /path/to/AI-Test-Studio
-```
-
-#### Linux
-
-**Firewall:**
-```bash
-# Ubuntu/Debian
-sudo ufw allow 5001/tcp
-
-# CentOS/RHEL
-sudo firewall-cmd --add-port=5001/tcp --permanent
-sudo firewall-cmd --reload
-```
-
-**SELinux (if enabled):**
-```bash
-sudo setsebool -P httpd_can_network_connect 1
-```
-
----
-
-## Platform-Specific Notes
-
-### Supported Platforms
-
-- ✅ **Windows 10/11** (PowerShell 5.1+, Command Prompt)
-- ✅ **macOS 10.15+** (Catalina and later)
-- ✅ **Linux** (Ubuntu 18.04+, Debian 10+, CentOS 7+, RHEL 7+)
-
-### Platform Comparison
-
-| Feature | Windows | macOS | Linux |
-|---------|---------|-------|-------|
-| Python Installation | Python.org installer | Homebrew or system Python | Package manager |
-| Script Format | `.bat` / `.ps1` | `.sh` | `.sh` |
-| Path Separator | `\` or `/` | `/` | `/` |
-| Service Manager | NSSM / IIS | launchd | systemd |
-| Virtual Environment | `venv\Scripts\activate` | `venv/bin/activate` | `venv/bin/activate` |
-
-### Cross-Platform Compatibility
-
-**Path Handling:**
-The application uses Python's `pathlib.Path` which automatically handles platform-specific path separators.
-
-**Environment Variables:**
-Environment variables work the same across platforms. Use forward slashes in paths (they work on Windows too).
-
-**Script Execution:**
-All platforms support:
-- Virtual environments (`venv`)
-- pip package management
-- Environment variables (`.env` files)
-
-### Platform-Specific Recommendations
-
-**Windows:**
-- Use PowerShell for better scripting
-- Enable long path support
-- Consider using WSL2 for Linux-like environment
-- Use Docker Desktop for containerized deployment
-
-**macOS:**
-- Use Homebrew for package management
-- Consider using pyenv for Python version management
-- Use launchd for background services
-- Test on both Intel and Apple Silicon Macs
-
-**Linux:**
-- Use systemd for production services
-- Configure firewall rules
-- Set up log rotation
-- Consider using Docker for easier deployment
-- Use Gunicorn for production WSGI server
-
----
-
-## Security Considerations
-
-1. **Change Default Keys**: Update `SECRET_KEY` in production
-2. **Use HTTPS**: Deploy behind reverse proxy (nginx, Apache) with SSL
-3. **Firewall**: Restrict access to admin endpoints
-4. **File Validation**: Validate uploaded file types and sizes
-5. **Rate Limiting**: Implement rate limiting for API endpoints
-6. **Environment Variables**: Never commit `.env` file to version control
+| Setting (Studio `config/.env`) | |
+|------|---|
+| `QA_AGENT_NETWORK_URL` | Where the agent server is (default `http://localhost:6001`) |
+| `QA_AGENT_NETWORK_TIMEOUT` | Seconds for non-streaming proxy calls (default 30) |
+| `QA_AGENT_PROXY_SECRET` | Must equal the agent server's `QA_AGENT_PROXY_SECRET`. Required if the agent server listens on anything but localhost |
+
+Studio authenticates the user and forwards their identity to the agent server;
+the agent server trusts those headers, which is why it binds to localhost by
+default and needs the shared secret otherwise. Team setup of the agent server:
+[its DEPLOYMENT guide](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/DEPLOYMENT.md).
 
 ---
 
 ## Backup
 
-Regularly backup:
-- `storage/chroma_db/` - Vector database
-- `storage/documents/` - Uploaded documents
-- `config/.env` - Configuration (without secrets)
+Everything stateful is under `storage/` (git-ignored):
 
-**Windows:**
-```cmd
-xcopy storage\chroma_db backup\chroma_db /E /I
-```
+| Path | Contents |
+|------|----------|
+| `storage/users.json` | Accounts and roles |
+| `storage/chroma_db/` | Vector store (rebuildable by re-syncing, but slow) |
+| `storage/documents/`, `documents_metadata.json` | Uploaded test-case files |
+| `storage/requirement_sessions/`, `requirement_runs.jsonl` | Requirements → Tests run history |
+| `storage/operation_costs.jsonl` | LLM cost log (Analytics) |
+| `storage/*_sync_metadata.json` | Sync state |
 
-**macOS/Linux:**
+Back up `config/.env` separately and securely — it holds secrets.
+
 ```bash
-cp -r storage/chroma_db backup/
+tar czf studio-backup-$(date +%F).tgz storage/
 ```
 
 ---
 
-## Support
+## Troubleshooting
 
-For issues specific to:
-- **Windows**: Check PowerShell execution policy and PATH settings
-- **macOS**: Verify Python installation via Homebrew or system Python
-- **Linux**: Ensure Python 3.9+ and required system packages are installed
+### `RuntimeError: SECRET_KEY is unset or set to a publicly known placeholder`
+Set a real `SECRET_KEY` in `config/.env`, or `FLASK_DEBUG=true` for local-only use.
 
-For detailed troubleshooting, refer to the [Troubleshooting](#troubleshooting) section above.
+### Lost the admin password
+Another admin can reset it in Admin → Users. If there is no other admin: stop the
+app, remove the `admin` user's entry from `storage/users.json`, and start it again
+— when no admin exists, a new `admin` is created and its password printed once.
 
----
+### Port already in use
+Set `PORT` in `config/.env` (e.g. `5002`). On macOS, port 5000 is taken by AirPlay
+Receiver; this app defaults to 5001 for that reason.
 
-## Additional Resources
+### Ollama not running
+`ollama serve`; check with `curl http://localhost:11434/api/tags`; pull the model
+with `ollama pull llama3.2:3b`. Or switch `LLM_PROVIDER` to `openai` / `gemini`.
 
-- **[README.md](../README.md)** - Main project documentation and quick start guide
-- **[API.md](API.md)** - Complete REST API reference with examples
-- **[frontend/BRANDING.md](frontend/BRANDING.md)** - Branding and logo information
+### Sync fails: "attempt to write a readonly database" (SQLite 1032)
+The process cannot write `storage/chroma_db`. Fix permissions/ownership:
+```bash
+chmod -R u+rwX storage/ && chown -R "$(whoami)" storage/
+```
+On Windows, give the service user write access to `storage\`.
+
+### Upload rejected
+The admin upload accepts **CSV/Excel test-case files** only (at least 7 of the 10
+expected test-case columns). Other documents enter the knowledge base through
+the Confluence sync.
+
+### `.doc` / `.ppt` errors
+Install `antiword` (`.doc` requirement files) or LibreOffice (legacy `.doc` /
+`.ppt` documents), or convert to `.docx` / `.pptx`.
+
+### Answers ignore recent content, or look wrong after switching LLM provider
+Re-run the syncs. After switching to or from OpenAI, reset the knowledge base
+first — the embedding dimensions differ.
+
+### Agent pages show offline
+The agent server is not reachable at `QA_AGENT_NETWORK_URL` — start it, and check
+that `QA_AGENT_PROXY_SECRET` matches in both repos. Agent run errors are
+explained in [QA Agent Network's troubleshooting guide](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/TROUBLESHOOTING.md).
+
+### Import errors or a broken venv
+```bash
+rm -rf venv && bash scripts/install.sh
+```
+
+### Windows: scripts will not run
+`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`, or run
+`powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1`.

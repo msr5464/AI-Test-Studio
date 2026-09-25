@@ -170,7 +170,7 @@ def seeded(tmp_path, monkeypatch):
                                            time.gmtime(now - 60 + i * 10)),
             "input_tokens": 100, "output_tokens": 200,
             "estimated_cost_usd": 0.5, "model": "gpt-4o", "run_id": "run-a"}))
-    # An orphan: real spend, but not attributable to a run.
+    # A chat call: real spend, never part of a run.
     lines.append(json.dumps({
         "operation": "rag.query",
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime(now)),
@@ -184,26 +184,14 @@ def test_aggregator_totals_and_grouping(seeded):
     q = asvc.query("all")
     assert q["overall"]["calls"] == 4          # the truncated line is skipped
     assert q["overall"]["cost_usd"] == 1.75
-    assert q["overall"]["runs"] == 1
-    assert q["orphan_calls"] == 1              # counted in spend, not in runs
+    # Runs are counted from requirement_runs.jsonl summary rows. run-a has spend
+    # but no summary row, so its spend counts and it adds no run or time.
+    assert q["overall"]["runs"] == 0
+    assert q["run_duration_s"] == 0
     assert q["by_group"]["requirements"]["calls"] == 3
     assert q["by_group"]["ask"]["calls"] == 1
     assert q["by_stage"]["3"]["calls"] == 3    # generate_tests is a stage-3 op
     assert q["cost_basis"] == "estimated"
-
-
-def test_approximate_run_duration_from_timestamp_span(seeded):
-    spans = asvc.approximate_run_durations()
-    assert spans["run-a"] == pytest.approx(20.0, abs=1.0)
-
-
-def test_single_call_run_reports_zero_not_none(tmp_path, monkeypatch):
-    path = tmp_path / "operation_costs.jsonl"
-    monkeypatch.setenv("OPERATION_COSTS_FILE", str(path))
-    path.write_text(json.dumps({
-        "operation": "rag.query", "timestamp_utc": "2026-08-28T12:00:00+00:00",
-        "estimated_cost_usd": 0.1, "run_id": "solo"}) + "\n")
-    assert asvc.approximate_run_durations()["solo"] == 0.0
 
 
 def test_null_tokens_do_not_crash_the_summer(tmp_path, monkeypatch):
@@ -239,6 +227,24 @@ def test_failed_run_still_records_its_spend(seeded):
         started_at=time.time() - 5)
     q = asvc.query("all")
     assert q["runs_summarised"] == 1
+
+
+def test_requirements_rollup_matches_its_series(seeded):
+    """The QA Agents tab adds this rollup to the agents' totals and its series to
+    the agents' trend: runs are verdict-only, and the series sums to the rollup."""
+    for rid, status, cost in (("ok", "completed", 1.0), ("bad", "failed", 0.5),
+                              ("stop", "cancelled", 0.25)):
+        asvc.record_requirement_run(
+            {"run_id": rid, "total_estimated_cost_usd": cost, "duration_s": 10.0,
+             "summary": {"total_generated_tests": 2, "e2e_workflow_tests_count": 1}},
+            run_id=rid, status=status, started_at=time.time() - 10)
+    req = asvc.query("all")["requirements"]
+    assert (req["runs"], req["succeeded"], req["failed"]) == (2, 1, 1)
+    assert req["cost_usd"] == 1.75 and req["duration_s"] == 30.0   # cancelled still costs
+    assert req["tests_generated"] == 9
+    series = asvc.query("all")["requirements_series"]
+    for key in ("runs", "cost_usd", "duration_s", "tests_generated"):
+        assert sum(p[key] for p in series) == pytest.approx(req[key])
 
 
 def test_missing_files_return_empty_not_an_error(tmp_path, monkeypatch):
@@ -283,16 +289,30 @@ def test_time_saved_counts_both_halves():
     assert out['basis'] == 'estimate'
 
 
-def test_time_saved_can_go_negative_and_is_not_clamped():
-    """A run that produced nothing still burned machine time. Clamping to zero
-    would hide exactly the runs worth investigating."""
+def test_time_saved_never_goes_below_zero():
+    """A run that produced nothing still burned machine time, but "time saved"
+    is reported as an estimate of human time replaced, clamped at zero — the
+    spend and duration tiles are where an unproductive run shows up."""
     from backend.api.admin import routes
     baselines = {'min_per_test_authored': 120, 'min_per_test_fixed': 45,
                  'min_per_test_adapted': 30, 'min_per_test_case_written': 15}
     agents = {'overall': {'tests_created': 0, 'tests_fixed': 0,
                           'items_adapted': 0, 'duration_s': 1800}}
     out = routes._time_saved(agents, {}, baselines)
-    assert out['agents_min'] == -30.0
+    assert out['agents_min'] == 0.0
+
+
+def test_time_saved_per_agent_uses_the_same_rule():
+    """The breakdown table reads these; it no longer re-derives them in JS."""
+    from backend.api.admin import routes
+    baselines = {'min_per_test_authored': 120, 'min_per_test_fixed': 45,
+                 'min_per_test_adapted': 30, 'min_per_test_case_written': 15}
+    agents = {'overall': {}, 'by_agent': {
+        'test-adaptation-agent': {'items_adapted': 5, 'duration_s': 6240},   # 150 - 104
+        'test-triaging-agent': {'duration_s': 600},                         # floored
+    }}
+    out = routes._time_saved(agents, {}, baselines)
+    assert out['by_agent'] == {'test-adaptation-agent': 46.0, 'test-triaging-agent': 0.0}
 
 
 def test_baselines_fall_back_to_defaults_when_unset(monkeypatch):
@@ -302,7 +322,9 @@ def test_baselines_fall_back_to_defaults_when_unset(monkeypatch):
     app.config['SETTINGS_SERVICE'] = _Svc({})
     with app.app_context():
         b = routes._analytics_baselines()
-    assert b['min_per_test_authored'] == 120
+    assert b['min_per_test_authored'] == 240
+    assert b['min_per_test_fixed'] == 60
+    assert b['min_per_test_adapted'] == 150
     assert b['min_per_test_case_written'] == 15
 
 

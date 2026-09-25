@@ -147,9 +147,9 @@ def record_requirement_run(result: Optional[Dict[str, Any]], *,
             "status": status,
             "source_type": source_type,
             "error": error[:500] if error else "",
+            **tt,   # first, or its zeros overwrite the fallbacks below
             "cost_usd": tt.get("cost_usd") if tt.get("cost_usd") else float(result.get("total_estimated_cost_usd") or 0.0),
             "llm_calls": tt.get("llm_calls") if tt.get("llm_calls") else int(result.get("llm_calls") or 0),
-            **tt,
             "stages": result.get("stage_timings") or [],
             "outcomes": {
                 "requirements_analyzed": int(result.get("requirements_analyzed") or 0),
@@ -189,6 +189,28 @@ def _add(target: Dict[str, Any], row: Dict[str, Any]) -> None:
     target["duration_s"] = round(target["duration_s"] + float(row.get("duration_s") or 0.0), 3)
 
 
+def _blank_run_rollup() -> Dict[str, Any]:
+    return {"runs": 0, "succeeded": 0, "failed": 0, "cost_usd": 0.0, "duration_s": 0.0,
+            "llm_calls": 0, "input_tokens": 0, "output_tokens": 0, "tests_generated": 0}
+
+
+def _add_run(target: Dict[str, Any], run: Dict[str, Any]) -> None:
+    """Runs count only a verdict (completed/failed), as for the QA agents; a
+    cancelled run still adds its spend, time and tests."""
+    status = run.get("status")
+    if status in ("completed", "failed"):
+        target["runs"] += 1
+        target["succeeded" if status == "completed" else "failed"] += 1
+    outcomes = run.get("outcomes") or {}
+    target["tests_generated"] += (int(outcomes.get("test_cases_generated") or 0)
+                                  + int(outcomes.get("e2e_tests_generated") or 0))
+    target["cost_usd"] = round(target["cost_usd"] + float(run.get("cost_usd") or 0.0), 6)
+    target["duration_s"] = round(target["duration_s"] + float(run.get("duration_s") or 0.0), 2)
+    target["llm_calls"] += int(run.get("llm_calls") or 0)
+    target["input_tokens"] += int(run.get("input_tokens") or 0)
+    target["output_tokens"] += int(run.get("output_tokens") or 0)
+
+
 ADMIN_USER_ID = "21232f297a57"
 
 
@@ -220,10 +242,6 @@ def query(window: str = "7d", since: Optional[float] = None,
     by_model: Dict[str, Dict[str, Any]] = defaultdict(_blank)
     by_stage: Dict[int, Dict[str, Any]] = defaultdict(_blank)
     series: Dict[str, Dict[str, Any]] = defaultdict(_blank)
-    run_ids = set()
-    # 42 of the 4,843 existing rows have no run_id. They still count toward
-    # spend; they just cannot be attributed to a run.
-    orphan_calls = 0
 
     for row in operations:
         ts = _epoch(row.get("timestamp_utc"))
@@ -245,11 +263,6 @@ def query(window: str = "7d", since: Optional[float] = None,
         if stage:
             _add(by_stage[stage], row)
         _add(series[time.strftime("%Y-%m-%d", time.localtime(ts))], row)
-        if grp == "requirements":
-            if row.get("run_id"):
-                run_ids.add(row["run_id"])
-            else:
-                orphan_calls += 1
 
     selected_runs = [r for r in runs
                      if (since is None or float(r.get("started_at") or 0) >= since)
@@ -257,38 +270,24 @@ def query(window: str = "7d", since: Optional[float] = None,
                      and (not user_id or _resolve_row_user(r) == user_id)]
 
     outcomes = defaultdict(int)
-    run_duration_total = 0.0
-    run_llm_calls = 0
-    run_cost_usd = 0.0
-    run_input_tokens = 0
-    run_output_tokens = 0
+    # Requirements->Tests is test-design-agent on the QA Agents tab. Summary rows
+    # only: operation rows repeat the same calls, so adding both double counts.
+    req = _blank_run_rollup()
+    req_series: Dict[str, Dict[str, Any]] = defaultdict(_blank_run_rollup)
     for run in selected_runs:
         for key, value in (run.get("outcomes") or {}).items():
             if isinstance(value, bool):
                 outcomes[key] += 1 if value else 0
             elif isinstance(value, (int, float)):
                 outcomes[key] += value
-        run_duration_total += float(run.get("duration_s") or 0.0)
-        run_llm_calls += int(run.get("llm_calls") or 0)
-        run_cost_usd += float(run.get("cost_usd") or 0.0)
-        run_input_tokens += int(run.get("input_tokens") or 0)
-        run_output_tokens += int(run.get("output_tokens") or 0)
+        _add_run(req, run)
+        _add_run(req_series[time.strftime(
+            "%Y-%m-%d", time.localtime(float(run.get("started_at") or 0)))], run)
 
-    # Runs with no summary row (everything before 5c) still have a usable
-    # duration: the span of their own LLM-call timestamps. Without this the 250+
-    # runs of existing history contribute no time at all, which was the whole
-    # point of reading them. Kept in a separate field so it is never silently
-    # added to measured time.
-    summarised_ids = {r.get("run_id") for r in selected_runs if r.get("run_id")}
-    approx_spans = approximate_run_durations()
-    approx_total = round(sum(v for rid, v in approx_spans.items()
-                             if rid in run_ids and rid not in summarised_ids), 2)
-
+    # Runs and time come from summary rows only. A call with no summary (the
+    # synchronous API endpoint, "suggest case update") still counts in spend.
     overall["runs"] = len(selected_runs)
     by_group["requirements"]["runs"] = len(selected_runs)
-    # Runs predating the summary record have no measured duration. Their LLM
-    # timestamps still bound them, which is an approximation, not a measurement.
-    approx = len(run_ids) - len(selected_runs)
     ingest = ingestion_history(since, until) if (not user_id or user_id == ADMIN_USER_ID) else {"syncs": [], "total_duration_s": 0.0, "count": 0}
     return {
         "window": {"from": since, "to": until, "label": _window_label(window)},
@@ -296,18 +295,11 @@ def query(window: str = "7d", since: Optional[float] = None,
         "cost_basis": "estimated",
         "overall": overall,
         "runs_summarised": len(selected_runs),
-        "runs_duration_approx": max(0, approx),
-        "run_duration_s": round(run_duration_total, 2),
-        "run_totals": {
-            "llm_calls": run_llm_calls,
-            "cost_usd": round(run_cost_usd, 6),
-            "input_tokens": run_input_tokens,
-            "output_tokens": run_output_tokens,
-        },
-        # Approximate: excludes retrieval, parsing, and anything outside the
-        # first and last LLM call. Every consumer must label it as such.
-        "run_duration_approx_s": approx_total,
-        "orphan_calls": orphan_calls,
+        "run_duration_s": req["duration_s"],
+        "run_totals": {k: req[k] for k in
+                       ("llm_calls", "cost_usd", "input_tokens", "output_tokens")},
+        "requirements": req,
+        "requirements_series": [dict(bucket=b, **v) for b, v in sorted(req_series.items())],
         "outcomes": dict(outcomes),
         "by_group": dict(by_group),
         "by_operation": dict(by_operation),
@@ -378,22 +370,6 @@ def ingestion_history(since: Optional[float] = None,
             out["count"] += 1
     out["syncs"].sort(key=lambda s: s.get("timestamp") or "", reverse=True)
     return out
-
-
-def approximate_run_durations() -> Dict[str, float]:
-    """Per-run duration inferred from the span of its LLM-call timestamps.
-
-    This is what makes 247 runs of pre-existing history usable. It excludes
-    retrieval and parsing time and anything outside the first and last call, so
-    every consumer must label it as approximate.
-    """
-    spans: Dict[str, List[float]] = defaultdict(list)
-    for row in _read_jsonl(_costs_file()):
-        rid = row.get("run_id")
-        ts = _epoch(row.get("timestamp_utc"))
-        if rid and ts:
-            spans[rid].append(ts)
-    return {rid: round(max(v) - min(v), 2) for rid, v in spans.items()}
 
 
 def clear_analytics(user_id: Optional[str] = None, window: str = "all"):

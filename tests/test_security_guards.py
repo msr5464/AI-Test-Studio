@@ -98,3 +98,19 @@ def test_a_colliding_user_id_cannot_overwrite_another_account(tmp_path):
         assert store.create_user("collider", "pw") is None
     kept = store.get_user("21232f297a57")
     assert (kept.username, kept.role) == ("admin", "admin")
+
+
+def test_a_user_an_admin_creates_can_sign_in_straight_away(auth_client):
+    """Admin-created accounts used to start pending, so they could not log in
+    until an admin approved the account they had just made."""
+    with auth_client.session_transaction() as sess:
+        sess.update(user_id="21232f297a57", username="admin", role="admin", status="active")
+    created = auth_client.post("/api/auth/users",
+                               json={"username": "carol", "password": "pw12345", "role": "customer"})
+    assert created.status_code == 201, created.get_json()
+    assert created.get_json()["user"]["status"] == "active"
+
+    with auth_client.session_transaction() as sess:
+        sess.clear()
+    login = auth_client.post("/api/auth/login", json={"username": "carol", "password": "pw12345"})
+    assert login.status_code == 200, login.get_json()

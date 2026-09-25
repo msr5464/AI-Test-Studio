@@ -798,6 +798,24 @@
             line-height: 1.6;
         }
 
+        .analytics-notes {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            line-height: 1.6;
+        }
+
+        .analytics-notes summary {
+            cursor: pointer;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .analytics-notes ul {
+            margin: 6px 0 0;
+            padding-left: 18px;
+        }
+
         .analytics-bars {
             margin: 10px 0 4px;
         }
@@ -1770,10 +1788,10 @@
                         <div class="upload-area" id="uploadArea">
                             <p style="font-size: 14px; font-weight: 600; margin-bottom: 0;">Drag and drop files here or
                                 click to browse</p>
-                            <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">CSV, Excel, PDF, Word,
-                                PowerPoint, text</p>
+                            <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">Test-case exports:
+                                CSV or Excel (.xlsx, .xls)</p>
                             <input type="file" id="fileInput" multiple
-                                accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.pptx,.ppt,.txt,.md">
+                                accept=".csv,.xlsx,.xls">
                         </div>
                         <button class="btn btn-upload" id="uploadBtn" disabled>Upload & Process Files</button>
                     </div>
@@ -2125,8 +2143,10 @@
         });
 
         function handleFiles(files) {
-            // Supported file extensions (must match backend)
-            const supportedExtensions = ['.pdf', '.csv', '.xlsx', '.xls', '.docx', '.doc', '.docs', '.pptx', '.ppt', '.txt', '.text', '.md'];
+            // Supported file extensions — must match RAGService._validate_testcase_file,
+            // which accepts only test-case exports. Other documents come in through
+            // the Confluence sync.
+            const supportedExtensions = ['.csv', '.xlsx', '.xls'];
 
             selectedFiles = Array.from(files).filter(file => {
                 const fileName = file.name.toLowerCase();
@@ -3376,7 +3396,7 @@
 
         function renderSettingsTabs(schema, values) {
             const categories = ['testrail', 'confluence', 'llm', 'chat', 'requirements', 'analytics', 'appearance'];
-            const categoryLabels = { testrail: 'TestRail', confluence: 'Confluence', llm: 'LLM & RAG', chat: 'Chat Specifics', requirements: 'Requirements Specifics', appearance: 'Appearance' };
+            const categoryLabels = { testrail: 'TestRail', confluence: 'Confluence', llm: 'LLM & RAG', chat: 'Chat Specifics', requirements: 'Requirements Specifics', appearance: 'Appearance', analytics: 'Analytics' };
             const ragNote = `<div class="settings-section-note">ℹ️ RAG &amp; Retrieval changes are saved immediately but take full effect after an app restart.</div>`;
 
             // Fix: restore whichever tab was last open, defaulting to testrail
@@ -3463,7 +3483,7 @@
                 });
 
                 html += `<div class="settings-save-row">
-                    <button class="btn" onclick="saveSettingsTab('${cat}')">💾 Save ${escapeHtml(categoryLabels[cat])} Settings</button>
+                    <button class="btn" onclick="saveSettingsTab('${cat}')">💾 Save ${escapeHtml(categoryLabels[cat] || cat)} Settings</button>
                     <span class="settings-save-status" id="settingsSaveStatus_${cat}"></span>
                 </div>`;
                 html += `</div></div>`;
@@ -3601,23 +3621,19 @@
 
         function setTrendMetric(metric) {
             _trendMetric = metric;
-            if (_lastAnalyticsData) {
-                renderAnalytics(_lastAnalyticsData);
-                const activeBtn = document.querySelector(`.settings-tabs .settings-tab-btn[onclick*="'${_currentAnalyticsTab}'"]`);
-                switchAnalyticsTab(_currentAnalyticsTab, activeBtn);
-            }
+            if (_lastAnalyticsData) renderAnalytics(_lastAnalyticsData);
         }
 
-        function switchAnalyticsTab(tabName, btn) {
+        function switchAnalyticsTab(tabName) {
             _currentAnalyticsTab = tabName;
             const container = document.getElementById('analyticsBody');
             if (!container) return;
-            container.querySelectorAll('.settings-tabs .settings-tab-btn').forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            
-            container.querySelectorAll('.analytics-tab-content').forEach(el => el.style.display = 'none');
-            const target = document.getElementById('analyticsTab_' + tabName);
-            if (target) target.style.display = 'block';
+            // Only the Agents/Studio bar: the trend-metric buttons are
+            // .settings-tab-btn too, and clearing them lost their highlight.
+            container.querySelectorAll('[data-tab]').forEach(
+                b => b.classList.toggle('active', b.dataset.tab === tabName));
+            container.querySelectorAll('.analytics-tab-content').forEach(
+                el => el.style.display = el.id === 'analyticsTab_' + tabName ? 'block' : 'none');
         }
 
         function analyticsWindow() {
@@ -3727,18 +3743,25 @@
             let keys = Object.keys(buckets).sort();
             if (keys.length === 0) return '';
 
-            // If only 1 data point, create a dummy previous day with 0 to show a trend line
-            if (keys.length === 1) {
-                const parts = keys[0].split('-');
-                const d = new Date(parts[0], parts[1] - 1, parts[2]);
-                d.setDate(d.getDate() - 1);
-                const prev = d.toISOString().split('T')[0];
-                buckets[prev] = 0;
-                keys = [prev, keys[0]];
-            }
+            // One point per calendar day, first to last: a day without runs is a
+            // real zero, and dropping it squeezed the time axis. A lone day gets
+            // the day before it so there is a line to draw.
+            const localDay = function (d) {   // toISOString() is a day early east of UTC
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+                    + '-' + String(d.getDate()).padStart(2, '0');
+            };
+            const ymd = keys[0].split('-');
+            const d = new Date(ymd[0], ymd[1] - 1, ymd[2]);
+            if (keys.length === 1) d.setDate(d.getDate() - 1);
+            const lastKey = keys[keys.length - 1];
+            keys = [];
+            for (; localDay(d) <= lastKey; d.setDate(d.getDate() + 1)) keys.push(localDay(d));
+            keys.forEach(function (k) { buckets[k] = buckets[k] || 0; });
 
             const PAD_L = 52, PAD_B = 22, PAD_T = 8;
-            const W = 720, H = 140;
+            // Drawn at the card's own width so it fills it at 1:1 scale; a fixed
+            // 720 left gutters on desktop and shrank the labels on a phone.
+            const W = document.getElementById('analyticsBody').clientWidth || 720, H = 140;
             const max = Math.max.apply(null, keys.map(k => buckets[k])) || 1;
             const innerW = W - PAD_L - 8, innerH = H - PAD_B - PAD_T;
             const step = innerW / Math.max(1, keys.length - 1);
@@ -3787,7 +3810,7 @@
             return '<div style="overflow-x:auto;"><svg viewBox="0 0 ' + W + ' ' + H + '" '
                 + 'width="100%" height="' + H + '" role="img" '
                 + 'aria-label="Daily trend chart" style="color:var(--primary);'
-                + 'min-width:320px;display:block;">'
+                + 'display:block;">'
                 + defs + axis 
                 + '<path d="' + areaData + '" fill="url(#trendGrad)" />'
                 + '<path d="' + pathData + '" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />'
@@ -3883,42 +3906,48 @@
             const studio = data.studio || {};
             const sOverall = studio.overall || {};
             const saved = data.time_saved || {};
+            // Requirements->Tests, shown on the QA Agents tab as test-design-agent.
+            const req = studio.requirements || {};
             const parts = [];
 
             // Define the tab navigation for Agents vs Studio
             parts.push('<div class="settings-tabs" style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">');
-            parts.push('<button class="settings-tab-btn active" onclick="switchAnalyticsTab(\'agents\', this)">🤖 QA Agents</button>');
-            parts.push('<button class="settings-tab-btn" onclick="switchAnalyticsTab(\'studio\', this)">🧠 AI Test Studio</button>');
+            parts.push('<button class="settings-tab-btn" data-tab="agents" onclick="switchAnalyticsTab(\'agents\')">🤖 QA Agents</button>');
+            parts.push('<button class="settings-tab-btn" data-tab="studio" onclick="switchAnalyticsTab(\'studio\')">🧠 AI Test Studio</button>');
             parts.push('</div>');
 
             // ── QA AGENTS TAB ──
             parts.push('<div id="analyticsTab_agents" class="analytics-tab-content">');
             
             parts.push('<div class="analytics-group" style="margin-top: 0;"><h3>Overall Agent Network</h3>');
-            parts.push('<p class="analytics-basis">Cost reported by the Claude CLI (exact).</p>');
+            parts.push('<p class="analytics-basis">Agent cost reported by the Claude CLI (exact); '
+                + 'test-design-agent cost estimated from tokens.</p>');
             if (data.agents_error) {
                 parts.push('<p class="analytics-note">⚠️ Agent server unavailable: '
                     + anEsc(data.agents_error) + '</p>');
             }
-            
+
+            // Every tile is agents + test-design-agent, i.e. the sum of the breakdown rows.
+            const sum = k => (agents[k] || 0) + (req[k] || 0);
             parts.push('<div class="stats">');
-            parts.push(anTile(anFmtNum(agents.runs || 0), 'Total runs'));
-            const totalProduced = (agents.tests_created || 0) + (agents.tests_fixed || 0) + (agents.items_adapted || 0);
+            parts.push(anTile(anFmtNum(sum('runs')), 'Total runs'));
+            const totalProduced = (agents.tests_created || 0) + (agents.tests_fixed || 0) + (agents.items_adapted || 0)
+                + (req.tests_generated || 0);
             parts.push(anTile(anFmtNum(totalProduced), 'Tests produced'));
-            parts.push(anTile(anFmtDuration(agents.duration_s || 0), 'Time taken'));
-            parts.push(anTile(anFmtNum(agents.llm_calls || 0), 'LLM calls'));
-            
-            const agentTokens = (agents.input_tokens || 0) + (agents.output_tokens || 0);
+            parts.push(anTile(anFmtDuration(sum('duration_s')), 'Time taken'));
+            parts.push(anTile(anFmtNum(sum('llm_calls')), 'LLM calls'));
+
+            const agentTokens = sum('input_tokens') + sum('output_tokens');
             if (agentTokens > 0) {
                 parts.push(anTile(anFmtTokens(agentTokens), 'Tokens'));
             }
 
-            parts.push(anTile(anFmtCost(agents.cost_usd || 0), 'Total spend'));
-            parts.push(anTile(anFmtMinutes(saved.agents_min || 0), 'Est. time saved'));
+            parts.push(anTile(anFmtCost(sum('cost_usd')), 'Total spend'));
+            parts.push(anTile(anFmtMinutes((saved.agents_min || 0) + (saved.studio_min || 0)), 'Est. time saved'));
             parts.push('</div>');
             parts.push('</div>');
 
-            const agentTrend = anTrend([], ((data.agents && data.agents.series) || []));
+            const agentTrend = anTrend((studio.requirements_series || []), ((data.agents && data.agents.series) || []));
             const activeCost = _trendMetric === 'cost' ? 'active' : '';
             const activeCalls = _trendMetric === 'calls' ? 'active' : '';
             const activeTokens = _trendMetric === 'tokens' ? 'active' : '';
@@ -3937,38 +3966,50 @@
             parts.push('</div>');
 
             const byAgent = (data.agents && data.agents.by_agent) || {};
-            let agentRows = Object.keys(byAgent);
-            if (agentRows.length === 0) {
-                agentRows = ['test-authoring-agent', 'test-healing-agent', 'test-adaptation-agent'];
-            }
-            
+            // Workflow order, not alphabetical: test-design-agent (the Studio row,
+            // drawn first below), then these; an agent not listed here follows, A-Z.
+            // A stage with no activity in the window is left out (see row()).
+            const WORKFLOW = ['test-authoring-agent', 'test-triaging-agent',
+                              'test-healing-agent', 'test-adaptation-agent'];
+            const agentRows = WORKFLOW.concat(
+                Object.keys(byAgent).filter(n => !WORKFLOW.includes(n)).sort());
+
             const b = data.baselines || {};
 
             parts.push('<div class="analytics-group"><h3>Agent Breakdown</h3>');
-            parts.push('<p class="analytics-basis">Metrics and output broken down by individual QA agent.</p>');
+            parts.push('<p class="analytics-basis">Metrics and output for each QA agent, in workflow order. '
+                + 'test-design-agent is the Studio\'s Requirements → Tests flow; its cost is estimated.</p>');
             parts.push('<div style="overflow-x: auto; margin-top: 10px;">');
             parts.push('<table><thead><tr><th>Agent</th><th>Runs</th><th>Succeeded</th>'
                 + '<th>Tests produced</th><th>Time taken</th><th>LLM calls</th><th>Tokens</th><th>Cost</th><th>Est. Time saved</th></tr></thead><tbody>');
-            agentRows.sort().forEach(function (name) {
-                const a = byAgent[name] || {};
-                const produced = (a.tests_created || 0) + (a.tests_fixed || 0) + (a.items_adapted || 0);
-                const agentRowTokens = (a.input_tokens || 0) + (a.output_tokens || 0);
-                const grossAgentMin = (
-                    (a.tests_created || 0) * (b.min_per_test_authored || 0) +
-                    (a.tests_fixed || 0) * (b.min_per_test_fixed || 0) +
-                    (a.items_adapted || 0) * (b.min_per_test_adapted || 0)
-                );
-                const agentTimeSavedMin = Math.max(0.0, grossAgentMin - ((a.duration_s || 0) / 60.0));
+            let shown = 0;
+            const row = function (name, a, produced, savedMin, costSuffix) {
+                const tokens = (a.input_tokens || 0) + (a.output_tokens || 0);
+                // An all-zero row is noise, and leaving it out keeps the tiles equal
+                // to the rows shown. A run that isn't counted (e.g. cancelled) still
+                // has cost, so its row stays.
+                if (!(a.runs || produced || a.duration_s || a.llm_calls || tokens || a.cost_usd)) return;
+                shown++;
                 parts.push('<tr><td style="font-weight: 500;">' + anEsc(name) + '</td>'
                     + '<td>' + anFmtNum(a.runs || 0) + '</td>'
                     + '<td>' + anFmtNum(a.succeeded || 0) + '</td>'
                     + '<td>' + anFmtNum(produced) + '</td>'
                     + '<td>' + anFmtDuration(a.duration_s || 0) + '</td>'
                     + '<td>' + anFmtNum(a.llm_calls || 0) + '</td>'
-                    + '<td>' + anFmtTokens(agentRowTokens) + '</td>'
-                    + '<td>' + anFmtCost(a.cost_usd || 0) + '</td>'
-                    + '<td>' + anFmtMinutes(agentTimeSavedMin) + '</td></tr>');
+                    + '<td>' + anFmtTokens(tokens) + '</td>'
+                    + '<td>' + anFmtCost(a.cost_usd || 0) + anEsc(costSuffix || '') + '</td>'
+                    + '<td>' + anFmtMinutes(savedMin) + '</td></tr>');
+            };
+            row('test-design-agent', req, req.tests_generated || 0, saved.studio_min || 0, ' (est.)');
+            agentRows.forEach(function (name) {
+                const a = byAgent[name] || {};
+                row(name, a, (a.tests_created || 0) + (a.tests_fixed || 0) + (a.items_adapted || 0),
+                    (saved.by_agent || {})[name] || 0);
             });
+            if (!shown) {
+                parts.push('<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">'
+                    + 'No data in this window.</td></tr>');
+            }
             parts.push('</tbody></table></div></div>');
             parts.push('</div>'); // end QA Agents Tab
 
@@ -3984,8 +4025,7 @@
 
             // Overall studio spend & calls
             const totalTokens = (sOverall.input_tokens || 0) + (sOverall.output_tokens || 0);
-            const studioApprox = studio.run_duration_approx_s || 0;
-            const reqTime = (studio.run_duration_s || 0) + studioApprox;
+            const reqTime = studio.run_duration_s || 0;
             
             parts.push('<div class="analytics-group" style="margin-top: 0;"><h3>AI Test Studio (Requirements, Ask &amp; Ingestion)</h3>');
             parts.push('<p class="analytics-basis">Cost <strong>estimated</strong> from token usage '
@@ -3994,10 +4034,12 @@
             parts.push('<div class="stats">');
             parts.push(anTile(anFmtMinutes(saved.studio_min || 0), 'Est. time saved'));
             parts.push(anTile(anFmtCost(sOverall.cost_usd || 0), 'Total Studio spend'));
-            parts.push(anTile((studioApprox > 0 ? '~' : '') + anFmtDuration(reqTime), 'Time taken'));
+            parts.push(anTile(anFmtDuration(reqTime), 'Time taken'));
             parts.push(anTile(anFmtNum(sOverall.calls || 0), 'Total LLM calls'));
             parts.push(anTile(anFmtTokens(totalTokens), 'Total Tokens'));
-            parts.push('</div>');
+            // Closes .stats AND this group. Unclosed, the Studio tab's own closing
+            // tag was spent on it and the footnotes rendered inside the hidden tab.
+            parts.push('</div></div>');
             
             const studioTrend = anTrend((studio.series || []), []);
             parts.push('<div class="analytics-group"><div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">');
@@ -4022,11 +4064,7 @@
             const reqTokens = (reqTotals.input_tokens || reqGroup.input_tokens || 0) + (reqTotals.output_tokens || reqGroup.output_tokens || 0);
             parts.push(anTile(anFmtTokens(reqTokens), 'Tokens'));
             
-            if (reqTime > 0) {
-                parts.push(anTile((studioApprox > 0 ? '~' : '') + anFmtDuration(reqTime), 'Time'));
-            } else {
-                parts.push(anTile(anFmtDuration(0), 'Time'));
-            }
+            parts.push(anTile(anFmtDuration(reqTime), 'Time'));
             
             const totalTestsGenerated = (outcomes.test_cases_generated || 0) + (outcomes.e2e_tests_generated || 0);
             parts.push(anTile(anFmtNum(totalTestsGenerated), 'Tests generated'));
@@ -4072,32 +4110,40 @@
             
             parts.push('</div>');
 
-            // Footer: make the assumptions visible rather than buried.
-            const notes = [];
-            if (studio.data_since) {
-                notes.push('Studio cost collected since '
-                    + new Date(studio.data_since * 1000).toLocaleDateString() + '.');
-            }
-            if (data.agents && data.agents.data_since) {
-                notes.push('Agent analytics collected since '
-                    + new Date(data.agents.data_since * 1000).toLocaleDateString() + '.');
-            }
-            if (studio.runs_duration_approx) {
-                notes.push(studio.runs_duration_approx + ' run(s) predate duration capture; '
-                    + 'their timings are approximated from LLM-call timestamps.');
-            }
-            if (studio.orphan_calls) {
-                notes.push(studio.orphan_calls
-                    + ' call(s) carry no run id — counted in spend, not in run counts.');
-            }
-            notes.push('Time saved assumes ' + (b.min_per_test_authored || 0)
-                + ' min/test authored, ' + (b.min_per_test_fixed || 0) + ' min/test fixed, '
-                + (b.min_per_test_adapted || 0) + ' min/test adapted, '
-                + (b.min_per_test_case_written || 0) + ' min/test case written — '
-                + 'editable in Studio Settings → Analytics.');
-            parts.push('<p class="analytics-note">' + notes.map(anEsc).join('<br>') + '</p>');
+            // Footer: every assumption in one collapsed section. The run rules are
+            // the README's "What counts as a run".
+            const notes = [
+                ['Runs', 'agent runs that reached a verdict: Succeeded + Failed. For test-design-agent, '
+                    + 'completed + failed Requirements → Tests runs; cancelled ones are not counted as runs.'],
+                ['Succeeded', 'the work passed (even if only its push or PR failed), or the agent '
+                    + 'stopped correctly: nothing to fix, handed to a human, or a known product defect.'],
+                ['Failed', 'it tried and didn\'t get there.'],
+                ['Not counted', 'cancelled, interrupted, blocked by infrastructure (e.g. missing '
+                    + 'credentials), explore-only, or did nothing. Their cost and time still count.'],
+                ['Time saved', 'assumes ' + (b.min_per_test_authored || 0) + ' min/test authored, '
+                    + (b.min_per_test_fixed || 0) + ' min/test fixed, ' + (b.min_per_test_adapted || 0)
+                    + ' min/test adapted, ' + (b.min_per_test_case_written || 0) + ' min/test case written. '
+                    + 'Editable in Studio Settings → Analytics.'],
+            ];
+            // Only when the window reaches back past the first row — otherwise
+            // "since" says nothing. Spelled-out month: 08/09 reads two ways.
+            const since = function (label, src) {
+                const from = src && src.window && src.window.from;
+                if (!src || !src.data_since || (from && from >= src.data_since)) return;
+                const d = new Date(src.data_since * 1000);
+                notes.push(['', label + ' collected since ' + d.getDate() + ' '
+                    + d.toLocaleString('en', { month: 'short' }) + ' ' + d.getFullYear() + '.']);
+            };
+            since('Studio cost', studio);
+            since('Agent analytics', data.agents);
+            parts.push('<details class="analytics-notes"><summary>Notes</summary><ul>'
+                + notes.map(n => '<li>' + (n[0] ? '<strong>' + n[0] + '</strong> — ' : '')
+                    + anEsc(n[1]) + '</li>').join('')
+                + '</ul></details>');
 
             document.getElementById('analyticsBody').innerHTML = parts.join('');
+            // A window/user/metric change re-renders; stay on the tab being viewed.
+            switchAnalyticsTab(_currentAnalyticsTab);
         }
 
         async function loadAgentSettings() {

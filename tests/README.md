@@ -1,186 +1,110 @@
-# Knowledge-AI Tests
+# AI Test Studio Tests
 
-## ⚠️ After any UI/frontend change: run UI self-test
+## ⚠️ After any UI/frontend change: run the UI self-test
 
-**Whenever you change the UI (customer portal, admin portal, or any frontend HTML/JS/CSS), run the UI self-test checklist below** so we don’t ship broken flows.
-
-- **Customer portal:** `http://localhost:5001/` — Ask, Requirement Analysis, Generated tests (select all/none, Push selected).
-- **Admin portal:** `http://localhost:5001/admin` — TestRail Sync, **Confluence Sync**, documents, ChromaDB.
-
-See **[UI self-test checklist](#ui-self-test-checklist)** below.
+**Whenever you change the UI (customer pages, admin portal, or any frontend
+HTML/JS/CSS), run the [UI self-test checklist](#ui-self-test-checklist-run-after-any-uifrontend-change)**
+so broken flows are not shipped.
 
 ---
 
-## TestRail Sync (Sync button and process)
-
-Automated tests ensure the Sync button and sync process work end-to-end.
-
-### Run all sync-related tests
+## Running the suite
 
 ```bash
-# From project root, with venv activated
-python3 -m pytest tests/test_testrail_sync_service.py -v
+source venv/bin/activate
+pip install pytest                       # not in requirements.txt
+FLASK_DEBUG=true python -m pytest -m "not integration"
 ```
 
-### Run requirement-analysis tests
+- Tests that build the app (`create_app()`) need a real `SECRET_KEY` in
+  `config/.env` or `FLASK_DEBUG=true`; otherwise the app refuses to start.
+- `-m integration` runs the tests that call real services (LLM, RAG, Confluence,
+  TestRail) and need them configured in `config/.env`; they skip when not configured.
+- Run one file: `python -m pytest tests/test_requirement_runs.py -v`.
+
+| File | Covers |
+|------|--------|
+| `test_requirement_analysis.py` | Requirement analysis service and API: related specs/tests, priority ordering (P0 > P1 > P2 > P3), suggest/update/create-case endpoints |
+| `test_requirement_logic.py` | Coverage and generation rules (which priorities to generate), requirement settings schema |
+| `test_requirement_runs.py` | Background runs: live stream then identical replay, cancel, failures, interrupted runs, id validation, TestRail pushes recorded per owner |
+| `test_security_guards.py` | Agents proxy dot-segment guard and forwarded role, sign-up username validation and rate limit, user-id collision guard |
+| `test_cost_analytics.py` | Cost tracking and the per-model rate card (`LLM_COST_RATES_JSON`), analytics rollups and time saved |
+| `test_rag_improvements.py` | Retrieval defaults and thresholds, cache invalidation on document changes, context ordering |
+| `test_testrail_connector.py` | `update_case` field handling, custom-field resolution for create-case |
+| `test_testrail_sync_service.py` | Sync state machine: `is_syncing` recovery, progress, status structure, API 202/409 |
+| `test_confluence_connector.py` | Confluence CQL search (and its fallbacks), connectivity diagnosis |
+| `test_sync_ui_e2e.py` | Optional browser test (Playwright): the admin sync log renders. Skips if Playwright is missing (`pip install playwright && playwright install chromium`) |
+| `evaluation/` | RAG quality evaluation (`scripts/run_eval.sh`; extra deps in `evaluation/requirements_eval.txt`) |
+
+### Quick API smoke check
+
+`tests/e2e_api_check.sh [PORT]` signs in and curls the main customer and admin
+endpoints of a running server, and checks that the customer API refuses a request
+with no session. It needs an active admin account:
 
 ```bash
-# Unit tests only (mocked service; no RAG/LLM needed)
-python3 -m pytest tests/test_requirement_analysis.py -v
-
-# Include integration test (real RAG + LLM; requires config/.env)
-python3 -m pytest tests/test_requirement_analysis.py -v -m integration
+E2E_USERNAME=admin E2E_PASSWORD='<password>' ./tests/e2e_api_check.sh 5001
 ```
 
-For self-testing, set the LLM (`LLM_PROVIDER`, API keys) and ChromaDB values in `config/.env` (copy from `config/env.example`).
-
-### Requirement analysis e2e flow (Confluence + TestRail context)
-
-Unit tests verify the ideal flow: Confluence prior context → TestRail context → merged context for generation.
-
-| Test | What it verifies |
-|------|------------------|
-| **analyze() calls find_related_specs** | `find_related_specs(spec_text, k=10)` is called with full spec text |
-| **specs_context passed to generation** | `_generate_tests_for_requirement(..., specs_context=related_specs)` is called when generating new tests |
-| **result includes related_specs** | Analysis result has `related_specs` (prior Confluence chunks) |
-| **RAGService.find_related_specs** | Returns `[]` when no vectorstore; returns formatted dicts (title, content, url, similarity_score) when vectorstore returns docs |
-
-### E2E self-tests: priority order and spec coverage
-
-Generated test cases must be in priority order **P0 > P1 > P2 > P3** and cover every point in the spec.
-
-| Test | What it verifies |
-|------|------------------|
-| **test_generated_tests_sorted_by_priority_p0_first** | LLM returns unsorted priorities; service returns tests ordered P0, P1, P2, P3 (critical first). |
-| **test_generated_tests_have_required_fields_and_valid_priority** | Each test has title, priority in {P0,P1,P2,P3}, and steps or expected_result. |
-| **test_analyze_result_generated_tests_ordered_by_priority** | Full analyze() returns generated_tests with priority order P0 then P1 then P2 then P3. |
-| **Integration test** | When generated_tests exist, each test has valid priority and tests are ordered P0>P1>P2>P3; each has title and steps or expected_result. |
-
-Run: `python3 -m pytest tests/test_requirement_analysis.py -v -m "not integration"` (or with venv: `./venv/bin/python -m pytest ...`).
-
-**Note:** Use the project venv so Flask and dependencies are available (e.g. `./venv/bin/python -m pytest ...`). API tests that call `create_app()` require the full environment.
-
-### Tests needing update / Update with AI (suggest-case-update, update-case)
-
-| Test | What it verifies |
-|------|------------------|
-| **TestAssessUpdatesNeedsUpdateAndPartial** | `_assess_updates` puts both `needs_update` and `partial` statuses into the needing list; `ok` stays in ok_ids. |
-| **TestSuggestCaseUpdateAndUpdateInTestrail** | `suggest_case_update` returns a dict (title, steps, preconditions, expected_result, priority) when LLM returns valid JSON; returns None when invalid; **test_suggest_case_update_real_prompt_generates_updated_testcase** runs the full path and asserts the service returns the expected updated test case dict from a simulated LLM response; `update_case_in_testrail` returns success when connector is called and push is enabled; returns error when push is disabled. |
-| **TestRequirementAnalysisSuggestAndUpdateAPI** | POST suggest-case-update: 400 when params missing, 200 with suggestion, 500 when service returns None; POST update-case: 400 when title/testrail_id missing, 200 when service returns success. |
-| **TestRequirementAnalysisCreateCaseAPI** | POST create-case: 400 when section_id or title missing, 200 when service returns success (testrail_id), 400 when service returns failure. |
-
-### TestRail connector (update_case)
-
-| Test | What it verifies |
-|------|------------------|
-| **tests/test_testrail_connector.py** | `update_case` sends only provided fields to the API; includes priority_id when given; when no fields provided, calls `get_case` and does not POST. |
-
-Run: `./venv/bin/python -m pytest tests/test_testrail_connector.py tests/test_requirement_analysis.py -v -m "not integration"` (excludes slow integration test).
-
-**Integration (optional):** `test_suggest_case_update_integration` calls the real suggest-case-update API with the LLM; run with `pytest tests/test_requirement_analysis.py -v -m integration -k suggest_case_update`. Skips if LLM is not configured.
-
-### What is covered (sync)
-
-| Test | What it verifies |
-|------|------------------|
-| **Unit: is_syncing cleared on validation failure** | When sync fails validation, `is_syncing` is set back to `False` (no stuck "Sync already in progress") |
-| **Unit: is_syncing cleared on connector exception** | When the TestRail connector raises, `is_syncing` is cleared in `finally` |
-| **Unit: progress and status** | Progress callback runs, success record has `projects_count` and `test_cases_fetched`, and `get_sync_status()` returns `current_sync` structure |
-| **Unit: get_sync_status structure** | Response includes `last_sync`, `is_syncing`, `current_sync`, `latest_sync_record`, `configured_projects` |
-| **API: GET /sync/status** | Returns 200 and status object with `is_syncing`, `current_sync`, and `sync_log` (so UI can show running log) |
-| **API: POST /sync/testrail** | Returns 202 when sync started, 409 when already syncing |
-| **Frontend: Sync button** | Admin page has `syncNowBtn`, click handler attached via `addEventListener` (no inline `onclick` that can cause ReferenceError) |
-| **Frontend: 409 handling** | When server returns 409 (already in progress), UI shows "already running" and starts polling instead of "Sync failed" |
-| **Frontend: Double-click** | `syncInProgress` guard prevents multiple simultaneous sync requests |
-| **Frontend: Running log** | `syncLogContainer` and `syncLog` exist and container is visible by default |
-| **Stale sync recovery** | If `is_syncing` has been true for > 30 min, `get_sync_status` and POST clear it so a new sync can start; POST after stale returns 202 |
-
-### E2E UI test: running log shown in admin (optional)
-
-A self-test uses a real browser (Playwright) to ensure the **running log** is displayed when the API returns `sync_log`:
-
-```bash
-pip install playwright
-playwright install chromium
-python3 -m pytest tests/test_sync_ui_e2e.py -v
-```
-
-- Starts a mock server that serves the admin page and returns `sync_log` from `GET /api/admin/sync/status`.
-- Opens the admin UI in headless Chromium; after `loadSyncStatus()` runs, the **Running log** area must contain the mock log lines.
-- Skips automatically if `playwright` is not installed.
-
-### Manual E2E (optional)
-
-1. Start the app: `./scripts/run.sh` (or `python backend/app.py`).
-2. Open `/admin`, log in as admin.
-3. Click **Sync Now**: button should show "Syncing...", then success or error; no "triggerTestRailSync is not defined" or "Unexpected token '||'".
-4. If sync runs, progress (Projects X/Y, test cases so far) should update while syncing.
-
-### Requirement Analysis E2E UI (manual / browser)
-
-1. Start the app and open `http://localhost:5001/`.
-2. Click **Requirement Analysis** tab.
-3. Paste a short spec (e.g. `REQ-001: User must reset password.\nREQ-002: System shall send email.`) and click **Analyze Requirements**.
-4. After results load, verify:
-   - Summary cards (Requirements, With coverage, Needing update, Uncovered, Generated).
-   - Tabs: Related tests, Tests needing update, Uncovered, **Generated tests**.
-   - Push options visible when there are generated tests: hint “Select which generated tests to push…”, **Use same section as related tests** / **Choose section manually**, Project/Suite/Section (if manual).
-5. Open **Generated tests** tab:
-   - **Select all** / **Select none** links and **Push selected to TestRail** button.
-   - Each generated test has a **checkbox**; only selected tests are pushed.
-6. Select one or more tests, choose section (or “Use same section as related tests”), click **Push selected to TestRail**; toast shows push result.
-7. **Note:** The push endpoint is `POST /api/customer/requirement-analysis/push`. If the server was started before this route was added, restart the app so the push button returns JSON instead of 405/HTML.
+The query and requirement-analysis checks make real LLM calls.
 
 ---
 
 ## UI self-test checklist (run after any UI/frontend change)
 
-**Before running the UI checklist:** Kill the old server and start it again so the app loads fresh code and data (e.g. `lsof -i :5001` to find PID, `kill <PID>`, then `./scripts/run.sh`). Wait until the server responds (e.g. `curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/` returns 200).
+**Before you start:** restart the server so it loads fresh code (`lsof -i :5001`,
+`kill <PID>`, `./scripts/run.sh`), and wait until
+`curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health` returns 200.
+Log in as an active user; use an admin for the admin portal.
 
-**Quick API-level E2E (no browser):** With the server running, run `./tests/e2e_api_check.sh [PORT]` (default PORT=5001). It verifies: customer portal page, health, query, requirement-analysis; admin login, sync status, documents, chromadb, admin page. All must return 200/success.
-
-**Full E2E verification (after refactors):** (1) Start app (`./scripts/run.sh` or `python3 backend/app.py`), wait until `curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/` returns 200. (2) Run `./tests/e2e_api_check.sh 5001`. (3) Run `pytest tests/ -v -m "not integration"`. (4) Complete the UI self-test checklist below in a browser.
-
-Then:
-
-### Customer portal (`http://localhost:5001/`)
+### Requirements → Tests (`/test-generator`)
 
 | Step | What to check |
 |------|----------------|
-| 1 | Page loads; **Ask** and **Requirement Analysis** tabs visible. |
-| 2 | **Ask:** Type a question, click **Get AI Answer**; no console errors, answer or error shown. |
-| 3 | **Requirement Analysis:** Paste short spec, click **Analyze Requirements**; button shows "Analyzing...", then results or error. |
-| 4 | After results: summary cards (Requirements, With coverage, …), tabs **Related tests**, **Tests needing update**, **Uncovered**, **Generated tests**. |
-| 5 | **Generated tests** tab: **Select all** / **Select none** links, **Push selected to TestRail** button, one checkbox per generated test. |
-| 6 | Push options (when generated tests exist): hint text, **Use same section as related tests** / **Choose section manually**, Project/Suite/Section if manual. |
+| 1 | Page loads with the three input modes (paste / upload / Confluence URL). The button reads **✨ Generate Tests**, or **🔍 Analyze Requirements** when "Generate new tests for uncovered requirements" is unticked. |
+| 2 | Paste a short spec and run it: the **Live Run** card shows the six phases progressing; **Cancel** stops it. |
+| 3 | Results show the **Related Tests**, **User Story Tests** and **E2E Tests** tabs; no console errors. |
+| 4 | Select generated tests and **Push selected to TestRail**: the push dialog offers "same section as related tests" or a manual Project → Suite → Section; the result appears as a toast. (Needs `TESTRAIL_PUSH_ENABLED=true`.) |
+| 5 | **Update with AI** on a test needing an update shows a suggested rewrite you can edit and save. |
+| 6 | Refresh mid-run: the run reattaches. **History** lists it; opening a past run replays it. |
 
-### Agent tabs (`http://localhost:5001/` → Tests → Automation Code / Auto-Heal Failing Tests / Adapt to Product Changes)
+### Talk to your Tests (`/talk-to-tests`)
+
+| Step | What to check |
+|------|----------------|
+| 1 | Ask a question with **✨ Get Answer**: an answer or a clear error, sources when shown, no console errors. |
+
+### Agent pages (`/authoring-agent`, `/healing-agent`, `/adaptation-agent`)
 
 Needs the QA-Agent-Network server running (`bash scripts/run-server.sh` in that repo).
 
 These three panels are near-copies of each other, and fixes have historically been
-applied to one and not the others. **Run every row below on all three tabs** — a row
-that passes on two tabs and fails on the third is the bug this checklist exists to catch.
+applied to one and not the others. **Run every row below on all three pages** — a row
+that passes on two pages and fails on the third is the bug this checklist exists to catch.
 
-| Step | What to check (identical on all three tabs) |
+| Step | What to check (identical on all three pages) |
 |------|----------------------------------------------|
-| 1 | Start a run, switch to another tab, come back: the console is already streaming — no need to click **view**. |
+| 1 | Start a run, switch to another page, come back: the console is already streaming — no need to click **view**. |
 | 2 | Click **view** on a past run in History: the console replays and the elapsed field reads `—`, **not** a clock counting up from 00:00. |
 | 3 | Click a History **row**: the modal shows meta, a Time & cost table, and one section per step with its markdown report and a collapsible **raw step JSON**. |
 | 4 | Click **Stop** on a live run: the status badge changes to `cancelling` immediately, not after the process dies. |
 | 5 | Let a run finish: a **📋 Result** card appears under the live console, and the card's left border takes the status colour (green / red / grey). |
-| 6 | Queue a second run: it appears as a pending row at the top of History. There is no separate "Pending Queue" card on any tab. |
+| 6 | Queue a second run: it appears as a pending row at the top of History. There is no separate "Pending Queue" card on any page. |
 | 7 | Stop the agent server and reload: an offline banner **and** pickers that say why they are empty, rather than blank or stuck on "Loading…". |
 | 8 | Start a run and navigate away: no orphaned EventSource left open (DevTools → Network → EventStream). |
 | 9 | Cancel/retry failures are written to the **run console**, not to a toast or the form's error box. Toasts are only for queue notices ("Queued at position N"). |
 
-### Admin portal (`http://localhost:5001/admin`)
+### Admin portal (`/admin`)
 
 | Step | What to check |
 |------|----------------|
-| 1 | Login works; dashboard loads. |
-| 2 | **TestRail Sync:** Status and **Sync Now** button; click **Sync Now** → "Syncing..." and log/progress or error. |
-| 3 | **Confluence Sync:** Section visible with status and **Sync Now**; click the **Confluence** "Sync Now" button (id: `confluenceSyncNowBtn`), not TestRail's; wait for progress/log or error and verify logs in UI and runtime. |
-| 4 | **Uploaded Documents** and **ChromaDB Contents** load without errors. |
+| 1 | Login works; the sidebar shows Users, Connectors, Knowledge Base, Analytics, Agent Settings, Studio Settings. |
+| 2 | **Users:** a pending sign-up can be approved; demoting the last admin is refused. |
+| 3 | **Connectors → TestRail:** **Sync Now** (`#syncNowBtn`) shows "Syncing…" and a running log, or an error. |
+| 4 | **Connectors → Confluence:** click the **Confluence** Sync Now (`#confluenceSyncNowBtn`), not TestRail's; wait for progress/log or an error, and check the server log too. |
+| 5 | **Knowledge Base:** uploaded documents and ChromaDB chunks load without errors. |
+| 6 | **Analytics:** each window (24h / 7d / 30d / all) and the user filter load; with the agent server stopped, the agent half shows an explanation instead of silently empty numbers. Do **not** click *Reset Analytics & History* on data you want to keep. |
+| 7 | **Agent Settings:** values load from the agent server; secrets are masked; saving shows a confirmation. |
+| 8 | **Studio Settings:** values load and save. |
 
 If any step fails, fix the UI/API before considering the change done.

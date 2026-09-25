@@ -139,6 +139,9 @@ def _compute_generate_priorities(
             min_per_priority = max(1, min(10, int(v)))
     except (ValueError, TypeError):
         pass
+    # Documented since the parameter was added, and never applied until now.
+    if acceptance_criteria and len(acceptance_criteria) > min_per_priority:
+        min_per_priority = len(acceptance_criteria)
     min_sim_pct = max(0.0, min(100.0, coverage_min_similarity()))
     min_sim_01 = min_sim_pct / 100.0
 

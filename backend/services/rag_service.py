@@ -342,7 +342,10 @@ class RAGService:
             return {
                 'success': False,
                 'error': error_msg,
-                'message': f'File validation failed: {error_msg}'
+                'message': f'File validation failed: {error_msg}',
+                # The caller's input was wrong, not the server: lets the route
+                # answer 400 instead of the 500 it gave every rejected file.
+                'validation_error': True,
             }
         
         # Check if document with same filename already exists

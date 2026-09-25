@@ -38,6 +38,28 @@ from backend.services.auth_service import AuthService
 from backend.services.settings_service import SettingsService
 from backend.services.scheduler_service import SchedulerService
 
+def _clear_interrupted_syncs():
+    """Clear a sync left "in progress" by the previous process.
+
+    Syncs run in threads of this process, so any is_syncing flag found at startup
+    belongs to a sync that died with the last one. Left alone, Connectors showed
+    "Syncing…" and refused new syncs (409) until the 30-minute stale guard fired.
+    """
+    from backend.services.testrail_sync_service import TestRailSyncService
+    from backend.services.confluence_sync_service import ConfluenceSyncService
+    for service_cls in (TestRailSyncService, ConfluenceSyncService):
+        try:
+            svc = service_cls()
+            metadata = svc._load_sync_metadata()
+            if metadata.get('is_syncing'):
+                metadata['is_syncing'] = False
+                svc._save_sync_metadata(metadata)
+                svc._append_sync_log("Interrupted: the app restarted before this sync finished.")
+                print(f"⚠️  {service_cls.__name__}: cleared a sync interrupted by the last restart")
+        except Exception as e:
+            print(f"⚠️  Could not check {service_cls.__name__} for an interrupted sync: {e}")
+
+
 def create_app():
     """Create and configure Flask application."""
     app = Flask(__name__,
@@ -117,6 +139,8 @@ def create_app():
     # Start background scheduler for daily syncs (needs app ref for app_context)
     scheduler_service = SchedulerService(settings_service, app)
     app.config['SCHEDULER_SERVICE'] = scheduler_service
+
+    _clear_interrupted_syncs()
 
     # Pre-warm the exact-scan embedding caches for specs and testcases in the background
     # so the first requirement analysis request never pays the cold-start penalty

@@ -160,12 +160,21 @@ class AuthService:
         
         user = self.user_storage.create_user(username, password, role)
         if user:
+            # An admin creating the account is the approval. Left at the storage
+            # default (pending_approval), the new user could not sign in until an
+            # admin approved the account they had just made.
+            from datetime import datetime
+            user.status = 'active'
+            user.approved_at = datetime.now().isoformat()
+            user.approved_by = session.get('user_id')
+            self.user_storage.update_user(user)
             return {
                 'success': True,
                 'user': {
                     'user_id': user.user_id,
                     'username': user.username,
-                    'role': user.role
+                    'role': user.role,
+                    'status': user.status,
                 }
             }
         else:

@@ -475,7 +475,7 @@ SETTINGS_SCHEMA: List[Dict[str, Any]] = [
         "description": "Baseline used to estimate time saved by the authoring agent.",
         "type": "number",
         "category": "analytics",
-        "default": 120,
+        "default": 240,
         "sensitive": False,
     },
     {
@@ -485,7 +485,7 @@ SETTINGS_SCHEMA: List[Dict[str, Any]] = [
         "description": "Baseline used to estimate time saved by the healing agent.",
         "type": "number",
         "category": "analytics",
-        "default": 45,
+        "default": 60,
         "sensitive": False,
     },
     {
@@ -495,7 +495,7 @@ SETTINGS_SCHEMA: List[Dict[str, Any]] = [
         "description": "Baseline used to estimate time saved by the adaptation agent.",
         "type": "number",
         "category": "analytics",
-        "default": 30,
+        "default": 150,
         "sensitive": False,
     },
     {
