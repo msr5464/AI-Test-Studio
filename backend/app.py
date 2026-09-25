@@ -38,6 +38,28 @@ from backend.services.auth_service import AuthService
 from backend.services.settings_service import SettingsService
 from backend.services.scheduler_service import SchedulerService
 
+def _clear_interrupted_syncs():
+    """Clear a sync left "in progress" by the previous process.
+
+    Syncs run in threads of this process, so any is_syncing flag found at startup
+    belongs to a sync that died with the last one. Left alone, Connectors showed
+    "Syncing…" and refused new syncs (409) until the 30-minute stale guard fired.
+    """
+    from backend.services.testrail_sync_service import TestRailSyncService
+    from backend.services.confluence_sync_service import ConfluenceSyncService
+    for service_cls in (TestRailSyncService, ConfluenceSyncService):
+        try:
+            svc = service_cls()
+            metadata = svc._load_sync_metadata()
+            if metadata.get('is_syncing'):
+                metadata['is_syncing'] = False
+                svc._save_sync_metadata(metadata)
+                svc._append_sync_log("Interrupted: the app restarted before this sync finished.")
+                print(f"⚠️  {service_cls.__name__}: cleared a sync interrupted by the last restart")
+        except Exception as e:
+            print(f"⚠️  Could not check {service_cls.__name__} for an interrupted sync: {e}")
+
+
 def create_app():
     """Create and configure Flask application."""
     app = Flask(__name__,
@@ -45,16 +67,57 @@ def create_app():
                 template_folder='../frontend')
 
     # Configuration
+    #
+    # SECRET_KEY signs the session cookie, and the session cookie is the ONLY
+    # thing separating a visitor from an admin. Every value below is published
+    # in this repository — the code fallback, and the placeholder shipped in
+    # config/env.example — so knowing one is enough to mint a valid admin
+    # cookie: user ids are md5(username)[:12], making the admin's id derivable
+    # too (and QA-Agent-Network hardcodes it as 21232f297a57).
+    #
+    # The previous guard compared only against the CODE fallback while the live
+    # value came from config/.env as the env.example placeholder. The two
+    # differ, so the warning never printed once, and a warning would have been
+    # too weak regardless.
+    _INSECURE_SECRETS = {
+        'dev-secret-key-change-in-production',
+        'your-secret-key-here-change-in-production',
+        'change-me', 'secret', '',
+    }
     _secret = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    if _secret == 'dev-secret-key-change-in-production' and os.getenv('FLASK_DEBUG', 'False').lower() != 'true':
-        print("⚠️  WARNING: Using default SECRET_KEY — set SECRET_KEY env var for production!")
+    _debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    if _secret.strip() in _INSECURE_SECRETS:
+        if not _debug:
+            raise RuntimeError(
+                "SECRET_KEY is unset or set to a publicly known placeholder. "
+                "Session cookies signed with it can be forged by anyone who has "
+                "read this repository, including as an admin. Generate one with "
+                "`python3 -c \"import secrets; print(secrets.token_urlsafe(48))\"` "
+                "and set SECRET_KEY, or set FLASK_DEBUG=true for local development."
+            )
+        print("⚠️  WARNING: placeholder SECRET_KEY — development only, sessions are forgeable")
     app.config['SECRET_KEY'] = _secret
+
+    # Cookie hardening. None of these were set: Secure defaults to False, so the
+    # session rode plaintext HTTP, and SameSite was unset entirely.
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config['SESSION_COOKIE_SECURE'] = (
+        os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true')
     app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('ADMIN_UPLOAD_MAX_SIZE_MB', 50)) * 1024 * 1024
     app.config['PERMANENT_SESSION_LIFETIME'] = 7200  # 2 hours
 
-    # CORS: restrict origins in production (set CORS_ALLOWED_ORIGINS env var)
-    _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '*').split(',')
+    # CORS. The default was '*' WITH supports_credentials=True below, which
+    # Flask-CORS resolves by reflecting the caller's Origin and setting
+    # Access-Control-Allow-Credentials: true — so any site on the internet could
+    # make credentialed, readable requests against a live admin session, and
+    # there is no CSRF token anywhere in this codebase. The key was also absent
+    # from config/env.example, so nobody was ever prompted to set it.
+    _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
     _cors_origins = [o.strip() for o in _cors_origins if o.strip()]
+    if not _cors_origins:
+        _port = os.getenv('PORT', '5001')
+        _cors_origins = [f"http://localhost:{_port}", f"http://127.0.0.1:{_port}"]
     CORS(app, resources={
         r"/api/*": {"origins": _cors_origins, "supports_credentials": True},
         r"/admin/*": {"origins": _cors_origins, "supports_credentials": True},
@@ -77,6 +140,8 @@ def create_app():
     scheduler_service = SchedulerService(settings_service, app)
     app.config['SCHEDULER_SERVICE'] = scheduler_service
 
+    _clear_interrupted_syncs()
+
     # Pre-warm the exact-scan embedding caches for specs and testcases in the background
     # so the first requirement analysis request never pays the cold-start penalty
     # (loading ~14 000 embeddings × 6 KB from SQLite on first use).
@@ -88,8 +153,6 @@ def create_app():
             if vs is None:
                 return
             rag_obj = rag_service.rag
-            old_vs = rag_obj.vectorstore
-            rag_obj.vectorstore = vs
             dummy_q = "account payment transfer"
             dummy_emb = _np.array(rag_obj.embeddings.embed_query(dummy_q), dtype=float)
             dummy_norm = dummy_emb / (_np.linalg.norm(dummy_emb) + 1e-10)
@@ -113,7 +176,6 @@ def create_app():
                         print(f"[startup] Pre-warmed exact-scan cache: {len(embs)} docs for {cache_key}")
                 except Exception as e:
                     print(f"[startup] Pre-warm failed for {filt}: {e}")
-            rag_obj.vectorstore = old_vs
         except Exception as e:
             print(f"[startup] Pre-warm thread error: {e}")
     threading.Thread(target=_prewarm_exact_scan_cache, daemon=True, name="exact-scan-prewarm").start()
@@ -124,8 +186,15 @@ def create_app():
     app.register_blueprint(customer_bp, url_prefix='/api/customer')
     app.register_blueprint(agents_bp, url_prefix='/api/agents')
     
-    # Serve frontend files
+    # Serve frontend files. Each customer page has its own URL so a reload keeps
+    # the page and it can be bookmarked; keep in sync with TAB_PATHS in customer/index.html.
     @app.route('/')
+    @app.route('/customer')
+    @app.route('/test-generator')
+    @app.route('/authoring-agent')
+    @app.route('/healing-agent')
+    @app.route('/adaptation-agent')
+    @app.route('/talk-to-tests')
     def index():
         return send_from_directory(app.static_folder, 'customer/index.html')
     
@@ -136,10 +205,6 @@ def create_app():
     @app.route('/admin/login')
     def admin_login():
         return send_from_directory(app.static_folder, 'admin/login.html')
-    
-    @app.route('/customer')
-    def customer():
-        return send_from_directory(app.static_folder, 'customer/index.html')
     
     @app.route('/<path:path>')
     def serve_static(path):

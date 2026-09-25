@@ -342,7 +342,10 @@ class RAGService:
             return {
                 'success': False,
                 'error': error_msg,
-                'message': f'File validation failed: {error_msg}'
+                'message': f'File validation failed: {error_msg}',
+                # The caller's input was wrong, not the server: lets the route
+                # answer 400 instead of the 500 it gave every rejected file.
+                'validation_error': True,
             }
         
         # Check if document with same filename already exists
@@ -531,6 +534,10 @@ class RAGService:
 
     def _clear_all_query_caches(self):
         """Clear query caches in the main RAG and all child RAGs to prevent stale answers."""
+        # The exact-scan embedding matrices too: adds already cleared them, deletes did
+        # not, so deleted tests kept matching in requirement analysis until a restart.
+        with self.rag._exact_emb_cache_lock:
+            self.rag._exact_emb_cache.clear()
         if hasattr(self.rag, 'query_cache') and self.rag.query_cache is not None:
             self.rag.query_cache.clear()
         for child_attr in ('_pdf_rag', '_csv_excel_rag', '_text_rag'):
@@ -554,23 +561,17 @@ class RAGService:
         Returns:
             List of dicts: [{"testrail_id": "C123", "title": "...", "content": "...", "similarity_score": 0.85}, ...]
         """
-        # Hold lock only for vectorstore swap (microseconds), not during retrieval.
-        # This allows concurrent find_related_tests calls from parallel requirement threads.
-        with self._vectorstore_reload_lock:
-            if vectorstore is not None:
-                self.rag.vectorstore = vectorstore
-                self.rag.retriever = None
-            else:
-                fresh_vs = self._get_fresh_vectorstore_from_disk()
-                if not fresh_vs:
-                    self.rag._load_vectorstore_if_needed()
-                else:
-                    self.rag.vectorstore = fresh_vs
-                    self.rag.retriever = None
-            if not self.rag.vectorstore:
-                return []
+        # Resolve into a local and pass it down instead of swapping self.rag.vectorstore:
+        # parallel requirement threads, chat, and invalidate_vectorstore_for_reload() all
+        # touch that attribute, and a swap seen mid-retrieval returned no related tests.
+        vs = vectorstore if vectorstore is not None else self._get_fresh_vectorstore_from_disk()
+        if vs is None:
+            with self._vectorstore_reload_lock:
+                self.rag._load_vectorstore_if_needed()
+                vs = self.rag.vectorstore
+        if not vs:
+            return []
 
-        # Retrieval runs outside the lock — read-only operations are thread-safe
         try:
             config = get_config()
             metadata_filter = {"source_type": "testcase"}
@@ -581,6 +582,7 @@ class RAGService:
                 min_similarity_threshold_override=config.requirement_tests_similarity_threshold,
                 use_hybrid_search_override=config.requirement_use_hybrid_search,
                 use_reranking_override=config.requirement_use_reranking,
+                vectorstore=vs,
             )
         except Exception as e:
             print(f"⚠️  find_related_tests failed: {e}")
@@ -664,8 +666,12 @@ class RAGService:
         Returns:
             List of dicts: [{"title": "...", "content": "...", "url": "...", "similarity_score": 0.85}, ...]
         """
-        self.rag._load_vectorstore_if_needed()
-        if not self.rag.vectorstore:
+        # Same as find_related_tests: keep a local so a concurrent invalidation cannot
+        # null the shared attribute between loading it and searching it.
+        with self._vectorstore_reload_lock:
+            self.rag._load_vectorstore_if_needed()
+            vs = self.rag.vectorstore
+        if not vs:
             return []
 
         try:
@@ -681,6 +687,7 @@ class RAGService:
                 min_similarity_threshold_override=specs_threshold,
                 use_hybrid_search_override=config.requirement_use_hybrid_search,
                 use_reranking_override=config.requirement_use_reranking,
+                vectorstore=vs,
             )
         except Exception as e:
             print(f"⚠️  find_related_specs failed: {e}")
@@ -716,7 +723,9 @@ class RAGService:
         
         Args:
             question: User question
-            session_id: Optional session ID for conversation context
+            session_id: Optional session ID for conversation context.
+                Doubles as the cost-correlation id, so the turns of one chat
+                group into a conversation instead of landing as orphan records.
             bypass_cache: If True, skip cache and force fresh LLM query
             use_rag: If True, use RAG with documents; If False, query LLM directly
             
@@ -725,7 +734,8 @@ class RAGService:
         """
         try:
             if use_rag:
-                result = self.rag.query(question, bypass_cache=bypass_cache)
+                result = self.rag.query(question, bypass_cache=bypass_cache,
+                                        run_id=session_id)
                 
                 return {
                     'success': True,
@@ -768,8 +778,11 @@ Instructions:
                 ])
                 
                 chain = prompt | llm
+                _t0 = time.time()
                 result = chain.invoke({"question": question})
-                record_from_langchain_result("rag.direct_query", result)
+                record_from_langchain_result("rag.direct_query", result,
+                                             run_id=session_id,
+                                             duration_s=time.time() - _t0)
                 answer = extract_answer_from_llm_result(result)
                 
                 query_time_ms = int((time.time() - start_time) * 1000)
@@ -844,11 +857,18 @@ Instructions:
         
         try:
             # Remove from RAG system (remove documents by file path)
-            if doc_path.exists() and self.rag.vectorstore:
+            # Load the vectorstore rather than skip removal when it is unset: every
+            # create/update-case invalidates it, and skipping left the old chunks behind
+            # as duplicate tests. Chunks are keyed by path, so a missing file is no reason
+            # to keep them either.
+            with self._vectorstore_reload_lock:
+                self.rag._load_vectorstore_if_needed()
+                vs = self.rag.vectorstore
+            if vs:
                 try:
                     from backend.rag.rag_helper import ChromaDBHelper
                     removed_count = ChromaDBHelper.remove_documents_by_file_path(
-                        self.rag.vectorstore, 
+                        vs,
                         str(doc_path),
                         return_count=True
                     )
@@ -993,7 +1013,10 @@ Instructions:
             
             # Delete ChromaDB collections
             self.rag.delete_chromadb(delete_all=delete_all)
-            
+            # Exact-scan embedding matrices would otherwise keep matching deleted tests
+            with self.rag._exact_emb_cache_lock:
+                self.rag._exact_emb_cache.clear()
+
             # Clear query cache to prevent cached answers from being returned after reset
             if hasattr(self.rag, 'query_cache') and self.rag.query_cache is not None:
                 self.rag.query_cache.clear()

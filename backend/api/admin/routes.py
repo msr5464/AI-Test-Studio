@@ -7,10 +7,13 @@ Endpoints for admin operations (document upload, management).
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 from pathlib import Path
+from urllib.parse import urlencode
+import math
 import os
 import tempfile
 from backend.api.auth.routes import require_auth
 from backend.api.agents.proxy import _forward_json
+from backend.services import analytics_service
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -48,9 +51,8 @@ def upload_document():
             
             if result['success']:
                 return jsonify(result), 200
-            else:
-                return jsonify(result), 500
-                
+            return jsonify(result), 400 if result.get('validation_error') else 500
+
         except Exception as e:
             return jsonify({
                 'success': False,
@@ -404,8 +406,8 @@ def get_agent_settings():
     """Proxy the QA-Agent-Network settings schema + values for the Agent Settings page.
 
     Deliberately served from the admin blueprint rather than /api/agents/*: the
-    agents proxy enforces no auth at all (see the comment at the top of
-    proxy.py), and this endpoint's sibling PUT writes GITHUB_TOKEN.
+    agents proxy only requires a signed-in user, not an admin, and this
+    endpoint's sibling PUT writes GITHUB_TOKEN.
     """
     return _forward_json('GET', '/settings')
 
@@ -415,6 +417,216 @@ def get_agent_settings():
 def update_agent_settings():
     """Save agent settings to QA-Agent-Network's config/.env. Admin only."""
     return _forward_json('PUT', '/settings')
+
+
+def _analytics_range(default='7d'):
+    """(window, since, until) from ?window=&from=&to= (epoch seconds).
+
+    `custom` needs both bounds. Strict because DELETE acts on it: an unknown
+    window or a NaN bound (float() accepts "nan", and every comparison with it
+    is False) means "no cutoff" downstream — i.e. delete everything.
+    """
+    window = (request.args.get('window') or default).strip()
+    if window != 'custom' and window not in analytics_service.WINDOWS:
+        raise ValueError('window must be one of '
+                         + ', '.join(analytics_service.WINDOWS) + ', custom')
+    bounds = []
+    for name in ('from', 'to'):
+        raw = (request.args.get(name) or '').strip()
+        try:
+            value = float(raw) if raw else None
+        except ValueError:
+            value = float('nan')
+        if value is not None and not math.isfinite(value):
+            raise ValueError(f'{name} must be epoch seconds')
+        bounds.append(value)
+    since, until = bounds
+    if window == 'custom' and (since is None or until is None):
+        raise ValueError('custom window needs from and to')
+    if since is not None and until is not None and since > until:
+        raise ValueError('from must be before to')
+    return window, since, until
+
+
+def _analytics_upstream(path, window, since, until, user_id):
+    """The agent-server URL for the same window. _forward_json also appends the
+    browser's own query string, but the agent server reads the first value of
+    each key, so these are the ones that count."""
+    params = {'window': window}
+    if since is not None:
+        params['from'] = since
+    if until is not None:
+        params['to'] = until
+    if user_id:
+        params['user_id'] = user_id
+    return f'{path}?{urlencode(params)}'
+
+
+@admin_bp.route('/analytics', methods=['DELETE'])
+@require_auth(admin_only=True)
+def clear_analytics():
+    """Clear analytics and history for a specific user or all users over a specific window."""
+    user_id_param = (request.args.get('user_id') or '').strip() or None
+    try:
+        window_param, since, until = _analytics_range()
+    except ValueError as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
+
+    # 1. Clear AI-Test-Studio analytics (operations/requirements)
+    analytics_service.clear_analytics(user_id=user_id_param, window=window_param,
+                                      since=since, until=until)
+
+    # 2. Proxy request to QA-Agent-Network to clear agent runs & audit history
+    try:
+        _forward_json('DELETE', _analytics_upstream(
+            '/analytics/clear', window_param, since, until, user_id_param))
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    
+    return jsonify({"success": True})
+
+
+@admin_bp.route('/analytics', methods=['GET'])
+@require_auth(admin_only=True)
+def get_analytics():
+    """Combined time/cost analytics across every AI flow in the Studio.
+
+    Admin-only for the same documented reason as agent-settings: /api/agents/*
+    admits any signed-in user, and spend is not customer-facing data.
+
+    The two halves are returned SEPARATELY and never summed into one figure:
+    agent cost is reported by the Claude CLI (exact), Studio cost is estimated
+    from a token rate card. Time saved is applied here, since this is where the
+    human-minutes baselines live.
+    """
+    # No explicit window means "use the configured default", so the dashboard
+    # can open on it without having to know it in advance.
+    svc = current_app.config.get('SETTINGS_SERVICE')
+    default_window = '7d'
+    try:
+        if svc:
+            default_window = (svc.get('analytics_default_window', '7d') or '7d').strip()
+    except Exception:
+        default_window = '7d'
+    if default_window not in analytics_service.WINDOWS:
+        default_window = '7d'
+
+    try:
+        window, since, until = _analytics_range(default_window)
+    except ValueError as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
+
+    user_id_param = (request.args.get('user_id') or '').strip()
+    studio = analytics_service.query(window, since=since, until=until,
+                                     user_id=user_id_param or None)
+
+    # The agent half comes from QA-Agent-Network; a dashboard must still render
+    # if that server is down, so a failure degrades to an empty half plus a note.
+    agents, agents_error = {}, None
+    try:
+        response = _forward_json('GET', _analytics_upstream(
+            '/analytics/summary', window, since, until, user_id_param))
+        # _forward_json returns a Response, or (Response, status) on failure —
+        # and its failure bodies are dicts too, so "is a dict" is not enough to
+        # call it a success. Without checking the status and the payload shape,
+        # a stopped agent server renders as a silently empty section.
+        status = response[1] if isinstance(response, tuple) else 200
+        body = response[0] if isinstance(response, tuple) else response
+        payload = body.get_json(silent=True) if hasattr(body, 'get_json') else None
+
+        if status >= 400 or not isinstance(payload, dict) or 'overall' not in payload:
+            detail = ''
+            if isinstance(payload, dict):
+                detail = payload.get('detail') or payload.get('error') or ''
+            if status == 404:
+                # Almost always a running-but-stale agent server: a bare
+                # "not found" gives no clue which of the two servers is missing
+                # the route, and the answer is nearly always that one of them
+                # is still on pre-update code.
+                agents_error = ('Analytics endpoint not found on the QA Agent '
+                                'Network server (404). Restart it '
+                                '(`bash scripts/run-server.sh`) so it picks up '
+                                'the /analytics/summary route.')
+            else:
+                agents_error = detail or f'agent server returned HTTP {status}'
+        else:
+            agents = payload
+    except Exception as exc:
+        agents_error = str(exc)
+
+    baselines = _analytics_baselines()
+    return jsonify({
+        'success': True,
+        'window': window,
+        'default_window': default_window,
+        'baselines': baselines,
+        'agents': agents,
+        'agents_error': agents_error,
+        'studio': studio,
+        'time_saved': _time_saved(agents, studio, baselines),
+    })
+
+
+def _analytics_baselines() -> dict:
+    """Human-minutes-per-outcome, from settings. One home for all four flows."""
+    svc = current_app.config.get('SETTINGS_SERVICE')
+
+    def _get(key, default):
+        try:
+            return float(svc.get(key, default) if svc else default)
+        except (TypeError, ValueError, AttributeError):
+            return float(default)
+    return {
+        'min_per_test_authored': _get('analytics_min_per_test_authored', 240),
+        'min_per_test_fixed': _get('analytics_min_per_test_fixed', 60),
+        'min_per_test_adapted': _get('analytics_min_per_test_adapted', 150),
+        'min_per_test_case_written': _get('analytics_min_per_test_case_written', 15),
+    }
+
+
+def _time_saved(agents: dict, studio: dict, baselines: dict) -> dict:
+    """Estimated human minutes saved, minus the wall time the machine spent."""
+    outcomes = (studio or {}).get('outcomes') or {}
+
+    def gross(rollup: dict) -> float:
+        return (int(rollup.get('tests_created') or 0) * baselines['min_per_test_authored']
+                + int(rollup.get('tests_fixed') or 0) * baselines['min_per_test_fixed']
+                + int(rollup.get('items_adapted') or 0) * baselines['min_per_test_adapted'])
+
+    studio_gross = (
+        (int(outcomes.get('test_cases_generated') or 0)
+         + int(outcomes.get('e2e_tests_generated') or 0))
+        * baselines['min_per_test_case_written']
+    )
+    studio_spent = float((studio or {}).get('run_duration_s') or 0.0) / 60.0
+
+    def net(rollup: dict, gross_min: float) -> float:
+        return max(0.0, round(gross_min - float(rollup.get('duration_s') or 0.0) / 60.0, 1))
+
+    # Per agent for the breakdown table, so the page never re-derives this.
+    by_agent = {name: net(r, gross(r))
+                for name, r in ((agents or {}).get('by_agent') or {}).items()}
+    # Per agent per day, for the trend. Each day is floored on its own, so a
+    # window holding an agent's net-negative day adds up to a little more than
+    # the tile, which floors each agent over the whole window.
+    by_agent_day = {name: {d['bucket']: net(d, gross(d)) for d in days}
+                    for name, days in ((agents or {}).get('series_by_agent') or {}).items()}
+    by_agent_day['test-design-agent'] = {
+        d['bucket']: net(d, int(d.get('tests_generated') or 0) * baselines['min_per_test_case_written'])
+        for d in (studio or {}).get('requirements_series') or []}
+    # The tile is the sum of those rows. Flooring only the overall let an agent
+    # whose own run time exceeded its output show 0 in its row yet still pull
+    # the tile down (18.8 h over rows adding to 18.9 h).
+    agents_min = round(sum(by_agent.values()), 1)
+    studio_min = max(0.0, round(studio_gross - studio_spent, 1))
+    return {
+        'agents_min': agents_min,
+        'studio_min': studio_min,
+        'total_min': round(agents_min + studio_min, 1),
+        'by_agent': by_agent,
+        'by_agent_day': by_agent_day,
+        'basis': 'estimate',
+    }
 
 
 @admin_bp.route('/sync/schedule', methods=['GET'])

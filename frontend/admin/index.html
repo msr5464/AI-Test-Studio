@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AI Test Studio - Admin — Powered by QA Agent Network</title>
     <style>
         /* Theme system – match Customer portal (dark default) */
@@ -721,6 +724,12 @@
             color: #1a1a1a;
         }
 
+        [data-theme="light"] .stat-value {
+            background: linear-gradient(135deg, #0e7490 0%, #155e75 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -756,6 +765,232 @@
             margin-top: 0;
             font-size: 11px;
             font-weight: 500;
+        }
+
+        .analytics-windows {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        /* Refresh state: stale numbers dim at once, then fade back in. */
+        #analyticsBody {
+            transition: opacity 0.25s;
+        }
+
+        #analyticsBody.an-loading {
+            opacity: 0.45;
+            pointer-events: none;
+            transition: none;
+        }
+
+        /* The shared spinner is white-on-button; this one sits on the card. */
+        #analyticsStatus .loading {
+            width: 11px;
+            height: 11px;
+            border-width: 2px;
+            border-color: var(--border);
+            border-top-color: var(--primary);
+            margin: 0 6px 0 0;
+        }
+
+        /* Trend chart: instant tooltip + a halo on the point under it. */
+        .an-trend {
+            position: relative;
+        }
+
+        .an-trend .an-hit {
+            fill: transparent;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .an-trend .an-hit:hover,
+        .an-trend .an-hit:focus {
+            fill: currentColor;
+            fill-opacity: 0.18;
+        }
+
+        .an-tip {
+            position: absolute;
+            transform: translate(-50%, calc(-100% - 8px));
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .an-trend-total {
+            margin: 6px 0 0;
+        }
+
+        .an-trend-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 4px;
+        }
+
+        .an-trend-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .an-trend-select {
+            width: auto;   /* the global select rule is width: 100% */
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        /* Native date picker: its calendar icon is dark-on-dark otherwise. */
+        [data-theme="dark"] .analytics-windows input[type="date"],
+        [data-theme="dark"] .an-trend-select {
+            color-scheme: dark;
+        }
+
+        .analytics-group {
+            margin-top: 22px;
+        }
+
+        .analytics-group h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 4px;
+            color: var(--text);
+        }
+
+        .analytics-group .analytics-basis {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin: 0 0 10px;
+        }
+
+        .analytics-note {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 14px;
+            line-height: 1.6;
+        }
+
+        .analytics-notes {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            line-height: 1.6;
+        }
+
+        .analytics-notes summary {
+            cursor: pointer;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .analytics-notes ul {
+            margin: 6px 0 0;
+            padding-left: 18px;
+        }
+
+        .analytics-bars {
+            margin: 10px 0 4px;
+        }
+
+        .analytics-subhead {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin: 20px 0 2px;
+        }
+
+        .analytics-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 7px 0;
+            font-size: 13px;
+        }
+
+        .analytics-bar-label {
+            flex: 0 0 200px;
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .analytics-bar-track {
+            flex: 1;
+            min-width: 60px;
+            height: 8px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .analytics-bar-fill {
+            /* Block, not inline: this is a <span>, and an inline element ignores
+               width and height — which rendered every bar as an empty track. */
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #06b6d4, #0891b2);
+            border-radius: 4px;
+        }
+
+        .analytics-bar-value {
+            flex: 0 0 96px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+        }
+
+        /* The shared table style carries no margin, so it butted straight up
+           against the KPI grid above it. */
+        #adminPane_analytics table {
+            margin: 14px 0 4px;
+        }
+
+        /* A FIXED column count, not the shared grid's auto-fit.
+           auto-fit derives columns from the item count, so each group got a
+           different tile width (148px for the 8 agent tiles, 356px for the 3
+           ingestion ones) and the 8 tiles fell as an ugly 7 + 1. Pinning the
+           count makes every tile in the pane the same width and lets 8 tiles
+           land as two clean rows of 4.
+           Flex was tried instead and rejected: it closes the trailing gap by
+           growing the orphans, leaving two tile widths inside one group. */
+        #adminPane_analytics .stats {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-bottom: 6px;
+        }
+
+        @media (max-width: 1000px) {
+            #adminPane_analytics .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 640px) {
+            #adminPane_analytics .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 720px) {
+            .analytics-bar-label { flex-basis: 120px; }
+            .analytics-bar-value { flex-basis: 78px; }
         }
 
         .message {
@@ -1001,9 +1236,22 @@
         .alert-danger {
             background: var(--danger-light) !important;
             color: var(--danger) !important;
-            padding: 12px;
+            padding: 10px 12px;
             border-radius: 8px;
             border: 1px solid var(--danger);
+            font-size: 12px;
+            line-height: 1.45;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            max-height: 95px;
+            overflow-y: auto;
+        }
+
+        .alert-danger strong {
+            display: inline-block;
+            margin-bottom: 3px;
+            font-size: 13px;
         }
 
         #chromadbInfo {
@@ -1408,10 +1656,17 @@
         }
 
         /* Equal-width metric cells that fill the card edge to edge */
+        .sync-grid [id$="Result"] {
+            margin-top: 10px;
+            margin-bottom: 2px;
+        }
+
         .sync-grid [id$="Stats"] {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
             gap: 8px;
+            margin-top: auto;
+            padding-top: 10px;
         }
 
         /* The outer .section already draws a card; the inner .sync-box drawing a
@@ -1485,10 +1740,30 @@
             font-size: 13px;
             color: var(--text-muted);
         }
+    
+    /* Status & Role Select Overrides */
+    .user-role-select, .user-status-select {
+        background-color: var(--bg-input);
+        color: var(--text);
+        cursor: pointer;
+        outline: none;
+    }
+    .user-role-select:focus, .user-status-select:focus {
+        border-color: var(--primary) !important;
+    }
+
+    
+    <style>
+    /* Status specific styles */
+    #usersList .user-badge-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    #usersList .user-badge-active { background: rgba(5, 150, 105, 0.15); color: #10b981; border: 1px solid rgba(5, 150, 105, 0.3); }
+    #usersList .user-badge-rejected { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    #usersList .user-badge-suspended { background: rgba(107, 114, 128, 0.15); color: #9ca3af; border: 1px solid rgba(107, 114, 128, 0.3); }
+
     </style>
 </head>
 
-<body>
+<body style="display: none;">
     <header class="site-header">
         <a href="/customer" class="site-logo" target="_blank" rel="noopener noreferrer">
             <img src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png"
@@ -1535,6 +1810,10 @@
                     </nav>
 
                     <nav class="admin-nav admin-nav-secondary" aria-label="Configuration">
+                        <button class="admin-nav-item" role="tab" onclick="showAdminTab('analytics', this)">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+                            <span>Analytics</span>
+                        </button>
                         <button class="admin-nav-item" role="tab" onclick="showAdminTab('agentsettings', this)">
                             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><path d="M8 13v2"/><path d="M16 13v2"/></svg>
                             <span>Agent Settings</span>
@@ -1600,10 +1879,10 @@
                         <div class="upload-area" id="uploadArea">
                             <p style="font-size: 14px; font-weight: 600; margin-bottom: 0;">Drag and drop files here or
                                 click to browse</p>
-                            <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">CSV, Excel, PDF, Word,
-                                PowerPoint, text</p>
+                            <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">Test-case exports:
+                                CSV or Excel (.xlsx, .xls)</p>
                             <input type="file" id="fileInput" multiple
-                                accept=".csv,.xlsx,.xls,.pdf,.docx,.doc,.pptx,.ppt,.txt,.md">
+                                accept=".csv,.xlsx,.xls">
                         </div>
                         <button class="btn btn-upload" id="uploadBtn" disabled>Upload & Process Files</button>
                     </div>
@@ -1672,8 +1951,7 @@
                             </div>
 
                             <div id="syncLogContainer" style="margin-top: 10px;">
-                                <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">Running
-                                    log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span>
+                                <p style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text);">Running log <span id="syncLogLiveBadge" class="sync-live-badge" style="display: none;">Live</span>
                                 </p>
                                 <div id="syncLog"
                                     style="background: var(--bg-input); color: var(--text); font-family: monospace; font-size: 11px; padding: 8px; border-radius: 6px; min-height: 150px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--border); line-height: 1.5;">No log yet. Click &quot;Sync Now&quot; to see live logs.</div>
@@ -1766,6 +2044,34 @@
                 </div>
             </div>
 
+                    <div class="admin-pane" id="adminPane_analytics" role="tabpanel">
+                        <div class="section">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h2 style="margin: 0;"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>Analytics</h2>
+                                <button class="btn btn-danger btn-small" onclick="clearAnalytics()">
+                                    Reset Analytics & History
+                                </button>
+                            </div>
+                            <div class="analytics-windows" id="analyticsWindows" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <button class="settings-tab-btn" data-window="24h" onclick="setAnalyticsWindow('24h', this)">24 hours</button>
+                                <button class="settings-tab-btn" data-window="7d" onclick="setAnalyticsWindow('7d', this)">7 days</button>
+                                <button class="settings-tab-btn" data-window="30d" onclick="setAnalyticsWindow('30d', this)">30 days</button>
+                                <button class="settings-tab-btn" data-window="all" onclick="setAnalyticsWindow('all', this)">All time</button>
+                                <button class="settings-tab-btn" data-window="custom" onclick="showAnalyticsCustom(this)">Custom range</button>
+                                <span id="analyticsRangeInputs" style="display: none; gap: 8px; align-items: center;">
+                                    <input type="date" id="analyticsFrom" aria-label="Start date" title="Start date" onchange="setAnalyticsRange(this)" style="padding: 6px 12px; border-radius: 8px; font-size: 13px; background: var(--bg-input); color: var(--text); border: 1px solid var(--border);">
+                                    <span style="font-size: 13px; color: var(--text-light);">to</span>
+                                    <input type="date" id="analyticsTo" aria-label="End date" title="End date" onchange="setAnalyticsRange(this)" style="padding: 6px 12px; border-radius: 8px; font-size: 13px; background: var(--bg-input); color: var(--text); border: 1px solid var(--border);">
+                                </span>
+                                <select id="analyticsUserFilter" class="user-role-select" onchange="setAnalyticsUser(this.value)" style="margin-left: auto; padding: 6px 12px; border-radius: 8px; font-size: 13px; background: var(--bg-input); color: var(--text); border: 1px solid var(--border);">
+                                    <option value="">👤 All Users</option>
+                                </select>
+                            </div>
+                            <p class="agent-settings-status" id="analyticsStatus">⏳ Loading analytics…</p>
+                            <div id="analyticsBody"></div>
+                        </div>
+                    </div>
+
                     <div class="admin-pane" id="adminPane_agentsettings" role="tabpanel">
                         <div class="section">
                             <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/><path d="M8 13v2"/><path d="M16 13v2"/></svg>Agent Settings</h2>
@@ -1785,6 +2091,8 @@
                         <button class="settings-tab-btn" onclick="showSettingsTab('chat', this)">💬 Chat</button>
                         <button class="settings-tab-btn" onclick="showSettingsTab('requirements', this)">📋
                             Requirements</button>
+                        <button class="settings-tab-btn" onclick="showSettingsTab('analytics', this)">📊
+                            Analytics</button>
                         <button class="settings-tab-btn" onclick="showSettingsTab('appearance', this)">🎨 Appearance</button>
                     </div>
                     <div id="settingsTabContent">
@@ -1844,6 +2152,13 @@
 
         // Check authentication on page load
         checkAuth();
+        
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                document.body.style.display = 'none';
+                checkAuth();
+            }
+        });
 
         async function checkAuth() {
             try {
@@ -1857,9 +2172,10 @@
                         currentUser = data.user;
                         if (data.user.role !== 'admin') {
                             alert('Admin access required');
-                            window.location.href = '/admin/login';
+                            window.location.replace('/admin/login');
                             return;
                         }
+                        document.body.style.display = 'block';
                         updateUserDisplay();
                         if (typeof loadSyncStatus === 'function') loadSyncStatus();
                     } else {
@@ -1875,7 +2191,7 @@
         }
 
         function redirectToLogin() {
-            window.location.href = '/admin/login';
+            window.location.replace('/admin/login');
         }
 
         function updateUserDisplay() {
@@ -1887,15 +2203,16 @@
         }
 
         async function logout() {
+            if (!confirm('Are you sure you want to log out?')) return;
             try {
                 await fetch(`${AUTH_API}/logout`, {
                     method: 'POST',
                     credentials: 'include'
                 });
-                window.location.href = '/admin/login';
+                window.location.replace('/admin/login');
             } catch (error) {
                 void ('Logout failed:', error);
-                window.location.href = '/admin/login';
+                window.location.replace('/admin/login');
             }
         }
 
@@ -1923,8 +2240,10 @@
         });
 
         function handleFiles(files) {
-            // Supported file extensions (must match backend)
-            const supportedExtensions = ['.pdf', '.csv', '.xlsx', '.xls', '.docx', '.doc', '.docs', '.pptx', '.ppt', '.txt', '.text', '.md'];
+            // Supported file extensions — must match RAGService._validate_testcase_file,
+            // which accepts only test-case exports. Other documents come in through
+            // the Confluence sync.
+            const supportedExtensions = ['.csv', '.xlsx', '.xls'];
 
             selectedFiles = Array.from(files).filter(file => {
                 const fileName = file.name.toLowerCase();
@@ -2350,6 +2669,14 @@
             const countEl = document.getElementById('totalUsers');
             if (countEl) countEl.textContent = Array.isArray(users) ? users.length : 0;
 
+            const filterEl = document.getElementById('analyticsUserFilter');
+            if (filterEl && Array.isArray(users)) {
+                const currentVal = filterEl.value;
+                const activeUsers = users.filter(u => u.status === 'active');
+                filterEl.innerHTML = '<option value="">👤 All Users</option>' + activeUsers.map(u => `<option value="${u.user_id}">👤 ${escapeHtml(u.username)} (${u.role})</option>`).join('');
+                filterEl.value = currentVal;
+            }
+
             const list = document.getElementById('usersList');
 
             if (users.length === 0) {
@@ -2371,32 +2698,68 @@
                             </div>
                             <div class="document-meta" style="margin-top: 8px;">
                                 <span class="status ${user.role === 'admin' ? 'user-badge-admin' : 'user-badge-customer'}" style="padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;">
-                                    ${user.role === 'admin' ? '👑 Admin' : '👤 Customer'}
+                                    ${user.role === 'admin' ? '👑 Admin' : '👤 Member'}
+                                </span>
+                                <span class="status ${
+                                    user.status === 'pending_approval' ? 'user-badge-pending' : 
+                                    user.status === 'active' ? 'user-badge-active' : 
+                                    user.status === 'rejected' ? 'user-badge-rejected' : 'user-badge-suspended'
+                                }" style="padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; margin-left: 8px; text-transform: capitalize;">
+                                    ${user.status === 'pending_approval' ? '⏳ Pending' : 
+                                      user.status === 'active' ? '✅ Active' : 
+                                      user.status === 'rejected' ? '❌ Rejected' : '⏸️ Suspended'}
                                 </span>
                                 <span class="user-meta-text" style="margin-left: 15px;">Created: ${createdDate}</span>
                                 <span class="user-meta-text" style="margin-left: 15px;">Last Login: ${lastLogin}</span>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;">
-                            <select class="user-role-select" onchange="updateUserRole('${user.user_id}', this.value, '${user.role}')" 
-                                    style="padding: 8px 10px; border: 2px solid var(--border); border-radius: 10px; font-size: 12px; width: 100px; flex-shrink: 0;"
-                                    ${isCurrentUser ? 'disabled title="Cannot change your own role"' : ''}>
-                                <option value="customer" ${user.role === 'customer' ? 'selected' : ''}>Customer</option>
-                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-                            </select>
-                            <button class="btn btn-reset" onclick="resetUserPassword('${user.user_id}', '${escapeHtml(user.username)}')" 
-                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0;">
-                                🔑 Reset
+                                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+                            ${user.status === 'pending_approval' ? `
+                            <button class="btn btn-primary" onclick="updateUser('${user.user_id}', '${user.role}', 'active', '${user.role}')"
+                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; background: #10b981; color: white; border: none; border-radius: 8px;">
+                                ✅ Approve
                             </button>
-                            <button class="btn btn-danger" onclick="deleteUser('${user.user_id}', '${escapeHtml(user.username)}')"
-                                    ${isCurrentUser ? 'disabled title="Cannot delete your own account"' : ''}
-                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0;">
+                            <button class="btn btn-danger" onclick="updateUser('${user.user_id}', '${user.role}', 'rejected', '${user.role}')"
+                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; background: #ef4444; color: white; border: none; border-radius: 8px;">
+                                ❌ Reject
+                            </button>
+                            <button class="btn btn-danger" data-username="${escapeHtml(user.username)}" onclick="deleteUser('${user.user_id}', this.dataset.username)"
+                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 8px;">
                                 🗑️ Delete
                             </button>
+                            ` : `
+                            <select class="user-role-select" onchange="updateUser('${user.user_id}', this.value, '${user.status}', '${user.role}')" 
+                                    style="padding: 8px 10px; border: 2px solid var(--border); border-radius: 8px; font-size: 12px; width: 100px;"
+                                    ${isCurrentUser ? 'disabled title="Cannot change your own role"' : ''}>
+                                <option value="member" ${user.role === 'member' || user.role === 'customer' ? 'selected' : ''}>Member</option>
+                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                            <select class="user-status-select" onchange="updateUser('${user.user_id}', '${user.role}', this.value, '${user.role}')" 
+                                    style="padding: 8px 10px; border: 2px solid var(--border); border-radius: 8px; font-size: 12px; width: 110px;"
+                                    ${isCurrentUser ? 'disabled title="Cannot change your own status"' : ''}>
+                                <option value="active" ${user.status === 'active' ? 'selected' : ''}>Active</option>
+                                <option value="suspended" ${user.status === 'suspended' ? 'selected' : ''}>Suspended</option>
+                            </select>
+                            <button class="btn btn-reset" data-username="${escapeHtml(user.username)}" onclick="resetUserPassword('${user.user_id}', this.dataset.username)" 
+                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 8px;">
+                                🔑 Reset
+                            </button>
+                            <button class="btn btn-danger" data-username="${escapeHtml(user.username)}" onclick="deleteUser('${user.user_id}', this.dataset.username)"
+                                    ${isCurrentUser ? 'disabled title="Cannot delete your own account"' : ''}
+                                    style="padding: 8px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 8px;">
+                                🗑️ Delete
+                            </button>
+                            `}
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        // Sub-heading inside a group, so the spacing is not re-specified inline
+        // at each call site.
+        function anSubhead(text) {
+            return '<p class="analytics-subhead">' + anEsc(text) + '</p>';
         }
 
         async function createUser() {
@@ -2440,38 +2803,41 @@
             }
         }
 
-        async function updateUserRole(userId, newRole, currentRole) {
-            if (newRole === currentRole) {
-                return; // No change
+        
+        async function updateUser(userId, newRole, newStatus, oldRole) {
+            let message = '';
+            if (newStatus === 'active' && oldRole === newRole) {
+                message = `Are you sure you want to approve and activate this user?`;
+            } else if (newStatus === 'rejected') {
+                message = `Are you sure you want to reject this user?`;
+            } else {
+                message = `Are you sure you want to change this user's role to ${newRole} and status to ${newStatus}?`;
             }
-
-            if (!confirm(`👥 Change user role to ${newRole}?\n\nThis will update the user's permissions immediately.\n\nClick OK to proceed.`)) {
-                // Reset dropdown
-                loadUsers();
+            
+            if (!confirm(message)) {
+                loadUsers(); // Reload to reset dropdown
                 return;
             }
 
             try {
                 const response = await fetch(`${AUTH_API}/users/${userId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ role: newRole })
+                    body: JSON.stringify({ role: newRole, status: newStatus })
                 });
-
+                
                 const result = await response.json();
-
+                
                 if (result.success) {
-                    showMessage(`✅ User role successfully updated to ${newRole}`, 'success');
+                    showMessage('User updated successfully', 'success');
                     loadUsers();
                 } else {
-                    showMessage(`❌ Failed to update user role: ${result.error || 'Unknown error occurred'}`, 'error');
+                    showMessage(`Error: ${result.error || 'Failed to update user'}`, 'error');
                     loadUsers(); // Reload to reset dropdown
                 }
             } catch (error) {
-                showMessage(`❌ Error updating user role: ${error.message || 'Network error occurred'}`, 'error');
+                showMessage(`Network error: ${error.message}`, 'error');
                 loadUsers(); // Reload to reset dropdown
             }
         }
@@ -2540,6 +2906,29 @@
 
 
         // TestRail Sync Functions
+        function formatSyncError(errorMsg) {
+            if (!errorMsg) return 'Unknown error occurred';
+            var str = String(errorMsg).trim();
+
+            var apiErrMatch = str.match(/API Error:\s*(.+)$/i);
+            var statusMatch = str.match(/(\d{3}\s+(?:Client Error:\s*)?[A-Za-z\s-]+?)(?=\s+for url|\s+-\s+API|$)/i);
+
+            if (apiErrMatch) {
+                var cleanDetail = apiErrMatch[1].trim();
+                if (statusMatch) {
+                    var status = statusMatch[1].trim().replace(/[\s:-]+$/, '').trim();
+                    return '<span style="font-weight:600;">' + status + ':</span> ' + cleanDetail;
+                }
+                return cleanDetail;
+            }
+
+            if (str.includes('for url: http')) {
+                str = str.replace(/for url:\s*https?:\/\/[^\s]+/i, '').trim();
+            }
+
+            return str;
+        }
+
         function updateSyncLog(logLines) {
             var container = document.getElementById('syncLogContainer');
             var el = document.getElementById('syncLog');
@@ -2646,7 +3035,7 @@
                     } else {
                         var errorMsg = latest ? latest.error : 'Unknown error';
                         result.innerHTML = '<div class="alert-danger">' +
-                            '<strong>❌ Sync failed</strong><br>' + errorMsg + '</div>';
+                            '<strong>❌ Sync failed</strong><br>' + formatSyncError(errorMsg) + '</div>';
                         result.style.display = 'block';
                         document.getElementById('syncStatusText').textContent = '❌ Sync failed';
                     }
@@ -2715,6 +3104,7 @@
 
                     // Update stats whenever we have latest_sync_record (not only when last_sync is set)
                     var rec = status.latest_sync_record;
+                    var syncRes = document.getElementById('syncResult');
                     if (rec && !status.is_syncing) {
                         document.getElementById('syncTestCases').textContent =
                             rec.test_cases_fetched != null ? rec.test_cases_fetched : (rec.test_cases_updated != null ? rec.test_cases_updated : 0);
@@ -2728,6 +3118,15 @@
                         document.getElementById('syncLastTime').textContent = lastSyncTime
                             ? 'Last synced: ' + new Date(lastSyncTime).toLocaleString()
                             : 'Last synced: —';
+                        if (syncRes) {
+                            if (rec.status === 'success') {
+                                syncRes.style.display = 'none';
+                            } else {
+                                syncRes.innerHTML = '<div class="alert-danger"><strong>❌ Sync failed</strong><br>' +
+                                    formatSyncError(rec.error || 'Unknown error') + '</div>';
+                                syncRes.style.display = 'block';
+                            }
+                        }
                     } else if (status.last_sync) {
                         document.getElementById('syncLastTime').textContent =
                             'Last synced: ' + new Date(status.last_sync).toLocaleString();
@@ -2737,12 +3136,14 @@
                             document.getElementById('syncDuration').textContent = '0s';
                             document.getElementById('syncStatusText').textContent = 'Not yet synced';
                         }
+                        if (syncRes) syncRes.style.display = 'none';
                     } else if (!status.is_syncing) {
                         document.getElementById('syncLastTime').textContent = '';
                         document.getElementById('syncTestCases').textContent = '0';
                         document.getElementById('syncProjects').textContent = '0';
                         document.getElementById('syncDuration').textContent = '0s';
                         document.getElementById('syncStatusText').textContent = 'Not yet synced';
+                        if (syncRes) syncRes.style.display = 'none';
                     }
                     // Always update running log (including empty after reset)
                     updateSyncLog(status.sync_log && Array.isArray(status.sync_log) ? status.sync_log : []);
@@ -2815,7 +3216,7 @@
                         result.style.display = 'none';
                     } else {
                         result.innerHTML = '<div class="alert-danger"><strong>❌ Sync failed</strong><br>' +
-                            (latest.error || 'Unknown error') + '</div>';
+                            formatSyncError(latest.error || 'Unknown error') + '</div>';
                         result.style.display = 'block';
                     }
                 }
@@ -2962,7 +3363,7 @@
                 result.innerHTML = `
                     <div class="alert-danger">
                         <strong>❌ Sync failed</strong><br>
-                        ${error.message || 'Network error occurred'}
+                        ${formatSyncError(error.message || 'Network error occurred')}
                     </div>
                 `;
                 result.style.display = 'block';
@@ -3091,8 +3492,8 @@
         }
 
         function renderSettingsTabs(schema, values) {
-            const categories = ['testrail', 'confluence', 'llm', 'chat', 'requirements', 'appearance'];
-            const categoryLabels = { testrail: 'TestRail', confluence: 'Confluence', llm: 'LLM & RAG', chat: 'Chat Specifics', requirements: 'Requirements Specifics', appearance: 'Appearance' };
+            const categories = ['testrail', 'confluence', 'llm', 'chat', 'requirements', 'analytics', 'appearance'];
+            const categoryLabels = { testrail: 'TestRail', confluence: 'Confluence', llm: 'LLM & RAG', chat: 'Chat Specifics', requirements: 'Requirements Specifics', appearance: 'Appearance', analytics: 'Analytics' };
             const ragNote = `<div class="settings-section-note">ℹ️ RAG &amp; Retrieval changes are saved immediately but take full effect after an app restart.</div>`;
 
             // Fix: restore whichever tab was last open, defaulting to testrail
@@ -3179,7 +3580,7 @@
                 });
 
                 html += `<div class="settings-save-row">
-                    <button class="btn" onclick="saveSettingsTab('${cat}')">💾 Save ${escapeHtml(categoryLabels[cat])} Settings</button>
+                    <button class="btn" onclick="saveSettingsTab('${cat}')">💾 Save ${escapeHtml(categoryLabels[cat] || cat)} Settings</button>
                     <span class="settings-save-status" id="settingsSaveStatus_${cat}"></span>
                 </div>`;
                 html += `</div></div>`;
@@ -3265,6 +3666,7 @@
 
             // The settings panes used to fetch when their modal opened; now they
             // fetch when their pane is shown, so values are never stale.
+            if (name === 'analytics') loadAnalytics();
             if (name === 'agentsettings') loadAgentSettings();
             if (name === 'studiosettings') loadSettings();
         }
@@ -3289,16 +3691,705 @@
             common: '⚙️ Common',
             authoring: '✍️ Test Authoring',
             healing: '🩹 Test Healing',
-            triaging: '🔍 Test Triaging',
-            server: '🖥️ Server'
+            adaptation: '🔁 Test Adaptation',
+            triaging: '🔍 Test Triaging'
         };
 
         // Long values that read badly in a half-width cell
         const AGENT_FULL_WIDTH_KEYS = [
-            'workspace_dir', 'test_runner_cmd', 'autofix_base_url',
-            'dashboard_base_url', 'jira_base_url', 'github_pr_reviewers'
+            'workspace_dir', 'test_runner_cmd', 'healing_base_url',
+            'triaging_dashboard_base_url', 'triaging_jira_base_url', 'github_pr_reviewers'
         ];
 
+
+        // ── Analytics ────────────────────────────────────────────────────
+        // `var`, not `let`: restoreAdminTab() runs near the top of this script
+        // and can call loadAnalytics() for a saved "analytics" tab long before
+        // this line is reached. Function declarations hoist, so loadAnalytics
+        // is callable then — but a `let` would still be in its temporal dead
+        // zone, throwing "Cannot access '_analyticsWindow' before
+        // initialization". `var` hoists as undefined, and the default is
+        // applied at read time instead.
+        var _analyticsWindow;
+        // The applied custom range {from, to, text}, epoch seconds. Queries read
+        // this, never the live inputs: an emptied input would send NaN bounds.
+        var _analyticsRange;
+        // No initializer, for the reason above: restoreAdminTab()'s early load
+        // has already counted by the time this line runs, and `= 0` would
+        // reset it — making that first response look stale and never render.
+        var _analyticsSeq;
+        var _analyticsUserId = '';
+        var _currentAnalyticsTab = 'agents';
+        var _lastAnalyticsData = null;
+        // The charts' pickers: agents metric, agent ('' = all), Studio metric.
+        var _trend = { metric: 'cost', agent: '', studioMetric: 'cost' };
+
+        function setTrend(key, value) {
+            _trend[key] = value;
+            const focused = document.activeElement && document.activeElement.getAttribute('aria-label');
+            if (_lastAnalyticsData) renderAnalytics(_lastAnalyticsData);
+            // The redraw replaces the selects; keep keyboard focus on the one used.
+            const again = focused && document.querySelector('#analyticsBody .an-trend-select[aria-label="' + focused + '"]');
+            if (again) again.focus();
+        }
+
+        function switchAnalyticsTab(tabName) {
+            _currentAnalyticsTab = tabName;
+            const container = document.getElementById('analyticsBody');
+            if (!container) return;
+            // Only the Agents/Studio bar: the trend-metric buttons are
+            // .settings-tab-btn too, and clearing them lost their highlight.
+            container.querySelectorAll('[data-tab]').forEach(
+                b => b.classList.toggle('active', b.dataset.tab === tabName));
+            container.querySelectorAll('.analytics-tab-content').forEach(
+                el => el.style.display = el.id === 'analyticsTab_' + tabName ? 'block' : 'none');
+        }
+
+        function analyticsWindow() {
+            // Literal default, not a `const` — a const would reintroduce exactly
+            // the dead-zone problem described above.
+            return _analyticsWindow || '7d';
+        }
+
+        function setAnalyticsWindow(win, btn) {
+            _analyticsWindow = win;
+            _analyticsRange = null;
+            document.getElementById('analyticsRangeInputs').style.display = 'none';
+            ['analyticsFrom', 'analyticsTo'].forEach(id => {
+                const el = document.getElementById(id);
+                el.value = '';
+            });
+            document.querySelectorAll('#analyticsWindows .settings-tab-btn')
+                .forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            loadAnalytics();
+        }
+
+        // Opens on the dates already on screen and applies them at once, so the
+        // highlighted button, the dates, the numbers and what Reset would delete
+        // never disagree — an empty picker under a lit "Custom" would.
+        function showAnalyticsCustom(btn) {
+            const data = _lastAnalyticsData || {};
+            const shown = (data.studio && data.studio.window) || {};
+            const firstData = [data.agents && data.agents.data_since,
+                               data.studio && data.studio.data_since].filter(Boolean);
+            const now = Date.now() / 1000;
+            document.getElementById('analyticsFrom').value =
+                localDay(shown.from || (firstData.length ? Math.min(...firstData) : now));
+            document.getElementById('analyticsTo').value = localDay(shown.to || now);
+            document.getElementById('analyticsRangeInputs').style.display = 'inline-flex';
+            document.querySelectorAll('#analyticsWindows .settings-tab-btn')
+                .forEach(b => b.classList.toggle('active', b === btn));
+            setAnalyticsRange();
+        }
+
+        function localDay(epochSeconds) {  // YYYY-MM-DD in the browser's timezone
+            const d = new Date(epochSeconds * 1000);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        // Start date from 00:00, end date to 23:59:59.999, in the browser's timezone.
+        function setAnalyticsRange(changed) {
+            const fromEl = document.getElementById('analyticsFrom');
+            const toEl = document.getElementById('analyticsTo');
+            // Moving one end past the other moves both — min/max instead greyed
+            // out the very date you wanted when shifting a range forward.
+            if (fromEl.value && toEl.value && fromEl.value > toEl.value) {
+                if (changed === toEl) fromEl.value = toEl.value; else toEl.value = fromEl.value;
+            }
+            if (!fromEl.value || !toEl.value) return;
+            _analyticsRange = {
+                from: new Date(fromEl.value + 'T00:00:00').getTime() / 1000,
+                to: new Date(toEl.value + 'T23:59:59.999').getTime() / 1000,
+                text: `${fromEl.value} to ${toEl.value}`,
+            };
+            _analyticsWindow = 'custom';
+            loadAnalytics();
+        }
+
+        function analyticsQuery() {
+            let qs = `?window=${encodeURIComponent(analyticsWindow())}`;
+            if (analyticsWindow() === 'custom' && _analyticsRange) {
+                qs += `&from=${_analyticsRange.from}&to=${_analyticsRange.to}`;
+            }
+            if (_analyticsUserId) qs += `&user_id=${encodeURIComponent(_analyticsUserId)}`;
+            return qs;
+        }
+
+        function setAnalyticsUser(uid) {
+            _analyticsUserId = uid;
+            loadAnalytics();
+        }
+
+        function anFmtCost(usd) {
+            if (usd === null || usd === undefined || isNaN(usd)) return '—';
+            const n = Number(usd);
+            if (n === 0) return '$0';
+            return n < 0.01 ? '$' + n.toFixed(4) : '$' + n.toFixed(2);
+        }
+        function anFmtDuration(sec) {
+            if (sec === null || sec === undefined || isNaN(sec)) return '—';
+            const s = Math.round(Number(sec));
+            if (s < 60) return s + 's';
+            const m = Math.floor(s / 60);
+            if (m < 60) return m + 'm ' + (s % 60) + 's';
+            const h = Math.floor(m / 60);
+            return h + 'h ' + (m % 60) + 'm';
+        }
+        function anFmtMinutes(min) {
+            if (min === null || min === undefined || isNaN(min)) return '—';
+            const m = Math.round(Number(min));
+            if (Math.abs(m) < 60) return m + ' min';
+            return (m / 60).toFixed(1) + ' h';
+        }
+        function anFmtNum(n) {
+            if (n === null || n === undefined || isNaN(n)) return '—';
+            return Number(n).toLocaleString();
+        }
+        function anFmtTokens(n) {
+            if (n === null || n === undefined || isNaN(n)) return '—';
+            n = Number(n);
+            if (n < 1000) return String(n);
+            if (n < 1000000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+            return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        }
+        function anEsc(t) {
+            const d = document.createElement('div');
+            d.textContent = t === null || t === undefined ? '' : String(t);
+            return d.innerHTML;
+        }
+        function anTile(value, label) {
+            return '<div class="stat-card"><div class="stat-value">' + anEsc(value)
+                + '</div><div class="stat-label">' + anEsc(label) + '</div></div>';
+        }
+        function anSubhead(label) {
+            return '<h4 style="margin: 36px 0 16px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 15px; font-weight: 600; color: var(--text);">' + anEsc(label) + '</h4>';
+        }
+        function anBars(rows, unit) {
+            const max = Math.max.apply(null, rows.map(r => r[1]).concat([0])) || 1;
+            const inner = rows.map(function (r) {
+                const pct = Math.max(2, Math.round((r[1] / max) * 100));
+                return '<div class="analytics-bar-row">'
+                    + '<span class="analytics-bar-label">' + anEsc(r[0]) + '</span>'
+                    + '<span class="analytics-bar-track"><span class="analytics-bar-fill" style="width:'
+                    + pct + '%"></span></span>'
+                    + '<span class="analytics-bar-value">'
+                    + anEsc(unit === 'cost' ? anFmtCost(r[1]) : anFmtNum(r[1]))
+                    + '</span></div>';
+            }).join('');
+            return '<div class="analytics-bars">' + inner + '</div>';
+        }
+
+        // Hand-rolled inline SVG: there is no chart library in this file (the one
+        // external script anywhere is marked.js), and currentColor + CSS vars mean
+        // it themes for free in both light and dark.
+        // The breakdown table's columns, in its order. Each adds up by day to its
+        // tile or column (or one agent's row), as the caption under the chart
+        // says; Est. time saved is floored per day, so see trendNote().
+        function anTrendMetrics() {
+            return {
+                runs:      ['Runs', p => p.runs || 0, anFmtNum],
+                succeeded: ['Succeeded', p => p.succeeded || 0, anFmtNum],
+                tests:     ['Tests produced', p => (p.tests_created || 0) + (p.tests_fixed || 0)
+                              + (p.items_adapted || 0) + (p.tests_generated || 0), anFmtNum],
+                time:      ['Time taken', p => p.duration_s || 0, anFmtDuration],
+                calls:     ['LLM calls', p => p.calls || p.llm_calls || 0, anFmtNum],
+                tokens:    ['Tokens', p => (p.input_tokens || 0) + (p.output_tokens || 0), anFmtTokens],
+                cost:      ['Cost', p => p.cost_usd || 0, anFmtCost],
+                saved:     ['Est. time saved', p => p.saved_min || 0, anFmtMinutes],
+            };
+        }
+
+        function anSelect(label, key, options, value) {
+            return '<select class="an-trend-select" aria-label="' + label + '" '
+                + 'onchange="setTrend(\'' + key + '\', this.value)">'
+                + options.map(o => '<option value="' + anEsc(o[0]) + '"' + (o[0] === value ? ' selected' : '')
+                    + '>' + anEsc(o[1]) + '</option>').join('') + '</select>';
+        }
+
+        function anTrend(seriesList, metric, note) {
+            const m = anTrendMetrics()[metric] || anTrendMetrics().cost;
+            const extractVal = m[1], fmtTrendVal = m[2];
+            const buckets = {};
+            seriesList.forEach(function (series) {
+                (series || []).forEach(function (p) {
+                    buckets[p.bucket] = (buckets[p.bucket] || 0) + extractVal(p);
+                });
+            });
+            let keys = Object.keys(buckets).sort();
+            if (keys.length === 0) return '';
+
+            // One point per calendar day, first to last: a day without runs is a
+            // real zero, and dropping it squeezed the time axis. A lone day gets
+            // the day before it so there is a line to draw.
+            const localDay = function (d) {   // toISOString() is a day early east of UTC
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+                    + '-' + String(d.getDate()).padStart(2, '0');
+            };
+            const ymd = keys[0].split('-');
+            const d = new Date(ymd[0], ymd[1] - 1, ymd[2]);
+            if (keys.length === 1) d.setDate(d.getDate() - 1);
+            const lastKey = keys[keys.length - 1];
+            keys = [];
+            for (; localDay(d) <= lastKey; d.setDate(d.getDate() + 1)) keys.push(localDay(d));
+            keys.forEach(function (k) { buckets[k] = buckets[k] || 0; });
+
+            const PAD_L = 52, PAD_B = 22, PAD_T = 8;
+            // Drawn at the card's own width so it fills it at 1:1 scale; a fixed
+            // 720 left gutters on desktop and shrank the labels on a phone.
+            const W = document.getElementById('analyticsBody').clientWidth || 720, H = 140;
+            const max = Math.max.apply(null, keys.map(k => buckets[k])) || 1;
+            const innerW = W - PAD_L - 8, innerH = H - PAD_B - PAD_T;
+            const step = innerW / Math.max(1, keys.length - 1);
+
+            let points = [];
+            keys.forEach(function (k, i) {
+                const h = (buckets[k] / max) * innerH;
+                const x = PAD_L + i * step;
+                const y = PAD_T + innerH - h;
+                points.push({x: x, y: y, k: k, val: buckets[k]});
+            });
+
+            const pathData = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+            const areaData = pathData + ' L' + points[points.length - 1].x.toFixed(1) + ',' + (PAD_T + innerH) + ' L' + PAD_L + ',' + (PAD_T + innerH) + ' Z';
+
+            let hovers = '';
+            points.forEach(function (p) {
+                // Visual point
+                hovers += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="3" fill="var(--bg-card)" stroke="currentColor" stroke-width="2" />';
+                // Larger hit area; anTrendTip() shows data-tip at once. A native
+                // <title> waits ~1s for a still mouse and never shows on touch,
+                // which read as "hovering shows nothing".
+                hovers += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="12" '
+                       + 'class="an-hit" tabindex="0" data-tip="' + anEsc(p.k + ' — ' + fmtTrendVal(p.val)) + '"/>';
+            });
+
+            const label = function (i, anchorAttr) {
+                const x = PAD_L + i * step;
+                return '<text x="' + x.toFixed(1) + '" y="' + (H - 6) + '" font-size="10" '
+                    + 'fill="currentColor" opacity="0.6" text-anchor="' + anchorAttr + '">'
+                    + anEsc(keys[i].slice(5)) + '</text>';
+            };
+            // Dates along the axis, not just the two ends: up to eight, fewer on a
+            // narrow card (~64px each); the one before the last is dropped when
+            // it would sit on top of it.
+            const fit = Math.max(2, Math.min(8, Math.floor(innerW / 64)));
+            const every = Math.max(1, Math.ceil(keys.length / fit));
+            let dates = '';
+            keys.forEach(function (k, i) {
+                const last = i === keys.length - 1;
+                if (!last && (i % every || (i && keys.length - 1 - i < every / 2))) return;
+                dates += label(i, i === 0 ? 'start' : last ? 'end' : 'middle');
+            });
+            const total = keys.reduce((s, k) => s + buckets[k], 0);
+
+            const axis = '<text x="' + (PAD_L - 6) + '" y="' + (PAD_T + 9) + '" font-size="10" '
+                + 'fill="currentColor" opacity="0.6" text-anchor="end">'
+                + anEsc(fmtTrendVal(max)) + '</text>'
+                + '<text x="' + (PAD_L - 6) + '" y="' + (PAD_T + innerH) + '" font-size="10" '
+                + 'fill="currentColor" opacity="0.6" text-anchor="end">' + anEsc(fmtTrendVal(0)) + '</text>'
+                + '<line x1="' + PAD_L + '" y1="' + (PAD_T + innerH) + '" x2="' + (W - 8)
+                + '" y2="' + (PAD_T + innerH) + '" stroke="currentColor" opacity="0.2"/>';
+
+            const defs = '<defs><linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">'
+                + '<stop offset="0%" stop-color="currentColor" stop-opacity="0.3" />'
+                + '<stop offset="100%" stop-color="currentColor" stop-opacity="0.0" />'
+                + '</linearGradient></defs>';
+
+            return '<div class="an-trend"><svg viewBox="0 0 ' + W + ' ' + H + '" '
+                + 'width="100%" height="' + H + '" role="img" '
+                + 'aria-label="Daily trend chart" style="color:var(--primary);'
+                + 'display:block;">'
+                + defs + axis
+                + '<path d="' + areaData + '" fill="url(#trendGrad)" />'
+                + '<path d="' + pathData + '" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />'
+                + hovers
+                + dates
+                + '</svg><div class="an-tip" hidden></div>'
+                // Each point is one day; saying what they add up to is what ties
+                // a $7 peak to the $35 tile above it.
+                + '<p class="analytics-basis an-trend-total">Total ' + anEsc(fmtTrendVal(total))
+                + ' — ' + anEsc(note) + '. Hover a point for its day.</p></div>';
+        }
+
+        // One tooltip for every trend chart, shown the moment a point is
+        // hovered, tapped or focused.
+        function anTrendTip(e) {
+            const wrap = e.target.closest && e.target.closest('.an-trend');
+            if (!wrap) return;
+            const tip = wrap.querySelector('.an-tip');
+            const dot = e.target.closest('[data-tip]');
+            if (!dot || e.type === 'mouseout' || e.type === 'focusout') { tip.hidden = true; return; }
+            tip.textContent = dot.getAttribute('data-tip');
+            tip.hidden = false;
+            const w = wrap.getBoundingClientRect(), d = dot.getBoundingClientRect();
+            const half = tip.offsetWidth / 2;   // kept inside the card at either end
+            tip.style.left = Math.min(Math.max(d.left + d.width / 2 - w.left, half), w.width - half) + 'px';
+            // Above the point, or below it when a peak leaves no room above the
+            // chart (it would cover the pickers).
+            const above = d.top - w.top >= tip.offsetHeight + 8;
+            tip.style.top = (above ? d.top : d.bottom) - w.top + 'px';
+            tip.style.transform = above ? '' : 'translate(-50%, 8px)';
+        }
+        ['mouseover', 'mouseout', 'focusin', 'focusout'].forEach(t => document.addEventListener(t, anTrendTip));
+
+        async function clearAnalytics() {
+            const winText = _analyticsWindow === 'all' ? 'All time'
+                : (_analyticsWindow === 'custom' && _analyticsRange) ? _analyticsRange.text
+                : (_analyticsWindow || '7d');
+            if (_analyticsUserId) {
+                if (!confirm(`⚠️ CRITICAL ACTION: Reset Analytics\n\nAre you sure you want to clear Analytics & History for the selected user over the period of ${winText}?\nThis action CANNOT be undone!`)) return;
+            } else {
+                if (!confirm(`⚠️ CRITICAL ACTION: Reset Analytics\n\nAre you sure you want to clear Analytics & History for ALL users over the period of ${winText}?\nThis action CANNOT be undone!`)) return;
+                if (!confirm(`⚠️ FINAL WARNING: Reset Analytics\n\nThis will permanently delete ALL analytics, run history, and audit directories for EVERY user across the entire system for the selected time window.\n\nAre you absolutely sure you want to proceed?`)) return;
+            }
+            
+            const btn = document.querySelector('button[onclick="clearAnalytics()"]');
+            if (btn) {
+                btn.dataset.origText = btn.innerHTML;
+                btn.innerHTML = '⏳ Clearing...';
+                btn.disabled = true;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/analytics${analyticsQuery()}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('Analytics & History cleared successfully.', 'success');
+                    loadAnalytics();
+                } else {
+                    alert('Failed to clear data: ' + data.error);
+                }
+            } catch (err) {
+                alert('Network error while clearing data.');
+            } finally {
+                if (btn) {
+                    btn.innerHTML = btn.dataset.origText;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        async function loadAnalytics() {
+            // Only the latest load may touch the page: with quick filter
+            // changes an older, slower response would otherwise land last.
+            const seq = _analyticsSeq = (_analyticsSeq || 0) + 1;
+            const statusEl = document.getElementById('analyticsStatus');
+            const body = document.getElementById('analyticsBody');
+            statusEl.className = 'agent-settings-status';
+            statusEl.innerHTML = '<span class="loading"></span>Loading analytics…';
+            body.classList.add('an-loading');
+            try {
+                // Held for at least 350ms: fast loads (~80ms) otherwise flash
+                // by too quickly to notice that anything refreshed.
+                const [response] = await Promise.all([
+                    fetch(`${API_BASE}/analytics${analyticsQuery()}`, { credentials: 'include' }),
+                    new Promise(resolve => setTimeout(resolve, 350)),
+                ]);
+                const data = await response.json();
+                if (seq !== _analyticsSeq) return;
+                if (!response.ok) {
+                    statusEl.className = 'agent-settings-status error';
+                    statusEl.textContent = '❌ ' + (data.error || `HTTP ${response.status}`);
+                    body.innerHTML = '';
+                    return;
+                }
+                // Reflect the window the server actually used — on first load
+                // that is the configured default, not necessarily 7d.
+                if (data.window) {
+                    _analyticsWindow = data.window;
+                    document.querySelectorAll('#analyticsWindows .settings-tab-btn')
+                        .forEach(function (b) {
+                            b.classList.toggle('active',
+                                b.getAttribute('data-window') === data.window);
+                        });
+                }
+                _lastAnalyticsData = data;
+                renderAnalytics(data);
+                // Kept on screen rather than hidden, so the page does not jump
+                // on every refresh and the time shows the data really changed.
+                statusEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+            } catch (e) {
+                if (seq !== _analyticsSeq) return;
+                statusEl.className = 'agent-settings-status error';
+                statusEl.textContent = '❌ ' + e.message;
+                body.innerHTML = '';
+            } finally {
+                if (seq === _analyticsSeq) body.classList.remove('an-loading');
+            }
+        }
+
+        function renderAnalytics(data) {
+            const agents = (data.agents && data.agents.overall) || {};
+            const studio = data.studio || {};
+            const sOverall = studio.overall || {};
+            const saved = data.time_saved || {};
+            // Requirements->Tests, shown on the QA Agents tab as test-design-agent.
+            const req = studio.requirements || {};
+            const parts = [];
+
+            // Define the tab navigation for Agents vs Studio
+            parts.push('<div class="settings-tabs" style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">');
+            parts.push('<button class="settings-tab-btn" data-tab="agents" onclick="switchAnalyticsTab(\'agents\')">🤖 QA Agents</button>');
+            parts.push('<button class="settings-tab-btn" data-tab="studio" onclick="switchAnalyticsTab(\'studio\')">🧠 AI Test Studio</button>');
+            parts.push('</div>');
+
+            // ── QA AGENTS TAB ──
+            parts.push('<div id="analyticsTab_agents" class="analytics-tab-content">');
+            
+            parts.push('<div class="analytics-group" style="margin-top: 0;"><h3>Overall Agent Network</h3>');
+            parts.push('<p class="analytics-basis">Agent cost reported by the Claude CLI (exact); '
+                + 'test-design-agent cost estimated from tokens.</p>');
+            if (data.agents_error) {
+                parts.push('<p class="analytics-note">⚠️ Agent server unavailable: '
+                    + anEsc(data.agents_error) + '</p>');
+            }
+
+            // Every tile is agents + test-design-agent, i.e. the sum of the breakdown rows.
+            const sum = k => (agents[k] || 0) + (req[k] || 0);
+            parts.push('<div class="stats">');
+            parts.push(anTile(anFmtNum(sum('runs')), 'Total runs'));
+            const totalProduced = (agents.tests_created || 0) + (agents.tests_fixed || 0) + (agents.items_adapted || 0)
+                + (req.tests_generated || 0);
+            parts.push(anTile(anFmtNum(totalProduced), 'Tests produced'));
+            parts.push(anTile(anFmtDuration(sum('duration_s')), 'Time taken'));
+            parts.push(anTile(anFmtNum(sum('llm_calls')), 'LLM calls'));
+
+            const agentTokens = sum('input_tokens') + sum('output_tokens');
+            if (agentTokens > 0) {
+                parts.push(anTile(anFmtTokens(agentTokens), 'Tokens'));
+            }
+
+            parts.push(anTile(anFmtCost(sum('cost_usd')), 'Total spend'));
+            parts.push(anTile(anFmtMinutes((saved.agents_min || 0) + (saved.studio_min || 0)), 'Est. time saved'));
+            parts.push('</div>');
+            parts.push('</div>');
+
+            const byAgent = (data.agents && data.agents.by_agent) || {};
+            // Workflow order, not alphabetical: test-design-agent (the Studio row,
+            // drawn first below), then these; an agent not listed here follows, A-Z.
+            // A stage with no activity in the window is left out (see row()).
+            const WORKFLOW = ['test-authoring-agent', 'test-triaging-agent',
+                              'test-healing-agent', 'test-adaptation-agent'];
+            const agentRows = WORKFLOW.concat(
+                Object.keys(byAgent).filter(n => !WORKFLOW.includes(n)).sort());
+
+            // Est. time saved by day is computed server-side, one agent-day at a time.
+            const savedSeries = n => Object.entries(((saved.by_agent_day || {})[n]) || {})
+                .map(e => ({ bucket: e[0], saved_min: e[1] }));
+            // What the points add up to, said under the chart. Time saved is floored
+            // at 0 per day but per agent over the whole window for the tile/rows, so
+            // a window holding a net-negative day adds up to a little more.
+            const trendNote = function (metric, series, target, targetSaved) {
+                const days = series.reduce((s, x) => s + (x || []).reduce((t, p) => t + (p.saved_min || 0), 0), 0);
+                return metric === 'saved' && anFmtMinutes(days) !== anFmtMinutes(targetSaved || 0)
+                    ? 'each day is floored at 0 on its own, so the points can add up to a little more than ' + target
+                    : 'the points add up to ' + target;
+            };
+
+            // All agents (adds up to the tiles), or one (adds up to its row).
+            const pick = _trend.agent, metric = _trend.metric;
+            const trendSeries = metric === 'saved'
+                ? (pick ? [savedSeries(pick)] : Object.keys(saved.by_agent_day || {}).map(savedSeries))
+                : !pick ? [studio.requirements_series, data.agents && data.agents.series]
+                : pick === 'test-design-agent' ? [studio.requirements_series]
+                : [((data.agents && data.agents.series_by_agent) || {})[pick]];
+            const target = pick ? pick + '\'s row below'
+                : metric === 'succeeded' ? 'the Succeeded column below' : 'the tile above';
+            const targetSaved = !pick ? (saved.agents_min || 0) + (saved.studio_min || 0)
+                : pick === 'test-design-agent' ? saved.studio_min : (saved.by_agent || {})[pick];
+            const agentTrend = anTrend(trendSeries, metric, trendNote(metric, trendSeries, target, targetSaved));
+            const metricOptions = Object.entries(anTrendMetrics()).map(e => [e[0], e[1][0]]);
+            const agentOptions = [['', 'All agents']].concat(
+                ['test-design-agent'].concat(agentRows).map(n => [n, n]));
+
+            parts.push('<div class="analytics-group"><div class="an-trend-head">');
+            parts.push('<div><h3 style="margin-bottom: 2px;">Daily Trend</h3><p class="analytics-basis" style="margin: 0;">Agent metrics per day.</p></div>');
+            parts.push('<div class="an-trend-controls">'
+                + anSelect('Agents chart metric', 'metric', metricOptions, _trend.metric)
+                + anSelect('Agents chart agent', 'agent', agentOptions, pick) + '</div></div>');
+            
+            parts.push(agentTrend || '<div style="height: 140px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; border: 1px dashed var(--border); border-radius: 8px;">No data in this window.</div>');
+            parts.push('</div>');
+
+            const b = data.baselines || {};
+
+            parts.push('<div class="analytics-group"><h3>Agent Breakdown</h3>');
+            parts.push('<p class="analytics-basis">Metrics and output for each QA agent, in workflow order. '
+                + 'test-design-agent is the Studio\'s Requirements → Tests flow; its cost is estimated.</p>');
+            parts.push('<div style="overflow-x: auto; margin-top: 10px;">');
+            parts.push('<table><thead><tr><th>Agent</th><th>Runs</th><th>Succeeded</th>'
+                + '<th>Tests produced</th><th>Time taken</th><th>LLM calls</th><th>Tokens</th><th>Cost</th><th>Est. Time saved</th></tr></thead><tbody>');
+            let shown = 0;
+            const row = function (name, a, produced, savedMin, costSuffix) {
+                const tokens = (a.input_tokens || 0) + (a.output_tokens || 0);
+                // An all-zero row is noise, and leaving it out keeps the tiles equal
+                // to the rows shown. A run that isn't counted (e.g. cancelled) still
+                // has cost, so its row stays.
+                if (!(a.runs || produced || a.duration_s || a.llm_calls || tokens || a.cost_usd)) return;
+                shown++;
+                parts.push('<tr><td style="font-weight: 500;">' + anEsc(name) + '</td>'
+                    + '<td>' + anFmtNum(a.runs || 0) + '</td>'
+                    + '<td>' + anFmtNum(a.succeeded || 0) + '</td>'
+                    + '<td>' + anFmtNum(produced) + '</td>'
+                    + '<td>' + anFmtDuration(a.duration_s || 0) + '</td>'
+                    + '<td>' + anFmtNum(a.llm_calls || 0) + '</td>'
+                    + '<td>' + anFmtTokens(tokens) + '</td>'
+                    + '<td>' + anFmtCost(a.cost_usd || 0) + anEsc(costSuffix || '') + '</td>'
+                    + '<td>' + anFmtMinutes(savedMin) + '</td></tr>');
+            };
+            row('test-design-agent', req, req.tests_generated || 0, saved.studio_min || 0, ' (est.)');
+            agentRows.forEach(function (name) {
+                const a = byAgent[name] || {};
+                row(name, a, (a.tests_created || 0) + (a.tests_fixed || 0) + (a.items_adapted || 0),
+                    (saved.by_agent || {})[name] || 0);
+            });
+            if (!shown) {
+                parts.push('<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">'
+                    + 'No data in this window.</td></tr>');
+            }
+            parts.push('</tbody></table></div></div>');
+            parts.push('</div>'); // end QA Agents Tab
+
+            // ── AI TEST STUDIO TAB ──
+            parts.push('<div id="analyticsTab_studio" class="analytics-tab-content" style="display:none;">');
+            
+            // ── Studio ── kept visually separate: different measurement basis.
+            const outcomes = studio.outcomes || {};
+            const groups = studio.by_group || {};
+            const askGroup = groups.ask || {};
+            const ingGroup = groups.ingestion || {};
+
+            // Overall studio spend & calls
+            const totalTokens = (sOverall.input_tokens || 0) + (sOverall.output_tokens || 0);
+            const reqTime = studio.run_duration_s || 0;
+            
+            parts.push('<div class="analytics-group" style="margin-top: 0;"><h3>AI Test Studio (Requirements, Ask &amp; Ingestion)</h3>');
+            parts.push('<p class="analytics-basis">Cost <strong>estimated</strong> from token usage '
+                + '— not billed usage. Not comparable like-for-like with agent cost.</p>');
+
+            parts.push('<div class="stats">');
+            parts.push(anTile(anFmtMinutes(saved.studio_min || 0), 'Est. time saved'));
+            parts.push(anTile(anFmtCost(sOverall.cost_usd || 0), 'Total Studio spend'));
+            parts.push(anTile(anFmtDuration(studio.time_taken_s || 0), 'Time taken'));
+            parts.push(anTile(anFmtNum(sOverall.calls || 0), 'Total LLM calls'));
+            parts.push(anTile(anFmtTokens(totalTokens), 'Total Tokens'));
+            // Closes .stats AND this group. Unclosed, the Studio tab's own closing
+            // tag was spent on it and the footnotes rendered inside the hidden tab.
+            parts.push('</div></div>');
+            
+            const sMetric = _trend.studioMetric;
+            const studioSeries = sMetric === 'saved' ? [savedSeries('test-design-agent')] : [studio.series];
+            const studioTrend = anTrend(studioSeries, sMetric,
+                trendNote(sMetric, studioSeries, 'the tile above', saved.studio_min));
+            parts.push('<div class="analytics-group"><div class="an-trend-head">');
+            parts.push('<div><h3 style="margin-bottom: 2px;">Daily Trend</h3><p class="analytics-basis" style="margin: 0;">Studio metrics per day.</p></div>');
+            parts.push('<div class="an-trend-controls">' + anSelect('Studio chart metric', 'studioMetric',
+                metricOptions.filter(o => ['time', 'calls', 'tokens', 'cost', 'saved'].includes(o[0])), sMetric)
+                + '</div></div>');
+            
+            parts.push(studioTrend || '<div style="height: 140px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; border: 1px dashed var(--border); border-radius: 8px;">No data in this window.</div>');
+            parts.push('</div>');
+
+            // ── 1. Requirements -> Tests Flow ──
+            parts.push(anSubhead('📋 Requirements → Tests'));
+            parts.push('<div class="stats">');
+            // The recorded runs only — the same figures as test-design-agent on the
+            // QA Agents tab, and what the stage bars below add up to.
+            parts.push(anTile(anFmtNum(req.runs || 0), 'Analysis runs'));
+            parts.push(anTile(anFmtCost(req.cost_usd || 0), 'Est. cost'));
+            parts.push(anTile(anFmtNum(req.llm_calls || 0), 'LLM calls'));
+            parts.push(anTile(anFmtTokens((req.input_tokens || 0) + (req.output_tokens || 0)), 'Tokens'));
+            
+            parts.push(anTile(anFmtDuration(reqTime), 'Time'));
+            
+            const totalTestsGenerated = (outcomes.test_cases_generated || 0) + (outcomes.e2e_tests_generated || 0);
+            parts.push(anTile(anFmtNum(totalTestsGenerated), 'Tests generated'));
+            parts.push(anTile(anFmtMinutes(saved.studio_min), 'Est. time saved'));
+            parts.push('</div>');
+
+            const stages = studio.by_stage || {};
+            const stageNames = { '1': '1. Understanding requirements',
+                                 '2': '2. Analyzing existing coverage',
+                                 '3': '3. Generating test cases (Story & E2E)' };
+            
+            const stageRows = ['1', '2', '3'].map(
+                k => [stageNames[k] || ('Stage ' + k), (stages[k] && stages[k].cost_usd) || 0]);
+            parts.push(anSubhead('Spend by pipeline stage'));
+            parts.push(anBars(stageRows, 'cost'));
+
+            // ── 2. Talk to Tests (Q&A) ──
+            parts.push(anSubhead('💬 Talk to your Tests (Q&A)'));
+            parts.push('<div class="stats">');
+            const questions = askGroup.questions || 0;
+            parts.push(anTile(anFmtNum(questions), 'Questions asked'));
+            parts.push(anTile(anFmtCost(askGroup.cost_usd || 0), 'Est. cost'));
+            parts.push(anTile(anFmtNum(askGroup.calls || 0), 'LLM calls'));
+            const askTokens = (askGroup.input_tokens || 0) + (askGroup.output_tokens || 0);
+            parts.push(anTile(anFmtTokens(askTokens), 'Tokens'));
+            const avgAskTime = questions > 0 ? (askGroup.duration_s || 0) / questions : 0;
+            parts.push(anTile(anFmtDuration(avgAskTime), 'Avg. response time'));
+            parts.push('</div>');
+
+            // ── 3. Knowledge Ingestion ──
+            const ingestion = studio.ingestion || {};
+            parts.push(anSubhead('🔄 Knowledge Ingestion'));
+            parts.push('<div class="stats">');
+            parts.push(anTile(anFmtNum(ingestion.count || 0), 'Syncs'));
+            parts.push(anTile(anFmtDuration(ingestion.total_duration_s || 0), 'Sync time'));
+            parts.push(anTile(anFmtCost((groups.ingestion || {}).cost_usd || 0), 'Est. embedding cost'));
+            parts.push(anTile(anFmtTokens(ingGroup.input_tokens || 0), 'Embedding tokens'));
+            parts.push('</div>');
+
+            const areas = { ask: 'ask', ingestion: 'ingestion', requirements: 'requirements → tests',
+                            requirements_other: 'other requirement calls' };
+            const groupRows = Object.keys(areas).map(
+                k => [areas[k], (groups[k] && groups[k].cost_usd) || 0]);
+            parts.push(anSubhead('Spend by area'));
+            parts.push(anBars(groupRows, 'cost'));
+            
+            parts.push('</div>');
+
+            // Footer: every assumption in one collapsed section. The run rules are
+            // the README's "What counts as a run".
+            const notes = [
+                ['Runs', 'agent runs that reached a verdict: Succeeded + Failed. For test-design-agent, '
+                    + 'completed + failed Requirements → Tests runs; cancelled ones are not counted as runs.'],
+                ['Succeeded', 'the work passed (even if only its push or PR failed), or the agent '
+                    + 'stopped correctly: nothing to fix, handed to a human, or a known product defect.'],
+                ['Failed', 'it tried and didn\'t get there.'],
+                ['Other requirement calls', 'case-update suggestions, and runs that ended without '
+                    + 'recording a summary: Studio spend, but not Requirements → Tests runs.'],
+                ['Not counted', 'cancelled, interrupted, blocked by infrastructure (e.g. missing '
+                    + 'credentials), explore-only, or did nothing. Their cost and time still count.'],
+                ['Time saved', 'assumes ' + (b.min_per_test_authored || 0) + ' min/test authored, '
+                    + (b.min_per_test_fixed || 0) + ' min/test fixed, ' + (b.min_per_test_adapted || 0)
+                    + ' min/test adapted, ' + (b.min_per_test_case_written || 0) + ' min/test case written. '
+                    + 'Editable in Studio Settings → Analytics.'],
+            ];
+            // Only when the window reaches back past the first row — otherwise
+            // "since" says nothing. Spelled-out month: 08/09 reads two ways.
+            const since = function (label, src) {
+                const from = src && src.window && src.window.from;
+                if (!src || !src.data_since || (from && from >= src.data_since)) return;
+                const d = new Date(src.data_since * 1000);
+                notes.push(['', label + ' collected since ' + d.getDate() + ' '
+                    + d.toLocaleString('en', { month: 'short' }) + ' ' + d.getFullYear() + '.']);
+            };
+            since('Studio cost', studio);
+            since('Agent analytics', data.agents);
+            parts.push('<details class="analytics-notes"><summary>Notes</summary><ul>'
+                + notes.map(n => '<li>' + (n[0] ? '<strong>' + n[0] + '</strong> — ' : '')
+                    + anEsc(n[1]) + '</li>').join('')
+                + '</ul></details>');
+
+            document.getElementById('analyticsBody').innerHTML = parts.join('');
+            // A window/user/metric change re-renders; stay on the tab being viewed.
+            switchAnalyticsTab(_currentAnalyticsTab);
+        }
 
         async function loadAgentSettings() {
             const statusEl = document.getElementById('agentSettingsStatus');

@@ -72,8 +72,11 @@ class ConfluenceSyncService:
     def _save_sync_metadata(self, metadata: Dict[str, Any]):
         """Save Confluence sync metadata."""
         try:
-            with open(self.metadata_file, 'w') as f:
+            import os
+            temp_path = str(self.metadata_file) + ".tmp"
+            with open(temp_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
+            os.replace(temp_path, self.metadata_file)
         except Exception as e:
             print(f"⚠️  Failed to save Confluence sync metadata: {e}")
 
@@ -134,11 +137,7 @@ class ConfluenceSyncService:
         start_time = datetime.now()
 
         if not self.connector:
-            return {
-                'success': False,
-                'error': 'Confluence connector not initialized',
-                'message': 'Check CONFLUENCE_URL, CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN in .env',
-            }
+            raise Exception('Confluence connector not initialized. Check CONFLUENCE_URL, CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN in .env')
 
         metadata = self._load_sync_metadata()
         metadata = self._clear_stale_sync_if_needed(metadata)
@@ -200,11 +199,7 @@ class ConfluenceSyncService:
             is_valid, error_msg = self._validate_specs_data(df)
             if not is_valid:
                 self._append_sync_log(f"Validation failed: {error_msg}")
-                return {
-                    'success': False,
-                    'error': error_msg,
-                    'message': f'Data validation failed: {error_msg}',
-                }
+                raise Exception(f"Validation failed: {error_msg}")
 
             self._append_sync_log(f"Updating ChromaDB with {len(df)} specs (one Markdown file per page)...")
 
@@ -278,11 +273,7 @@ class ConfluenceSyncService:
             if failed:
                 err = "; ".join(failed[:3]) + ("..." if len(failed) > 3 else "")
                 self._append_sync_log(f"ChromaDB update had failures: {len(failed)} page(s). {err}")
-                return {
-                    'success': False,
-                    'error': f"{len(failed)} page(s) failed to add",
-                    'message': f'Added {added} specs; {len(failed)} failed: {err}',
-                }
+                raise Exception(f"ChromaDB update had failures: {len(failed)} page(s). {err}")
             result = {'success': True}
 
             self._append_sync_log("ChromaDB update completed successfully")

@@ -58,3 +58,4 @@ gunicorn>=21.2.0  # Production WSGI server (required for production deployment)
 #   pytest tests/test_sync_ui_e2e.py -v
 # playwright>=1.40.0
 
+filelock>=3.13.0

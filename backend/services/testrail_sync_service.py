@@ -94,8 +94,11 @@ class TestRailSyncService:
             metadata: Sync metadata to save
         """
         try:
-            with open(self.metadata_file, 'w') as f:
+            import os
+            temp_path = str(self.metadata_file) + ".tmp"
+            with open(temp_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
+            os.replace(temp_path, self.metadata_file)
         except Exception as e:
             print(f"⚠️  Failed to save sync metadata: {e}")
 
@@ -187,25 +190,13 @@ class TestRailSyncService:
         
         # Validate configuration
         if not self.config.testrail_url:
-            return {
-                'success': False,
-                'error': 'TestRail URL not configured',
-                'message': 'Set TESTRAIL_URL in .env'
-            }
+            raise Exception('TestRail URL not configured. Set TESTRAIL_URL in .env')
         
         if not self.config.testrail_project_ids:
-            return {
-                'success': False,
-                'error': 'No projects configured',
-                'message': 'Set TESTRAIL_PROJECT_IDS in .env (comma-separated)'
-            }
+            raise Exception('No projects configured. Set TESTRAIL_PROJECT_IDS in .env (comma-separated)')
         
         if not self.connector:
-            return {
-                'success': False,
-                'error': 'TestRail connector not initialized',
-                'message': 'Check TestRail configuration'
-            }
+            raise Exception('TestRail connector not initialized. Check TestRail configuration')
         
         # Mark as syncing
         metadata = self._load_sync_metadata()
@@ -279,11 +270,7 @@ class TestRailSyncService:
             is_valid, error_msg = self._validate_testcase_data(df)
             if not is_valid:
                 self._append_sync_log(f"Validation failed: {error_msg}")
-                return {
-                    'success': False,
-                    'error': error_msg,
-                    'message': f'Data validation failed: {error_msg}'
-                }
+                raise Exception(f"Validation failed: {error_msg}")
             
             print(f"\n✅ Validation passed. Processing {len(df)} test cases (one file per suite)...")
 
@@ -310,14 +297,14 @@ class TestRailSyncService:
                 if del_result.get('deleted_count', 0) > 0:
                     print(f"🗑️  Removed {del_result['deleted_count']} previous TestRail doc(s)")
                     self._append_sync_log(f"Removed {del_result['deleted_count']} previous TestRail doc(s)")
+                if del_result.get('errors'):
+                    for e in del_result['errors'][:5]:
+                        print(f"⚠️  {e}")
+                    if len(del_result['errors']) > 5:
+                        print(f"⚠️  ... and {len(del_result['errors']) - 5} more")
             else:
                 print(f"📦 Delta sync (delta_days={self.config.testrail_delta_days}) — keeping existing docs, updating changed suites only")
                 self._append_sync_log(f"Delta sync — updating changed suites only (keeping existing docs)")
-            if del_result.get('errors'):
-                for e in del_result['errors'][:5]:
-                    print(f"⚠️  {e}")
-                if len(del_result['errors']) > 5:
-                    print(f"⚠️  ... and {len(del_result['errors']) - 5} more")
 
             # One CSV per suite: scalable (many suites = many small files instead of one heavy file)
             suite_col = 'Suite' if 'Suite' in df.columns else None
@@ -371,11 +358,7 @@ class TestRailSyncService:
             if failed:
                 err = "; ".join(failed[:3]) + ("..." if len(failed) > 3 else "")
                 self._append_sync_log(f"ChromaDB update had failures: {len(failed)} suite(s). {err}")
-                return {
-                    'success': False,
-                    'error': f"{len(failed)} suite(s) failed to add",
-                    'message': f'Added {added_suites} suite(s); {len(failed)} failed: {err}',
-                }
+                raise Exception(f"ChromaDB update had failures: {len(failed)} suite(s). {err}")
             self._append_sync_log("ChromaDB update completed successfully")
 
             # Cleanup: remove orphaned tests from ChromaDB that no longer exist in TestRail.

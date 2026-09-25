@@ -41,46 +41,44 @@ def _make_doc(content: str, metadata: dict = None):
 # Phase 1 – Config defaults
 # ---------------------------------------------------------------------------
 
+def _shipped_config():
+    """RAGConfig built from config/env.example — the values the repo ships.
+
+    Read from the example rather than get_config(): the live config/.env is each
+    developer's own (Admin → Studio Settings writes to it), so asserting on it
+    made these tests pass on one machine and fail on the next.
+    """
+    from pathlib import Path
+    from dotenv import dotenv_values
+    from backend.rag.rag_settings import RAGConfig
+    example = Path(__file__).resolve().parents[1] / "config" / "env.example"
+    return RAGConfig(**{k: v for k, v in dotenv_values(example).items() if v is not None})
+
+
 class TestConfigDefaults:
-    """Verify the updated .env values are loaded by RAGConfig."""
+    """The retrieval defaults shipped in config/env.example load and are coherent."""
 
     def test_chat_similarity_threshold_is_55(self):
-        from backend.rag.rag_settings import get_config
-        cfg = get_config()
-        assert cfg.chat_min_similarity_threshold == 55.0, (
-            f"Expected 55.0, got {cfg.chat_min_similarity_threshold}. "
-            "Check CHAT_MIN_SIMILARITY_THRESHOLD in config/.env"
-        )
+        cfg = _shipped_config()
+        assert cfg.chat_min_similarity_threshold == 55.0
 
     def test_chat_hybrid_search_enabled(self):
-        from backend.rag.rag_settings import get_config
-        cfg = get_config()
-        assert cfg.chat_use_hybrid_search is True, (
-            "CHAT_USE_HYBRID_SEARCH should be True in config/.env"
-        )
+        assert _shipped_config().chat_use_hybrid_search is True
 
     def test_chat_reranking_enabled(self):
-        from backend.rag.rag_settings import get_config
-        cfg = get_config()
-        assert cfg.chat_use_reranking is True, (
-            "CHAT_USE_RERANKING should be True in config/.env"
-        )
+        assert _shipped_config().chat_use_reranking is True
 
     def test_requirement_threshold_is_60(self):
-        from backend.rag.rag_settings import get_config
-        cfg = get_config()
-        assert cfg.requirement_retrieval_similarity_threshold == 60.0, (
-            f"Expected 60.0, got {cfg.requirement_retrieval_similarity_threshold}"
-        )
+        cfg = _shipped_config()
+        assert cfg.requirement_tests_similarity_threshold == 60.0
 
     def test_needs_update_ceiling_above_retrieval_floor(self):
         """Ceiling must be > floor so the 'Need Update' band is non-empty."""
-        from backend.rag.rag_settings import get_config
-        cfg = get_config()
+        cfg = _shipped_config()
         raw = cfg.requirement_needs_update_confidence_threshold
-        # settings.py normalises 0-100 → 0-1; un-normalise for readability
+        # rag_settings normalises 0-100 → 0-1; un-normalise for readability
         ceiling_pct = raw * 100.0 if raw <= 1.0 else raw
-        floor_pct = cfg.requirement_retrieval_similarity_threshold
+        floor_pct = cfg.requirement_tests_similarity_threshold
         assert ceiling_pct > floor_pct, (
             f"Ceiling ({ceiling_pct}%) must be > floor ({floor_pct}%). "
             "The 'Need Update' tab will always be empty otherwise."
@@ -311,15 +309,15 @@ class TestVectorstoreSessionCache:
         with patch("backend.services.rag_service.get_config") as mock_cfg:
             mock_cfg.return_value = MagicMock(
                 requirement_retrieval_k=5,
-                requirement_retrieval_similarity_threshold=60.0,
+                requirement_tests_similarity_threshold=60.0,
                 requirement_use_hybrid_search=False,
                 requirement_use_reranking=False,
             )
             svc.find_related_tests("some requirement", k=5, vectorstore=mock_vs)
 
         svc._get_fresh_vectorstore_from_disk.assert_not_called()
-        # The passed vectorstore was assigned to rag.vectorstore
-        assert svc.rag.vectorstore is mock_vs
+        # The passed vectorstore goes straight to retrieval; shared state is not swapped
+        assert svc.rag.retrieve_documents_with_scores.call_args.kwargs["vectorstore"] is mock_vs
 
     def test_requirement_analysis_passes_session_vectorstore(self):
         """
@@ -343,10 +341,10 @@ class TestVectorstoreSessionCache:
         svc.rag_service = mock_rag_service
         svc.llm = mock_llm
         svc.config = MagicMock(
-            requirement_retrieval_similarity_threshold=60.0,
+            requirement_tests_similarity_threshold=60.0,
             requirement_needs_update_confidence_threshold=0.75,
             requirement_min_tests_per_priority=3,
-            requirement_coverage_sufficient_min_similarity=70.0,
+            requirement_tests_coverage_min_similarity=70.0,
             requirement_analysis_llm_delay_sec=0,
             requirement_enrich_with_context=False,
             requirement_generate_e2e_tests=False,
@@ -461,4 +459,7 @@ class TestQueryExpansion:
                 except Exception:
                     pass  # we only care that expand_query was called with llm
 
-            mock_expand.assert_called_once_with("test query", True, llm=rag.llm)
+            # run_id correlates the expansion call's cost with the run that
+            # caused it; without it these records land as orphans.
+            mock_expand.assert_called_once_with("test query", True, llm=rag.llm,
+                                                run_id=None)
