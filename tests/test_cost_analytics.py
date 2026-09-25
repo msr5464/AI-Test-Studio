@@ -3,6 +3,7 @@ analytics aggregator that reads the records back."""
 
 import json
 import time
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -180,6 +181,15 @@ def seeded(tmp_path, monkeypatch):
     return costs, runs
 
 
+def test_custom_range_clear_removes_only_rows_inside_it(seeded):
+    costs, _ = seeded
+    before = asvc.query("all")["overall"]["calls"]
+    now = time.time()
+    # Seeded ops sit at now-60, -50, -40 and now: only the -50 one is inside.
+    asvc.clear_analytics(window="custom", since=now - 55, until=now - 45)
+    assert asvc.query("all")["overall"]["calls"] == before - 1
+
+
 def test_aggregator_totals_and_grouping(seeded):
     q = asvc.query("all")
     assert q["overall"]["calls"] == 4          # the truncated line is skipped
@@ -188,9 +198,13 @@ def test_aggregator_totals_and_grouping(seeded):
     # but no summary row, so its spend counts and it adds no run or time.
     assert q["overall"]["runs"] == 0
     assert q["run_duration_s"] == 0
-    assert q["by_group"]["requirements"]["calls"] == 3
+    # Not a recorded run, so not "requirements" (the runs the section counts)
+    # and no stage bar; still spend, as requirements_other.
+    assert q["by_group"]["requirements_other"]["calls"] == 3
+    assert "requirements" not in q["by_group"] or q["by_group"]["requirements"]["calls"] == 0
+    assert q["by_stage"] == {}
     assert q["by_group"]["ask"]["calls"] == 1
-    assert q["by_stage"]["3"]["calls"] == 3    # generate_tests is a stage-3 op
+    assert q["by_group"]["ask"]["questions"] == 1
     assert q["cost_basis"] == "estimated"
 
 
@@ -218,6 +232,24 @@ def test_run_summary_round_trip(seeded):
     assert q["runs_summarised"] == 1
     assert q["outcomes"]["test_cases_generated"] == 7
     assert q["outcomes"]["e2e_tests_generated"] == 2
+    # Recorded now, so its calls are the section's and fill the stage bars.
+    assert q["by_group"]["requirements"]["calls"] == 3
+    assert q["by_stage"]["3"]["calls"] == 3    # generate_tests is a stage-3 op
+
+
+def test_time_taken_is_what_the_trend_adds_up_to(seeded, tmp_path, monkeypatch):
+    """Run wall time + each question's calls + each sync, per day. Sync
+    timestamps are local time (datetime.now().isoformat()), not UTC."""
+    asvc.record_requirement_run({"run_id": "run-a", "duration_s": 42.0}, run_id="run-a",
+                                status="completed", started_at=time.time() - 42)
+    monkeypatch.setattr(asvc, "_PROJECT_ROOT", tmp_path)
+    (tmp_path / "storage").mkdir(exist_ok=True)
+    (tmp_path / "storage" / "testrail_sync_metadata.json").write_text(json.dumps({"syncs": [
+        {"timestamp": datetime.fromtimestamp(time.time() - 3600).isoformat(), "duration_seconds": 30}]}))
+    q = asvc.query("24h")
+    assert q["ingestion"]["count"] == 1     # read as UTC it sat hours away, east of UTC
+    assert q["time_taken_s"] == pytest.approx(42.0 + 30 + q["by_group"]["ask"]["duration_s"])
+    assert sum(p["duration_s"] for p in q["series"]) == pytest.approx(q["time_taken_s"])
 
 
 def test_failed_run_still_records_its_spend(seeded):
@@ -267,18 +299,46 @@ def test_time_saved_arithmetic():
     from backend.api.admin import routes
     baselines = {'min_per_test_authored': 120, 'min_per_test_fixed': 45,
                  'min_per_test_adapted': 30, 'min_per_test_case_written': 15}
-    agents = {'overall': {'tests_created': 0, 'tests_fixed': 2,
-                          'items_adapted': 0, 'duration_s': 66}}
+    healing = {'tests_created': 0, 'tests_fixed': 2, 'items_adapted': 0, 'duration_s': 66}
+    agents = {'overall': healing, 'by_agent': {'test-healing-agent': healing}}
     out = routes._time_saved(agents, {}, baselines)
     assert out['agents_min'] == pytest.approx(88.9, abs=0.05)
+
+
+def test_time_saved_tile_is_the_sum_of_its_rows():
+    """An agent whose run time exceeds its output shows 0 in its row, so it
+    must not pull the tile below the rows it sits over (18.8 h vs 18.9 h)."""
+    from backend.api.admin import routes
+    baselines = {'min_per_test_authored': 120, 'min_per_test_fixed': 45,
+                 'min_per_test_adapted': 30, 'min_per_test_case_written': 15}
+    by_agent = {'test-healing-agent': {'tests_fixed': 2, 'duration_s': 0},
+                'test-adaptation-agent': {'items_adapted': 0, 'duration_s': 600}}
+    out = routes._time_saved({'overall': {}, 'by_agent': by_agent}, {}, baselines)
+    assert out['by_agent'] == {'test-healing-agent': 90.0, 'test-adaptation-agent': 0.0}
+    assert out['agents_min'] == 90.0 and out['total_min'] == 90.0
+
+
+def test_time_saved_per_day_floors_each_day():
+    """The trend's per-day values: each agent-day floored at 0 on its own (a
+    wasted day shows 0, not a dip), test-design-agent from its run series."""
+    from backend.api.admin import routes
+    baselines = {'min_per_test_authored': 120, 'min_per_test_fixed': 45,
+                 'min_per_test_adapted': 30, 'min_per_test_case_written': 15}
+    days = [{'bucket': '2026-09-01', 'tests_fixed': 2, 'duration_s': 0},
+            {'bucket': '2026-09-02', 'tests_fixed': 0, 'duration_s': 600}]
+    studio = {'requirements_series': [{'bucket': '2026-09-01', 'tests_generated': 4, 'duration_s': 60}]}
+    out = routes._time_saved({'overall': {}, 'by_agent': {}, 'series_by_agent': {'test-healing-agent': days}},
+                             studio, baselines)
+    assert out['by_agent_day']['test-healing-agent'] == {'2026-09-01': 90.0, '2026-09-02': 0.0}
+    assert out['by_agent_day']['test-design-agent'] == {'2026-09-01': 59.0}   # 4 x 15 - 1
 
 
 def test_time_saved_counts_both_halves():
     from backend.api.admin import routes
     baselines = {'min_per_test_authored': 120, 'min_per_test_fixed': 45,
                  'min_per_test_adapted': 30, 'min_per_test_case_written': 15}
-    agents = {'overall': {'tests_created': 1, 'tests_fixed': 0,
-                          'items_adapted': 0, 'duration_s': 0}}
+    authoring = {'tests_created': 1, 'tests_fixed': 0, 'items_adapted': 0, 'duration_s': 0}
+    agents = {'overall': authoring, 'by_agent': {'test-authoring-agent': authoring}}
     studio = {'outcomes': {'test_cases_generated': 4, 'e2e_tests_generated': 2},
               'run_duration_s': 0}
     out = routes._time_saved(agents, studio, baselines)
@@ -296,8 +356,8 @@ def test_time_saved_never_goes_below_zero():
     from backend.api.admin import routes
     baselines = {'min_per_test_authored': 120, 'min_per_test_fixed': 45,
                  'min_per_test_adapted': 30, 'min_per_test_case_written': 15}
-    agents = {'overall': {'tests_created': 0, 'tests_fixed': 0,
-                          'items_adapted': 0, 'duration_s': 1800}}
+    idle = {'tests_created': 0, 'tests_fixed': 0, 'items_adapted': 0, 'duration_s': 1800}
+    agents = {'overall': idle, 'by_agent': {'test-healing-agent': idle}}
     out = routes._time_saved(agents, {}, baselines)
     assert out['agents_min'] == 0.0
 

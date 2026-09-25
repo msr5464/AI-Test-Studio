@@ -300,10 +300,11 @@ All routes need an admin session, except `GET /settings/public`.
 ### Analytics
 
 ```
-GET /api/admin/analytics?window=7d&user_id=
+GET /api/admin/analytics?window=7d&user_id=&from=&to=
 ```
-`window`: `24h`, `7d`, `30d` or `all` (default: the `ANALYTICS_DEFAULT_WINDOW`
-setting). `user_id` narrows to one user.
+`window`: `24h`, `7d`, `30d`, `all` or `custom` (default: the `ANALYTICS_DEFAULT_WINDOW`
+setting). `custom` needs `from` and `to` (epoch seconds, finite, `from <= to`);
+anything else is a 400. `user_id` narrows to one user.
 
 ```json
 {
@@ -328,9 +329,9 @@ them as `test-design-agent` and adds them to its totals, labelled as estimated.
 If the agent server is down, `agents` is empty and `agents_error` says why.
 
 ```
-DELETE /api/admin/analytics?window=7d&user_id=
+DELETE /api/admin/analytics?window=7d&user_id=&from=&to=
 ```
-**Irreversible.** Clears Studio analytics and run history for the window (and
+**Irreversible.** Same `window`/`from`/`to` rules as the GET. Clears Studio analytics and run history for the window (and
 user, if given), and asks QA Agent Network to delete its analytics, run registry
 entries and session audit directories for the same window.
 

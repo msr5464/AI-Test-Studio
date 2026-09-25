@@ -76,6 +76,10 @@ def requirement_analysis():
     - generate_new_tests: bool (default: true)
     """
     file_paths = []
+    # Set once analysis starts, so the finally below records the run the way
+    # the background path does. Without it these runs spent money that showed
+    # on the Studio tab but never became a run (QA Agents tab, time saved).
+    run = None
     try:
         text = None
         confluence_urls = []
@@ -134,6 +138,8 @@ def requirement_analysis():
         rag_service = current_app.config["RAG_SERVICE"]
         svc = RequirementAnalysisService(rag_service=rag_service)
 
+        run = {"started_at": time.time(), "result": None, "status": "failed", "error": "",
+               "source_type": "confluence" if confluence_urls else "file" if file_paths else "text"}
         result = svc.analyze(
             text=text,
             file_path=file_paths[0] if len(file_paths) == 1 else None,
@@ -146,13 +152,23 @@ def requirement_analysis():
             target_section_id=target_section_id,
             use_section_of_related=use_section_of_related,
         )
+        run.update(result=result, status="completed")
 
         return jsonify(result), 200
     except ValueError as e:
+        if run:
+            run["error"] = str(e)
         return jsonify({"success": False, "error": str(e)}), 400
     except Exception as e:
+        if run:
+            run["error"] = str(e)
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
+        if run:
+            from backend.services.analytics_service import record_requirement_run
+            record_requirement_run(run["result"], status=run["status"], source_type=run["source_type"],
+                                   started_at=run["started_at"], error=run["error"],
+                                   user_id=session.get("user_id", "default"))
         for fp in file_paths:
             if fp and fp.exists():
                 try: fp.unlink()

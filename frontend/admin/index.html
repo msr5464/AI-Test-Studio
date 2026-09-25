@@ -774,6 +774,97 @@
             margin-bottom: 14px;
         }
 
+        /* Refresh state: stale numbers dim at once, then fade back in. */
+        #analyticsBody {
+            transition: opacity 0.25s;
+        }
+
+        #analyticsBody.an-loading {
+            opacity: 0.45;
+            pointer-events: none;
+            transition: none;
+        }
+
+        /* The shared spinner is white-on-button; this one sits on the card. */
+        #analyticsStatus .loading {
+            width: 11px;
+            height: 11px;
+            border-width: 2px;
+            border-color: var(--border);
+            border-top-color: var(--primary);
+            margin: 0 6px 0 0;
+        }
+
+        /* Trend chart: instant tooltip + a halo on the point under it. */
+        .an-trend {
+            position: relative;
+        }
+
+        .an-trend .an-hit {
+            fill: transparent;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .an-trend .an-hit:hover,
+        .an-trend .an-hit:focus {
+            fill: currentColor;
+            fill-opacity: 0.18;
+        }
+
+        .an-tip {
+            position: absolute;
+            transform: translate(-50%, calc(-100% - 8px));
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .an-trend-total {
+            margin: 6px 0 0;
+        }
+
+        .an-trend-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 4px;
+        }
+
+        .an-trend-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .an-trend-select {
+            width: auto;   /* the global select rule is width: 100% */
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        /* Native date picker: its calendar icon is dark-on-dark otherwise. */
+        [data-theme="dark"] .analytics-windows input[type="date"],
+        [data-theme="dark"] .an-trend-select {
+            color-scheme: dark;
+        }
+
         .analytics-group {
             margin-top: 22px;
         }
@@ -1966,6 +2057,12 @@
                                 <button class="settings-tab-btn" data-window="7d" onclick="setAnalyticsWindow('7d', this)">7 days</button>
                                 <button class="settings-tab-btn" data-window="30d" onclick="setAnalyticsWindow('30d', this)">30 days</button>
                                 <button class="settings-tab-btn" data-window="all" onclick="setAnalyticsWindow('all', this)">All time</button>
+                                <button class="settings-tab-btn" data-window="custom" onclick="showAnalyticsCustom(this)">Custom range</button>
+                                <span id="analyticsRangeInputs" style="display: none; gap: 8px; align-items: center;">
+                                    <input type="date" id="analyticsFrom" aria-label="Start date" title="Start date" onchange="setAnalyticsRange(this)" style="padding: 6px 12px; border-radius: 8px; font-size: 13px; background: var(--bg-input); color: var(--text); border: 1px solid var(--border);">
+                                    <span style="font-size: 13px; color: var(--text-light);">to</span>
+                                    <input type="date" id="analyticsTo" aria-label="End date" title="End date" onchange="setAnalyticsRange(this)" style="padding: 6px 12px; border-radius: 8px; font-size: 13px; background: var(--bg-input); color: var(--text); border: 1px solid var(--border);">
+                                </span>
                                 <select id="analyticsUserFilter" class="user-role-select" onchange="setAnalyticsUser(this.value)" style="margin-left: auto; padding: 6px 12px; border-radius: 8px; font-size: 13px; background: var(--bg-input); color: var(--text); border: 1px solid var(--border);">
                                     <option value="">👤 All Users</option>
                                 </select>
@@ -3614,14 +3711,26 @@
         // initialization". `var` hoists as undefined, and the default is
         // applied at read time instead.
         var _analyticsWindow;
+        // The applied custom range {from, to, text}, epoch seconds. Queries read
+        // this, never the live inputs: an emptied input would send NaN bounds.
+        var _analyticsRange;
+        // No initializer, for the reason above: restoreAdminTab()'s early load
+        // has already counted by the time this line runs, and `= 0` would
+        // reset it — making that first response look stale and never render.
+        var _analyticsSeq;
         var _analyticsUserId = '';
         var _currentAnalyticsTab = 'agents';
         var _lastAnalyticsData = null;
-        var _trendMetric = 'cost';
+        // The charts' pickers: agents metric, agent ('' = all), Studio metric.
+        var _trend = { metric: 'cost', agent: '', studioMetric: 'cost' };
 
-        function setTrendMetric(metric) {
-            _trendMetric = metric;
+        function setTrend(key, value) {
+            _trend[key] = value;
+            const focused = document.activeElement && document.activeElement.getAttribute('aria-label');
             if (_lastAnalyticsData) renderAnalytics(_lastAnalyticsData);
+            // The redraw replaces the selects; keep keyboard focus on the one used.
+            const again = focused && document.querySelector('#analyticsBody .an-trend-select[aria-label="' + focused + '"]');
+            if (again) again.focus();
         }
 
         function switchAnalyticsTab(tabName) {
@@ -3644,10 +3753,67 @@
 
         function setAnalyticsWindow(win, btn) {
             _analyticsWindow = win;
+            _analyticsRange = null;
+            document.getElementById('analyticsRangeInputs').style.display = 'none';
+            ['analyticsFrom', 'analyticsTo'].forEach(id => {
+                const el = document.getElementById(id);
+                el.value = '';
+            });
             document.querySelectorAll('#analyticsWindows .settings-tab-btn')
                 .forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
             loadAnalytics();
+        }
+
+        // Opens on the dates already on screen and applies them at once, so the
+        // highlighted button, the dates, the numbers and what Reset would delete
+        // never disagree — an empty picker under a lit "Custom" would.
+        function showAnalyticsCustom(btn) {
+            const data = _lastAnalyticsData || {};
+            const shown = (data.studio && data.studio.window) || {};
+            const firstData = [data.agents && data.agents.data_since,
+                               data.studio && data.studio.data_since].filter(Boolean);
+            const now = Date.now() / 1000;
+            document.getElementById('analyticsFrom').value =
+                localDay(shown.from || (firstData.length ? Math.min(...firstData) : now));
+            document.getElementById('analyticsTo').value = localDay(shown.to || now);
+            document.getElementById('analyticsRangeInputs').style.display = 'inline-flex';
+            document.querySelectorAll('#analyticsWindows .settings-tab-btn')
+                .forEach(b => b.classList.toggle('active', b === btn));
+            setAnalyticsRange();
+        }
+
+        function localDay(epochSeconds) {  // YYYY-MM-DD in the browser's timezone
+            const d = new Date(epochSeconds * 1000);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        // Start date from 00:00, end date to 23:59:59.999, in the browser's timezone.
+        function setAnalyticsRange(changed) {
+            const fromEl = document.getElementById('analyticsFrom');
+            const toEl = document.getElementById('analyticsTo');
+            // Moving one end past the other moves both — min/max instead greyed
+            // out the very date you wanted when shifting a range forward.
+            if (fromEl.value && toEl.value && fromEl.value > toEl.value) {
+                if (changed === toEl) fromEl.value = toEl.value; else toEl.value = fromEl.value;
+            }
+            if (!fromEl.value || !toEl.value) return;
+            _analyticsRange = {
+                from: new Date(fromEl.value + 'T00:00:00').getTime() / 1000,
+                to: new Date(toEl.value + 'T23:59:59.999').getTime() / 1000,
+                text: `${fromEl.value} to ${toEl.value}`,
+            };
+            _analyticsWindow = 'custom';
+            loadAnalytics();
+        }
+
+        function analyticsQuery() {
+            let qs = `?window=${encodeURIComponent(analyticsWindow())}`;
+            if (analyticsWindow() === 'custom' && _analyticsRange) {
+                qs += `&from=${_analyticsRange.from}&to=${_analyticsRange.to}`;
+            }
+            if (_analyticsUserId) qs += `&user_id=${encodeURIComponent(_analyticsUserId)}`;
+            return qs;
         }
 
         function setAnalyticsUser(uid) {
@@ -3717,28 +3883,38 @@
         // Hand-rolled inline SVG: there is no chart library in this file (the one
         // external script anywhere is marked.js), and currentColor + CSS vars mean
         // it themes for free in both light and dark.
-        function anTrend(series, agentSeries) {
+        // The breakdown table's columns, in its order. Each adds up by day to its
+        // tile or column (or one agent's row), as the caption under the chart
+        // says; Est. time saved is floored per day, so see trendNote().
+        function anTrendMetrics() {
+            return {
+                runs:      ['Runs', p => p.runs || 0, anFmtNum],
+                succeeded: ['Succeeded', p => p.succeeded || 0, anFmtNum],
+                tests:     ['Tests produced', p => (p.tests_created || 0) + (p.tests_fixed || 0)
+                              + (p.items_adapted || 0) + (p.tests_generated || 0), anFmtNum],
+                time:      ['Time taken', p => p.duration_s || 0, anFmtDuration],
+                calls:     ['LLM calls', p => p.calls || p.llm_calls || 0, anFmtNum],
+                tokens:    ['Tokens', p => (p.input_tokens || 0) + (p.output_tokens || 0), anFmtTokens],
+                cost:      ['Cost', p => p.cost_usd || 0, anFmtCost],
+                saved:     ['Est. time saved', p => p.saved_min || 0, anFmtMinutes],
+            };
+        }
+
+        function anSelect(label, key, options, value) {
+            return '<select class="an-trend-select" aria-label="' + label + '" '
+                + 'onchange="setTrend(\'' + key + '\', this.value)">'
+                + options.map(o => '<option value="' + anEsc(o[0]) + '"' + (o[0] === value ? ' selected' : '')
+                    + '>' + anEsc(o[1]) + '</option>').join('') + '</select>';
+        }
+
+        function anTrend(seriesList, metric, note) {
+            const m = anTrendMetrics()[metric] || anTrendMetrics().cost;
+            const extractVal = m[1], fmtTrendVal = m[2];
             const buckets = {};
-            
-            const extractVal = function(p) {
-                if (_trendMetric === 'calls') return p.calls || p.llm_calls || 0;
-                if (_trendMetric === 'tokens') return (p.input_tokens || 0) + (p.output_tokens || 0);
-                if (_trendMetric === 'time') return p.duration_s || 0;
-                return p.cost_usd || 0;
-            };
-
-            const fmtTrendVal = function(v) {
-                if (_trendMetric === 'calls') return anFmtNum(v);
-                if (_trendMetric === 'tokens') return anFmtTokens(v);
-                if (_trendMetric === 'time') return anFmtDuration(v);
-                return anFmtCost(v);
-            };
-
-            (series || []).forEach(function (p) {
-                buckets[p.bucket] = (buckets[p.bucket] || 0) + extractVal(p);
-            });
-            (agentSeries || []).forEach(function (p) {
-                buckets[p.bucket] = (buckets[p.bucket] || 0) + extractVal(p);
+            seriesList.forEach(function (series) {
+                (series || []).forEach(function (p) {
+                    buckets[p.bucket] = (buckets[p.bucket] || 0) + extractVal(p);
+                });
             });
             let keys = Object.keys(buckets).sort();
             if (keys.length === 0) return '';
@@ -3781,18 +3957,31 @@
             points.forEach(function (p) {
                 // Visual point
                 hovers += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="3" fill="var(--bg-card)" stroke="currentColor" stroke-width="2" />';
-                // Invisible larger hit area for hover
-                hovers += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="12" fill="transparent" style="cursor:pointer;">'
-                       + '<title>' + anEsc(p.k) + ' — ' + anEsc(fmtTrendVal(p.val)) + '</title></circle>';
+                // Larger hit area; anTrendTip() shows data-tip at once. A native
+                // <title> waits ~1s for a still mouse and never shows on touch,
+                // which read as "hovering shows nothing".
+                hovers += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="12" '
+                       + 'class="an-hit" tabindex="0" data-tip="' + anEsc(p.k + ' — ' + fmtTrendVal(p.val)) + '"/>';
             });
 
-            // Only first/last labels
             const label = function (i, anchorAttr) {
                 const x = PAD_L + i * step;
                 return '<text x="' + x.toFixed(1) + '" y="' + (H - 6) + '" font-size="10" '
                     + 'fill="currentColor" opacity="0.6" text-anchor="' + anchorAttr + '">'
                     + anEsc(keys[i].slice(5)) + '</text>';
             };
+            // Dates along the axis, not just the two ends: up to eight, fewer on a
+            // narrow card (~64px each); the one before the last is dropped when
+            // it would sit on top of it.
+            const fit = Math.max(2, Math.min(8, Math.floor(innerW / 64)));
+            const every = Math.max(1, Math.ceil(keys.length / fit));
+            let dates = '';
+            keys.forEach(function (k, i) {
+                const last = i === keys.length - 1;
+                if (!last && (i % every || (i && keys.length - 1 - i < every / 2))) return;
+                dates += label(i, i === 0 ? 'start' : last ? 'end' : 'middle');
+            });
+            const total = keys.reduce((s, k) => s + buckets[k], 0);
 
             const axis = '<text x="' + (PAD_L - 6) + '" y="' + (PAD_T + 9) + '" font-size="10" '
                 + 'fill="currentColor" opacity="0.6" text-anchor="end">'
@@ -3807,20 +3996,47 @@
                 + '<stop offset="100%" stop-color="currentColor" stop-opacity="0.0" />'
                 + '</linearGradient></defs>';
 
-            return '<div style="overflow-x:auto;"><svg viewBox="0 0 ' + W + ' ' + H + '" '
+            return '<div class="an-trend"><svg viewBox="0 0 ' + W + ' ' + H + '" '
                 + 'width="100%" height="' + H + '" role="img" '
                 + 'aria-label="Daily trend chart" style="color:var(--primary);'
                 + 'display:block;">'
-                + defs + axis 
+                + defs + axis
                 + '<path d="' + areaData + '" fill="url(#trendGrad)" />'
                 + '<path d="' + pathData + '" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />'
                 + hovers
-                + label(0, 'start') + label(keys.length - 1, 'end')
-                + '</svg></div>';
+                + dates
+                + '</svg><div class="an-tip" hidden></div>'
+                // Each point is one day; saying what they add up to is what ties
+                // a $7 peak to the $35 tile above it.
+                + '<p class="analytics-basis an-trend-total">Total ' + anEsc(fmtTrendVal(total))
+                + ' — ' + anEsc(note) + '. Hover a point for its day.</p></div>';
         }
 
+        // One tooltip for every trend chart, shown the moment a point is
+        // hovered, tapped or focused.
+        function anTrendTip(e) {
+            const wrap = e.target.closest && e.target.closest('.an-trend');
+            if (!wrap) return;
+            const tip = wrap.querySelector('.an-tip');
+            const dot = e.target.closest('[data-tip]');
+            if (!dot || e.type === 'mouseout' || e.type === 'focusout') { tip.hidden = true; return; }
+            tip.textContent = dot.getAttribute('data-tip');
+            tip.hidden = false;
+            const w = wrap.getBoundingClientRect(), d = dot.getBoundingClientRect();
+            const half = tip.offsetWidth / 2;   // kept inside the card at either end
+            tip.style.left = Math.min(Math.max(d.left + d.width / 2 - w.left, half), w.width - half) + 'px';
+            // Above the point, or below it when a peak leaves no room above the
+            // chart (it would cover the pickers).
+            const above = d.top - w.top >= tip.offsetHeight + 8;
+            tip.style.top = (above ? d.top : d.bottom) - w.top + 'px';
+            tip.style.transform = above ? '' : 'translate(-50%, 8px)';
+        }
+        ['mouseover', 'mouseout', 'focusin', 'focusout'].forEach(t => document.addEventListener(t, anTrendTip));
+
         async function clearAnalytics() {
-            const winText = _analyticsWindow === 'all' ? 'All time' : (_analyticsWindow || '7d');
+            const winText = _analyticsWindow === 'all' ? 'All time'
+                : (_analyticsWindow === 'custom' && _analyticsRange) ? _analyticsRange.text
+                : (_analyticsWindow || '7d');
             if (_analyticsUserId) {
                 if (!confirm(`⚠️ CRITICAL ACTION: Reset Analytics\n\nAre you sure you want to clear Analytics & History for the selected user over the period of ${winText}?\nThis action CANNOT be undone!`)) return;
             } else {
@@ -3836,11 +4052,7 @@
             }
 
             try {
-                let qs = `?window=${encodeURIComponent(_analyticsWindow || '7d')}`;
-                if (_analyticsUserId) {
-                    qs += `&user_id=${encodeURIComponent(_analyticsUserId)}`;
-                }
-                const response = await fetch(`${API_BASE}/analytics${qs}`, {
+                const response = await fetch(`${API_BASE}/analytics${analyticsQuery()}`, {
                     method: 'DELETE',
                     credentials: 'include'
                 });
@@ -3862,19 +4074,23 @@
         }
 
         async function loadAnalytics() {
+            // Only the latest load may touch the page: with quick filter
+            // changes an older, slower response would otherwise land last.
+            const seq = _analyticsSeq = (_analyticsSeq || 0) + 1;
             const statusEl = document.getElementById('analyticsStatus');
             const body = document.getElementById('analyticsBody');
             statusEl.className = 'agent-settings-status';
-            statusEl.textContent = '⏳ Loading analytics…';
+            statusEl.innerHTML = '<span class="loading"></span>Loading analytics…';
+            body.classList.add('an-loading');
             try {
-                let qs = _analyticsWindow
-                    ? `?window=${encodeURIComponent(_analyticsWindow)}` : '?window=7d';
-                if (_analyticsUserId) {
-                    qs += `&user_id=${encodeURIComponent(_analyticsUserId)}`;
-                }
-                const response = await fetch(`${API_BASE}/analytics${qs}`,
-                    { credentials: 'include' });
+                // Held for at least 350ms: fast loads (~80ms) otherwise flash
+                // by too quickly to notice that anything refreshed.
+                const [response] = await Promise.all([
+                    fetch(`${API_BASE}/analytics${analyticsQuery()}`, { credentials: 'include' }),
+                    new Promise(resolve => setTimeout(resolve, 350)),
+                ]);
                 const data = await response.json();
+                if (seq !== _analyticsSeq) return;
                 if (!response.ok) {
                     statusEl.className = 'agent-settings-status error';
                     statusEl.textContent = '❌ ' + (data.error || `HTTP ${response.status}`);
@@ -3893,11 +4109,16 @@
                 }
                 _lastAnalyticsData = data;
                 renderAnalytics(data);
-                statusEl.style.display = 'none';
+                // Kept on screen rather than hidden, so the page does not jump
+                // on every refresh and the time shows the data really changed.
+                statusEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
             } catch (e) {
+                if (seq !== _analyticsSeq) return;
                 statusEl.className = 'agent-settings-status error';
                 statusEl.textContent = '❌ ' + e.message;
                 body.innerHTML = '';
+            } finally {
+                if (seq === _analyticsSeq) body.classList.remove('an-loading');
             }
         }
 
@@ -3947,24 +4168,6 @@
             parts.push('</div>');
             parts.push('</div>');
 
-            const agentTrend = anTrend((studio.requirements_series || []), ((data.agents && data.agents.series) || []));
-            const activeCost = _trendMetric === 'cost' ? 'active' : '';
-            const activeCalls = _trendMetric === 'calls' ? 'active' : '';
-            const activeTokens = _trendMetric === 'tokens' ? 'active' : '';
-            const activeTime = _trendMetric === 'time' ? 'active' : '';
-
-            parts.push('<div class="analytics-group"><div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">');
-            parts.push('<div><h3 style="margin-bottom: 2px;">Daily Trend</h3><p class="analytics-basis" style="margin: 0;">Agent metrics by day. Hover a point for its total.</p></div>');
-            parts.push('<div class="settings-tabs" style="margin-bottom: 0; padding-bottom: 0; border: none; gap: 4px;">');
-            parts.push(`<button class="settings-tab-btn ${activeCost}" style="padding: 4px 10px; font-size: 11px;" onclick="setTrendMetric('cost')">Spend</button>`);
-            parts.push(`<button class="settings-tab-btn ${activeCalls}" style="padding: 4px 10px; font-size: 11px;" onclick="setTrendMetric('calls')">LLM Calls</button>`);
-            parts.push(`<button class="settings-tab-btn ${activeTokens}" style="padding: 4px 10px; font-size: 11px;" onclick="setTrendMetric('tokens')">Tokens</button>`);
-            parts.push(`<button class="settings-tab-btn ${activeTime}" style="padding: 4px 10px; font-size: 11px;" onclick="setTrendMetric('time')">Time</button>`);
-            parts.push('</div></div>');
-            
-            parts.push(agentTrend || '<div style="height: 140px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; border: 1px dashed var(--border); border-radius: 8px;">No data in this window.</div>');
-            parts.push('</div>');
-
             const byAgent = (data.agents && data.agents.by_agent) || {};
             // Workflow order, not alphabetical: test-design-agent (the Studio row,
             // drawn first below), then these; an agent not listed here follows, A-Z.
@@ -3973,6 +4176,44 @@
                               'test-healing-agent', 'test-adaptation-agent'];
             const agentRows = WORKFLOW.concat(
                 Object.keys(byAgent).filter(n => !WORKFLOW.includes(n)).sort());
+
+            // Est. time saved by day is computed server-side, one agent-day at a time.
+            const savedSeries = n => Object.entries(((saved.by_agent_day || {})[n]) || {})
+                .map(e => ({ bucket: e[0], saved_min: e[1] }));
+            // What the points add up to, said under the chart. Time saved is floored
+            // at 0 per day but per agent over the whole window for the tile/rows, so
+            // a window holding a net-negative day adds up to a little more.
+            const trendNote = function (metric, series, target, targetSaved) {
+                const days = series.reduce((s, x) => s + (x || []).reduce((t, p) => t + (p.saved_min || 0), 0), 0);
+                return metric === 'saved' && anFmtMinutes(days) !== anFmtMinutes(targetSaved || 0)
+                    ? 'each day is floored at 0 on its own, so the points can add up to a little more than ' + target
+                    : 'the points add up to ' + target;
+            };
+
+            // All agents (adds up to the tiles), or one (adds up to its row).
+            const pick = _trend.agent, metric = _trend.metric;
+            const trendSeries = metric === 'saved'
+                ? (pick ? [savedSeries(pick)] : Object.keys(saved.by_agent_day || {}).map(savedSeries))
+                : !pick ? [studio.requirements_series, data.agents && data.agents.series]
+                : pick === 'test-design-agent' ? [studio.requirements_series]
+                : [((data.agents && data.agents.series_by_agent) || {})[pick]];
+            const target = pick ? pick + '\'s row below'
+                : metric === 'succeeded' ? 'the Succeeded column below' : 'the tile above';
+            const targetSaved = !pick ? (saved.agents_min || 0) + (saved.studio_min || 0)
+                : pick === 'test-design-agent' ? saved.studio_min : (saved.by_agent || {})[pick];
+            const agentTrend = anTrend(trendSeries, metric, trendNote(metric, trendSeries, target, targetSaved));
+            const metricOptions = Object.entries(anTrendMetrics()).map(e => [e[0], e[1][0]]);
+            const agentOptions = [['', 'All agents']].concat(
+                ['test-design-agent'].concat(agentRows).map(n => [n, n]));
+
+            parts.push('<div class="analytics-group"><div class="an-trend-head">');
+            parts.push('<div><h3 style="margin-bottom: 2px;">Daily Trend</h3><p class="analytics-basis" style="margin: 0;">Agent metrics per day.</p></div>');
+            parts.push('<div class="an-trend-controls">'
+                + anSelect('Agents chart metric', 'metric', metricOptions, _trend.metric)
+                + anSelect('Agents chart agent', 'agent', agentOptions, pick) + '</div></div>');
+            
+            parts.push(agentTrend || '<div style="height: 140px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; border: 1px dashed var(--border); border-radius: 8px;">No data in this window.</div>');
+            parts.push('</div>');
 
             const b = data.baselines || {};
 
@@ -4019,7 +4260,6 @@
             // ── Studio ── kept visually separate: different measurement basis.
             const outcomes = studio.outcomes || {};
             const groups = studio.by_group || {};
-            const reqGroup = groups.requirements || {};
             const askGroup = groups.ask || {};
             const ingGroup = groups.ingestion || {};
 
@@ -4034,22 +4274,22 @@
             parts.push('<div class="stats">');
             parts.push(anTile(anFmtMinutes(saved.studio_min || 0), 'Est. time saved'));
             parts.push(anTile(anFmtCost(sOverall.cost_usd || 0), 'Total Studio spend'));
-            parts.push(anTile(anFmtDuration(reqTime), 'Time taken'));
+            parts.push(anTile(anFmtDuration(studio.time_taken_s || 0), 'Time taken'));
             parts.push(anTile(anFmtNum(sOverall.calls || 0), 'Total LLM calls'));
             parts.push(anTile(anFmtTokens(totalTokens), 'Total Tokens'));
             // Closes .stats AND this group. Unclosed, the Studio tab's own closing
             // tag was spent on it and the footnotes rendered inside the hidden tab.
             parts.push('</div></div>');
             
-            const studioTrend = anTrend((studio.series || []), []);
-            parts.push('<div class="analytics-group"><div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">');
-            parts.push('<div><h3 style="margin-bottom: 2px;">Daily Trend</h3><p class="analytics-basis" style="margin: 0;">Studio metrics by day. Hover a point for its total.</p></div>');
-            parts.push('<div class="settings-tabs" style="margin-bottom: 0; padding-bottom: 0; border: none; gap: 4px;">');
-            parts.push(`<button class="settings-tab-btn ${activeCost}" style="padding: 4px 10px; font-size: 11px;" onclick="setTrendMetric('cost')">Spend</button>`);
-            parts.push(`<button class="settings-tab-btn ${activeCalls}" style="padding: 4px 10px; font-size: 11px;" onclick="setTrendMetric('calls')">LLM Calls</button>`);
-            parts.push(`<button class="settings-tab-btn ${activeTokens}" style="padding: 4px 10px; font-size: 11px;" onclick="setTrendMetric('tokens')">Tokens</button>`);
-            parts.push(`<button class="settings-tab-btn ${activeTime}" style="padding: 4px 10px; font-size: 11px;" onclick="setTrendMetric('time')">Time</button>`);
-            parts.push('</div></div>');
+            const sMetric = _trend.studioMetric;
+            const studioSeries = sMetric === 'saved' ? [savedSeries('test-design-agent')] : [studio.series];
+            const studioTrend = anTrend(studioSeries, sMetric,
+                trendNote(sMetric, studioSeries, 'the tile above', saved.studio_min));
+            parts.push('<div class="analytics-group"><div class="an-trend-head">');
+            parts.push('<div><h3 style="margin-bottom: 2px;">Daily Trend</h3><p class="analytics-basis" style="margin: 0;">Studio metrics per day.</p></div>');
+            parts.push('<div class="an-trend-controls">' + anSelect('Studio chart metric', 'studioMetric',
+                metricOptions.filter(o => ['time', 'calls', 'tokens', 'cost', 'saved'].includes(o[0])), sMetric)
+                + '</div></div>');
             
             parts.push(studioTrend || '<div style="height: 140px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; border: 1px dashed var(--border); border-radius: 8px;">No data in this window.</div>');
             parts.push('</div>');
@@ -4057,12 +4297,12 @@
             // ── 1. Requirements -> Tests Flow ──
             parts.push(anSubhead('📋 Requirements → Tests'));
             parts.push('<div class="stats">');
-            parts.push(anTile(anFmtNum(studio.runs_summarised || reqGroup.runs || 0), 'Analysis runs'));
-            const reqTotals = studio.run_totals || reqGroup;
-            parts.push(anTile(anFmtCost(reqTotals.cost_usd || reqGroup.cost_usd || 0), 'Est. cost'));
-            parts.push(anTile(anFmtNum(reqTotals.llm_calls || reqTotals.calls || reqGroup.calls || 0), 'LLM calls'));
-            const reqTokens = (reqTotals.input_tokens || reqGroup.input_tokens || 0) + (reqTotals.output_tokens || reqGroup.output_tokens || 0);
-            parts.push(anTile(anFmtTokens(reqTokens), 'Tokens'));
+            // The recorded runs only — the same figures as test-design-agent on the
+            // QA Agents tab, and what the stage bars below add up to.
+            parts.push(anTile(anFmtNum(req.runs || 0), 'Analysis runs'));
+            parts.push(anTile(anFmtCost(req.cost_usd || 0), 'Est. cost'));
+            parts.push(anTile(anFmtNum(req.llm_calls || 0), 'LLM calls'));
+            parts.push(anTile(anFmtTokens((req.input_tokens || 0) + (req.output_tokens || 0)), 'Tokens'));
             
             parts.push(anTile(anFmtDuration(reqTime), 'Time'));
             
@@ -4084,12 +4324,13 @@
             // ── 2. Talk to Tests (Q&A) ──
             parts.push(anSubhead('💬 Talk to your Tests (Q&A)'));
             parts.push('<div class="stats">');
-            parts.push(anTile(anFmtNum(askGroup.calls || 0), 'Questions asked'));
+            const questions = askGroup.questions || 0;
+            parts.push(anTile(anFmtNum(questions), 'Questions asked'));
             parts.push(anTile(anFmtCost(askGroup.cost_usd || 0), 'Est. cost'));
             parts.push(anTile(anFmtNum(askGroup.calls || 0), 'LLM calls'));
             const askTokens = (askGroup.input_tokens || 0) + (askGroup.output_tokens || 0);
             parts.push(anTile(anFmtTokens(askTokens), 'Tokens'));
-            const avgAskTime = (askGroup.calls || 0) > 0 ? (askGroup.duration_s || 0) / askGroup.calls : 0;
+            const avgAskTime = questions > 0 ? (askGroup.duration_s || 0) / questions : 0;
             parts.push(anTile(anFmtDuration(avgAskTime), 'Avg. response time'));
             parts.push('</div>');
 
@@ -4103,8 +4344,10 @@
             parts.push(anTile(anFmtTokens(ingGroup.input_tokens || 0), 'Embedding tokens'));
             parts.push('</div>');
 
-            const groupRows = ['ask', 'ingestion', 'requirements'].map(
-                k => [k, (groups[k] && groups[k].cost_usd) || 0]);
+            const areas = { ask: 'ask', ingestion: 'ingestion', requirements: 'requirements → tests',
+                            requirements_other: 'other requirement calls' };
+            const groupRows = Object.keys(areas).map(
+                k => [areas[k], (groups[k] && groups[k].cost_usd) || 0]);
             parts.push(anSubhead('Spend by area'));
             parts.push(anBars(groupRows, 'cost'));
             
@@ -4118,6 +4361,8 @@
                 ['Succeeded', 'the work passed (even if only its push or PR failed), or the agent '
                     + 'stopped correctly: nothing to fix, handed to a human, or a known product defect.'],
                 ['Failed', 'it tried and didn\'t get there.'],
+                ['Other requirement calls', 'case-update suggestions, and runs that ended without '
+                    + 'recording a summary: Studio spend, but not Requirements → Tests runs.'],
                 ['Not counted', 'cancelled, interrupted, blocked by infrastructure (e.g. missing '
                     + 'credentials), explore-only, or did nothing. Their cost and time still count.'],
                 ['Time saved', 'assumes ' + (b.min_per_test_authored || 0) + ' min/test authored, '

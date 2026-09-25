@@ -83,12 +83,36 @@ def _epoch(ts: Any) -> float:
         return 0.0
 
 
-def _group(operation: str) -> str:
-    if operation.startswith(_INGEST_PREFIX):
-        return "ingestion"
+def _group(operation: str, run_id: Optional[str] = None,
+           recorded: frozenset = frozenset()) -> str:
+    """The Studio area a call belongs to.
+
+    "requirements" is only the calls of a RECORDED Requirements -> Tests run —
+    the runs that section and the QA Agents tab count — so its cost, calls and
+    stage bars agree with them. Other requirement calls (case-update
+    suggestions, a run that never wrote its summary) still count, apart, as
+    "requirements_other". ingest.embed_query embeds a question at retrieval
+    time, not a synced document, so it goes with the question.
+    """
+    if run_id and run_id in recorded:
+        return "requirements"
     if operation.startswith(_RAG_PREFIX):
         return "ask"
-    return "requirements"
+    if operation == "ingest.embed_query":
+        return "ask" if not run_id or str(run_id).startswith("ask-") else "requirements_other"
+    if operation.startswith(_INGEST_PREFIX):
+        return "ingestion"
+    return "requirements_other"
+
+
+def _local_epoch(ts: Any) -> float:
+    """Sync metadata is written with datetime.now().isoformat(): local time, no
+    offset. _epoch() reads a naive value as UTC, which moved every sync 5.5h
+    (IST) — across window edges and onto the wrong day."""
+    try:
+        return datetime.fromisoformat(ts).timestamp() if isinstance(ts, str) and ts else 0.0
+    except ValueError:
+        return 0.0
 
 
 # ── Writing ───────────────────────────────────────────────────────────────────
@@ -232,6 +256,7 @@ def query(window: str = "7d", since: Optional[float] = None,
 
     operations = _read_jsonl(_costs_file())
     runs = _read_jsonl(_runs_file())
+    recorded = frozenset(r.get("run_id") for r in runs if r.get("run_id"))
 
     data_since = min((_epoch(r.get("timestamp_utc")) for r in operations
                       if _epoch(r.get("timestamp_utc"))), default=None)
@@ -242,6 +267,12 @@ def query(window: str = "7d", since: Optional[float] = None,
     by_model: Dict[str, Dict[str, Any]] = defaultdict(_blank)
     by_stage: Dict[int, Dict[str, Any]] = defaultdict(_blank)
     series: Dict[str, Dict[str, Any]] = defaultdict(_blank)
+    # "Time taken" and the trend's Time are one measure, per day: each
+    # Requirements -> Tests run's wall time, each other call's own time, each
+    # sync. Summing every call's duration instead put the chart at ~2 min under
+    # a 10-min tile, since a run's calls are a fraction of its wall time.
+    time_by_day: Dict[str, float] = defaultdict(float)
+    questions = set()
 
     for row in operations:
         ts = _epoch(row.get("timestamp_utc"))
@@ -255,14 +286,21 @@ def query(window: str = "7d", since: Optional[float] = None,
                 continue
         operation = str(row.get("operation") or "unknown")
         _add(overall, row)
-        grp = _group(operation)
+        grp = _group(operation, row.get("run_id"), recorded)
         _add(by_group[grp], row)
         _add(by_operation[operation], row)
         _add(by_model[str(row.get("model") or "unknown")], row)
         stage = _OPERATION_STAGE.get(operation)
-        if stage:
+        if stage and grp == "requirements":
             _add(by_stage[stage], row)
-        _add(series[time.strftime("%Y-%m-%d", time.localtime(ts))], row)
+        bucket = time.strftime("%Y-%m-%d", time.localtime(ts))
+        _add(series[bucket], row)
+        if grp in ("ask", "requirements_other"):
+            time_by_day[bucket] += float(row.get("duration_s") or 0.0)
+        if operation.startswith(_RAG_PREFIX):
+            # One question can take several calls (query expansion + answer),
+            # all under the question's run id.
+            questions.add(row.get("run_id") or id(row))
 
     selected_runs = [r for r in runs
                      if (since is None or float(r.get("started_at") or 0) >= since)
@@ -281,14 +319,23 @@ def query(window: str = "7d", since: Optional[float] = None,
             elif isinstance(value, (int, float)):
                 outcomes[key] += value
         _add_run(req, run)
-        _add_run(req_series[time.strftime(
-            "%Y-%m-%d", time.localtime(float(run.get("started_at") or 0)))], run)
+        bucket = time.strftime("%Y-%m-%d", time.localtime(float(run.get("started_at") or 0)))
+        _add_run(req_series[bucket], run)
+        time_by_day[bucket] += float(run.get("duration_s") or 0.0)
 
-    # Runs and time come from summary rows only. A call with no summary (the
-    # synchronous API endpoint, "suggest case update") still counts in spend.
+    # Runs and time come from summary rows only. A call with no summary
+    # ("suggest case update", a run that died before writing one) still counts
+    # in spend, under requirements_other.
     overall["runs"] = len(selected_runs)
     by_group["requirements"]["runs"] = len(selected_runs)
+    by_group["ask"]["questions"] = len(questions)
     ingest = ingestion_history(since, until) if (not user_id or user_id == ADMIN_USER_ID) else {"syncs": [], "total_duration_s": 0.0, "count": 0}
+    for sync in ingest["syncs"]:
+        ts = _local_epoch(sync.get("timestamp"))
+        if ts:   # an unreadable timestamp would open the trend at 1970
+            time_by_day[time.strftime("%Y-%m-%d", time.localtime(ts))] += sync["duration_s"]
+    for bucket in set(series) | set(time_by_day):
+        series[bucket]["duration_s"] = round(time_by_day.get(bucket, 0.0), 3)
     return {
         "window": {"from": since, "to": until, "label": _window_label(window)},
         "data_since": data_since,
@@ -296,6 +343,9 @@ def query(window: str = "7d", since: Optional[float] = None,
         "overall": overall,
         "runs_summarised": len(selected_runs),
         "run_duration_s": req["duration_s"],
+        # The sum of the per-day values the trend draws, so the tile and the
+        # chart's total round the same way (90.499 read 1m 31s over 1m 30s).
+        "time_taken_s": round(sum(v["duration_s"] for v in series.values()), 3),
         "run_totals": {k: req[k] for k in
                        ("llm_calls", "cost_usd", "input_tokens", "output_tokens")},
         "requirements": req,
@@ -352,7 +402,7 @@ def ingestion_history(since: Optional[float] = None,
         for entry in (data.get("syncs") or []):
             if not isinstance(entry, dict):
                 continue
-            ts = _epoch(entry.get("timestamp"))
+            ts = _local_epoch(entry.get("timestamp"))
             if since is not None and ts and ts < since:
                 continue
             if until is not None and ts and ts > until:
@@ -372,16 +422,20 @@ def ingestion_history(since: Optional[float] = None,
     return out
 
 
-def clear_analytics(user_id: Optional[str] = None, window: str = "all"):
+def clear_analytics(user_id: Optional[str] = None, window: str = "all",
+                    since: Optional[float] = None, until: Optional[float] = None):
     import time
     now = time.time()
-    since = None
-    if window in WINDOWS and WINDOWS[window] is not None:
+    if since is None and window in WINDOWS and WINDOWS[window] is not None:
         since = now - WINDOWS[window]
+    wipe_all = (not user_id or user_id == "all") and since is None and until is None
+
+    def _outside(ts: float) -> bool:
+        return (since is not None and ts < since) or (until is not None and ts > until)
 
     costs_path = _costs_file()
     if costs_path.exists():
-        if (not user_id or user_id == "all") and since is None:
+        if wipe_all:
             costs_path.write_text("")
         else:
             rows = _read_jsonl(costs_path)
@@ -391,8 +445,8 @@ def clear_analytics(user_id: Optional[str] = None, window: str = "all"):
                 if (not user_id or user_id == "all" or r_uid == user_id):
                     # It's a match on user. Now check time.
                     ts = _epoch(r.get("timestamp_utc"))
-                    if since is not None and ts < since:
-                        kept.append(r) # older than window, keep it
+                    if _outside(ts):
+                        kept.append(r) # outside the window, keep it
                     else:
                         pass # delete it
                 else:
@@ -404,7 +458,7 @@ def clear_analytics(user_id: Optional[str] = None, window: str = "all"):
                     
     runs_path = _runs_file()
     if runs_path.exists():
-        if (not user_id or user_id == "all") and since is None:
+        if wipe_all:
             runs_path.write_text("")
         else:
             rows = _read_jsonl(runs_path)
@@ -414,8 +468,8 @@ def clear_analytics(user_id: Optional[str] = None, window: str = "all"):
                 if (not user_id or user_id == "all" or r_uid == user_id):
                     # Match on user. Now check time.
                     ts = float(r.get("started_at") or 0)
-                    if since is not None and ts < since:
-                        kept.append(r) # older, keep
+                    if _outside(ts):
+                        kept.append(r) # outside the window, keep
                     else:
                         pass # delete
                 else:
