@@ -136,9 +136,9 @@ below for each section.
 
 ### Adapt to Product Changes
 
-| Change note beside what the test proves today |
-|-----------------------------------------------|
-| ![Test Adaptation Agent](docs/images/adaptation-agent.png) |
+| Change note beside what the test proves today | A run: 5/5 affected tests pass, PR opened for review |
+|-----------------------------------------------|------------------------------------------------------|
+| ![Test Adaptation Agent](docs/images/adaptation-agent.png) | ![Adaptation run](docs/images/adaptation-agent-run.png) |
 
 ### Talk to your Tests
 
@@ -190,78 +190,27 @@ times are UTC.
 
 ### Analytics
 
-What the AI work cost and what it saved, for the agents and for the Studio's own
-LLM features. Everything on the page follows the controls at the top:
+What the AI work cost and what it saved, for the QA agents and for the Studio's
+own LLM features.
 
-- **Window** — 24 hours, 7 days, 30 days or all time (the default is set in
-  Studio Settings → Analytics).
-- **User** — all users, or one; members' runs are attributed to them.
-- **QA Agents / AI Test Studio** — the two halves are shown separately and never
-  added together: agent cost is **exact** (reported by the Claude CLI), Studio
-  cost is **estimated** from a token rate card.
+![Analytics](docs/images/admin-analytics.png)
 
-**QA Agents** — the authoring, healing and adaptation agents:
-
-![Analytics — QA Agents](docs/images/admin-analytics.png)
-
-| Tile | Meaning |
-|------|---------|
-| Total runs | Runs in the window that reached a verdict (see *What counts as a run*); for `test-design-agent`, completed or failed Requirements → Tests runs |
-| Tests produced | Test cases designed + tests authored (counted once they pass) + tests fixed + tests adapted |
-| Time taken | Time the agents spent working; a resumed run's idle gap between attempts is not counted |
-| LLM calls, Tokens, Total spend | From the Claude CLI's own usage report, except `test-design-agent`, whose cost is estimated from tokens |
-| Est. time saved | Human time the outputs replace, minus the time the agents took (below) |
-
-Each tile is the sum of the Agent Breakdown rows. Studio chat (Ask) and ingestion
-are not included; they appear only on the AI Test Studio tab.
-
-**Daily Trend** plots spend, LLM calls, tokens or time per day (toggle top-right;
-hover a point for its value). **Agent Breakdown** gives the same numbers per agent,
-with runs and how many succeeded. Its rows follow the testing workflow:
-`test-design-agent` (the Studio's Requirements → Tests flow, estimated cost) →
-`test-authoring-agent` → `test-triaging-agent` → `test-healing-agent` →
-`test-adaptation-agent`. An agent with no activity in the window is left out.
-
-![Analytics — agent breakdown](docs/images/admin-analytics-agents.png)
-
-**What counts as a run.** Each run gets one outcome from its own audit files,
-the same whether it was started here or from the command line. The collapsed
-**Notes** section at the bottom of the page sums these up:
-
-| Outcome | For example | In Runs / Succeeded | Spend and time |
-|---|---|---|---|
-| Completed | The agent's work passed: the test passes, or the fix is verified. Still completed if the push or PR then failed; that run's History says so, and the work is on a local branch or can be re-shipped | Run, succeeded | Counted |
-| Diagnosed | The test already passes; the failure isn't a locator's; nothing to change; handed to a human by design; a test that reproduces a documented product defect | Run, succeeded | Counted |
-| Failed | Tried and didn't get there | Run, not succeeded | Counted |
-| Blocked | Missing credentials, the model call failed, the environment was unreachable, no test could run | Not counted | Counted |
-| Cancelled, interrupted, explore-only | You cancelled it, the server restarted, or exploring was all it was asked to do | Not counted | Counted |
-| Did nothing | No tokens, no spend and no output (the CLI returned nothing, or it stopped before its first step) | Not counted | Nothing to count |
-
-**AI Test Studio** — Requirements → Tests, Talk to your Tests and knowledge
-ingestion:
-
-![Analytics — AI Test Studio](docs/images/admin-analytics-studio.png)
-
-Headline tiles and a daily trend as above, then a card per flow:
-**Requirements → Tests** (analysis runs, cost, calls, tokens, time, tests
-generated, time saved, and spend by pipeline stage), **Talk to your Tests**
-(questions asked, cost, average response time) and **Knowledge Ingestion**
-(syncs, sync time, embedding cost), plus spend by area. When the selected window
-starts before the first recorded data, **Notes** says when collection began.
-
-**How time saved is estimated.** Each output is credited with a human-minutes
-baseline — by default 240 min (4 h) per test authored, 60 per test fixed, 150
-(2.5 h) per test adapted and 15 per test case written — and the machine's own run time is
-subtracted; the result never goes below zero. Change the baselines in Studio
-Settings → Analytics.
-
-**Reset Analytics & History** deletes the selected window's analytics for the
-selected user (or everyone) **and** the matching agent session history and audit
-folders on the agent server. It cannot be undone.
-
-Data comes from `storage/operation_costs.jsonl` and `storage/requirement_runs.jsonl`
-(Studio) and the agent server's `/analytics/summary` (agents). If the agent server
-is down, the QA Agents tab shows a warning, and its tiles cover `test-design-agent` only.
+- **Filter** by 24 hours, 7 days, 30 days, all time or a custom date range, and
+  by user.
+- **QA Agents** shows runs, tests produced, time, LLM calls, tokens, spend and
+  estimated time saved, then a breakdown per agent in workflow order
+  (`test-design-agent` → authoring → triaging → healing → adaptation). Each tile
+  is the sum of the rows. Agent cost is exact (from the Claude CLI);
+  `test-design-agent`'s is estimated from tokens.
+- **AI Test Studio** shows the Studio's own estimated spend on Requirements →
+  Tests, Talk to your Tests and knowledge ingestion.
+- **Daily Trend** plots any breakdown column per day, for all agents or one.
+  Hover a point for its value.
+- **Time saved** is the human minutes each output replaces (baselines in Studio
+  Settings → Analytics), minus the agents' own run time, never below zero. **What
+  counts as a run** is explained in the page's **Notes**.
+- **Reset Analytics & History** permanently deletes the selected window's
+  analytics, run history and audit folders for the selected user, or everyone.
 
 ### Agent Settings
 
