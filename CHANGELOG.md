@@ -29,7 +29,7 @@ Changes since 1.0.0 (March–September 2026).
   tests with their intent contract, explore-only and propose-only runs.
 - Agent pages: base-branch picker, retry from a step, per-agent History with time
   and cost, run queue, offline banner and health dot; own URLs per page
-  (`/test-generator`, `/authoring-agent`, `/healing-agent`, `/adaptation-agent`,
+  (`/design-agent`, `/authoring-agent`, `/healing-agent`, `/adaptation-agent`,
   `/talk-to-tests`).
 - **Requirements → Tests runs** in the background with a Live Run card, cancel, and
   a replayable History; TestRail pushes are recorded on the run.

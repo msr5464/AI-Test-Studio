@@ -50,7 +50,7 @@ automation repo. The fourth agent, triaging, runs from the CLI/CI only.
 ## 2. Inside the Studio
 
 ```
-frontend/customer/index.html   five pages, one SPA: /test-generator /authoring-agent
+frontend/customer/index.html   five pages, one SPA: /design-agent /authoring-agent
                                /healing-agent /adaptation-agent /talk-to-tests
 frontend/admin/*.html          login + admin portal (Users, Connectors, Knowledge Base,
                                Analytics, Agent Settings, Studio Settings)

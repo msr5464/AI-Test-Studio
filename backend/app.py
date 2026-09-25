@@ -190,7 +190,8 @@ def create_app():
     # the page and it can be bookmarked; keep in sync with TAB_PATHS in customer/index.html.
     @app.route('/')
     @app.route('/customer')
-    @app.route('/test-generator')
+    @app.route('/design-agent')
+    @app.route('/test-generator', redirect_to='/design-agent')  # old URL, kept for bookmarks
     @app.route('/authoring-agent')
     @app.route('/healing-agent')
     @app.route('/adaptation-agent')

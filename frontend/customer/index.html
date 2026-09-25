@@ -1238,7 +1238,7 @@
             box-shadow: none;
         }
 
-        /* AI Test Generator – simple, compact layout */
+        /* Test Design Agent – simple, compact layout */
         .analyze-box {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -5842,7 +5842,7 @@
             min-width: 0;
         }
 
-        /* ── Agent tab buttons: constrain height to match AI Test Generator (emojis inflate line-height) ── */
+        /* ── Agent tab buttons: constrain height to match Test Design Agent (emojis inflate line-height) ── */
         /* Count badge would vanish into the active tab's cyan gradient */
         #tabPanelHealing .analyze-tab.active .qa-live-badge,
         #tabPanelAdapt .analyze-tab.active .qa-live-badge {
@@ -7185,7 +7185,7 @@
     <header class="site-header">
         <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Toggle navigation"
             aria-expanded="false">☰</button>
-        <a href="/test-generator" class="site-logo"
+        <a href="/design-agent" class="site-logo"
             onclick="if (event.metaKey || event.ctrlKey || event.shiftKey) return true; showTab('analyze'); return false;">
             <img id="appLogo"
                 src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-mini.png"
@@ -7235,10 +7235,10 @@
         <!-- Main scrollable content -->
         <main class="app-main" id="appMain">
 
-            <!-- AI Test Generator Tab -->
+            <!-- Test Design Agent Tab -->
             <div class="tab-panel active" id="tabPanelAnalyze">
                 <div class="panel-body">
-                    <h2 class="page-title"><span>📋</span> AI Test Generator</h2>
+                    <h2 class="page-title"><span>📋</span> Test Design Agent</h2>
                     <div class="analyze-intro-block">
                         <div class="analyze-intro-content">
                             <p class="analyze-intro-headline">Turn requirements into test cases</p>
@@ -7763,7 +7763,7 @@
                                 onclick="agentGate.refresh()">Retry</button>
                     </div>
 
-                    <h2 class="page-title"><span>🔁</span> Adapt to Product Changes</h2>
+                    <h2 class="page-title"><span>🔁</span> Test Adaptation Agent</h2>
                     <div class="analyze-intro-block">
                         <div class="analyze-intro-content">
                             <p class="analyze-intro-headline">The product changed — update the tests to match</p>
@@ -8954,7 +8954,7 @@
         // One URL per page, so a reload keeps you on it, it can be bookmarked, and
         // Back/Forward move between pages. Keep in sync with the routes in backend/app.py.
         var TAB_PATHS = {
-            analyze: '/test-generator',
+            analyze: '/design-agent',
             agents: '/authoring-agent',
             healing: '/healing-agent',
             adapt: '/adaptation-agent',

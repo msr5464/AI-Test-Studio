@@ -57,7 +57,7 @@ The query and requirement-analysis checks make real LLM calls.
 `curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health` returns 200.
 Log in as an active user; use an admin for the admin portal.
 
-### Requirements → Tests (`/test-generator`)
+### Requirements → Tests (`/design-agent`)
 
 | Step | What to check |
 |------|----------------|

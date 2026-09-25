@@ -11,7 +11,7 @@
 
 **📖 Detailed write-ups on the portfolio site:**
 [Full system overview](https://msr5464.github.io/ai-agent-network.html) ·
-[Test Design Agent](https://msr5464.github.io/feature-test-generation.html) ·
+[Test Design Agent](https://msr5464.github.io/feature-test-design.html) ·
 [Test Authoring Agent](https://msr5464.github.io/feature-test-authoring.html) ·
 [Test Triaging Agent](https://msr5464.github.io/feature-test-triaging.html) ·
 [Test Healing Agent](https://msr5464.github.io/feature-test-healing.html) ·
@@ -42,7 +42,7 @@ AI-powered QA workspace. Signed-in users get five pages:
 
 | Page | URL | What it does |
 |------|-----|--------------|
-| 📋 **Requirements → Tests** | `/test-generator` | Paste requirements, upload files or give Confluence URLs. Finds related existing tests, flags tests needing an update, generates tests for the gaps, and pushes them to TestRail |
+| 📋 **Requirements → Tests** | `/design-agent` | Requirements (pasted text, files or Confluence URLs) → the Test Design Agent finds related existing tests, flags tests needing an update, generates tests for the gaps, and pushes them to TestRail |
 | 🤖 **Tests → Automation Code** | `/authoring-agent` | Plain-English steps (or TestRail cases) → the Test Authoring Agent writes Java automation, runs it, fixes it and opens a GitHub PR, streamed live |
 | 🔧 **Auto-Heal Failing Tests** | `/healing-agent` | Pick a failing test (or a triaging handoff) → the Test Healing Agent repairs broken locators, verifies with the real test and opens a PR |
 | 🔁 **Adapt to Product Changes** | `/adaptation-agent` | Describe how the product changed → the Test Adaptation Agent explores the live app and updates the affected tests (PR always needs review) |
@@ -116,17 +116,17 @@ below for each section.
 
 | Input and run history | Live run, replayable from History |
 |-----------------------|-----------------------------------|
-| ![Requirements → Tests](docs/images/customer-tab-analyze.png) | ![Requirements live run](docs/images/requirements-live-run.png) |
+| ![Requirements → Tests](docs/images/design-agent.png) | ![Requirements live run](docs/images/design-agent-run.png) |
 
 | Existing TestRail tests surfaced | Newly generated tests for coverage gaps |
 |----------------------------------|-----------------------------------------|
-| ![Existing tests surfaced](docs/images/test-generation-3.png) | ![Generated tests](docs/images/test-generation-4.png) |
+| ![Existing tests surfaced](docs/images/design-agent-existing-tests.png) | ![Generated tests](docs/images/design-agent-new-tests.png) |
 
 ### Tests → Automation Code
 
 | Authoring agent | Live pipeline console and PR |
 |-----------------|------------------------------|
-| ![Test Authoring Agent](docs/images/customer-tab-agents.png) | ![Authoring agent console](docs/images/test-authoring-2.png) |
+| ![Test Authoring Agent](docs/images/authoring-agent.png) | ![Authoring agent console](docs/images/authoring-agent-run.png) |
 
 ### Auto-Heal Failing Tests
 
@@ -144,7 +144,7 @@ below for each section.
 
 | Chat | Answer grounded in TestRail + Confluence |
 |------|------------------------------------------|
-| ![Talk to Tests](docs/images/customer-talk-clean.png) | ![Talk to Tests response](docs/images/talk-to-tests-result.png) |
+| ![Talk to Tests](docs/images/talk-to-tests.png) | ![Talk to Tests response](docs/images/talk-to-tests-result.png) |
 
 ---
 
@@ -178,7 +178,7 @@ times are UTC.
 
 ### Knowledge Base
 
-![Knowledge base](docs/images/admin-stats-clean.png)
+![Knowledge base](docs/images/admin-knowledge-base.png)
 
 - **Upload & Process Files** adds test-case files to the knowledge base. The
   backend accepts **CSV/Excel test-case exports** only (at least 7 of the 10

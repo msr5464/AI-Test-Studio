@@ -7,6 +7,8 @@ Endpoints for admin operations (document upload, management).
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 from pathlib import Path
+from urllib.parse import urlencode
+import math
 import os
 import tempfile
 from backend.api.auth.routes import require_auth
@@ -417,22 +419,67 @@ def update_agent_settings():
     return _forward_json('PUT', '/settings')
 
 
+def _analytics_range(default='7d'):
+    """(window, since, until) from ?window=&from=&to= (epoch seconds).
+
+    `custom` needs both bounds. Strict because DELETE acts on it: an unknown
+    window or a NaN bound (float() accepts "nan", and every comparison with it
+    is False) means "no cutoff" downstream — i.e. delete everything.
+    """
+    window = (request.args.get('window') or default).strip()
+    if window != 'custom' and window not in analytics_service.WINDOWS:
+        raise ValueError('window must be one of '
+                         + ', '.join(analytics_service.WINDOWS) + ', custom')
+    bounds = []
+    for name in ('from', 'to'):
+        raw = (request.args.get(name) or '').strip()
+        try:
+            value = float(raw) if raw else None
+        except ValueError:
+            value = float('nan')
+        if value is not None and not math.isfinite(value):
+            raise ValueError(f'{name} must be epoch seconds')
+        bounds.append(value)
+    since, until = bounds
+    if window == 'custom' and (since is None or until is None):
+        raise ValueError('custom window needs from and to')
+    if since is not None and until is not None and since > until:
+        raise ValueError('from must be before to')
+    return window, since, until
+
+
+def _analytics_upstream(path, window, since, until, user_id):
+    """The agent-server URL for the same window. _forward_json also appends the
+    browser's own query string, but the agent server reads the first value of
+    each key, so these are the ones that count."""
+    params = {'window': window}
+    if since is not None:
+        params['from'] = since
+    if until is not None:
+        params['to'] = until
+    if user_id:
+        params['user_id'] = user_id
+    return f'{path}?{urlencode(params)}'
+
+
 @admin_bp.route('/analytics', methods=['DELETE'])
 @require_auth(admin_only=True)
 def clear_analytics():
     """Clear analytics and history for a specific user or all users over a specific window."""
     user_id_param = (request.args.get('user_id') or '').strip() or None
-    window_param = (request.args.get('window') or '7d').strip()
-    
+    try:
+        window_param, since, until = _analytics_range()
+    except ValueError as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
+
     # 1. Clear AI-Test-Studio analytics (operations/requirements)
-    analytics_service.clear_analytics(user_id=user_id_param, window=window_param)
-    
+    analytics_service.clear_analytics(user_id=user_id_param, window=window_param,
+                                      since=since, until=until)
+
     # 2. Proxy request to QA-Agent-Network to clear agent runs & audit history
     try:
-        url = f'/analytics/clear?window={window_param}'
-        if user_id_param:
-            url += f'&user_id={user_id_param}'
-        _forward_json('DELETE', url)
+        _forward_json('DELETE', _analytics_upstream(
+            '/analytics/clear', window_param, since, until, user_id_param))
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     
@@ -464,23 +511,21 @@ def get_analytics():
     if default_window not in analytics_service.WINDOWS:
         default_window = '7d'
 
-    window = (request.args.get('window') or default_window).strip()
-    if window not in analytics_service.WINDOWS:
-        return jsonify({'success': False,
-                        'error': "window must be one of "
-                                 + ', '.join(analytics_service.WINDOWS)}), 400
+    try:
+        window, since, until = _analytics_range(default_window)
+    except ValueError as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
 
     user_id_param = (request.args.get('user_id') or '').strip()
-    studio = analytics_service.query(window, user_id=user_id_param or None)
+    studio = analytics_service.query(window, since=since, until=until,
+                                     user_id=user_id_param or None)
 
     # The agent half comes from QA-Agent-Network; a dashboard must still render
     # if that server is down, so a failure degrades to an empty half plus a note.
     agents, agents_error = {}, None
     try:
-        url = f'/analytics/summary?window={window}'
-        if user_id_param:
-            url += f'&user_id={user_id_param}'
-        response = _forward_json('GET', url)
+        response = _forward_json('GET', _analytics_upstream(
+            '/analytics/summary', window, since, until, user_id_param))
         # _forward_json returns a Response, or (Response, status) on failure —
         # and its failure bodies are dicts too, so "is a dict" is not enough to
         # call it a success. Without checking the status and the payload shape,
@@ -541,7 +586,6 @@ def _analytics_baselines() -> dict:
 
 def _time_saved(agents: dict, studio: dict, baselines: dict) -> dict:
     """Estimated human minutes saved, minus the wall time the machine spent."""
-    overall = (agents or {}).get('overall') or {}
     outcomes = (studio or {}).get('outcomes') or {}
 
     def gross(rollup: dict) -> float:
@@ -549,21 +593,38 @@ def _time_saved(agents: dict, studio: dict, baselines: dict) -> dict:
                 + int(rollup.get('tests_fixed') or 0) * baselines['min_per_test_fixed']
                 + int(rollup.get('items_adapted') or 0) * baselines['min_per_test_adapted'])
 
-    agent_gross = gross(overall)
     studio_gross = (
         (int(outcomes.get('test_cases_generated') or 0)
          + int(outcomes.get('e2e_tests_generated') or 0))
         * baselines['min_per_test_case_written']
     )
-    agent_spent = float(overall.get('duration_s') or 0.0) / 60.0
     studio_spent = float((studio or {}).get('run_duration_s') or 0.0) / 60.0
+
+    def net(rollup: dict, gross_min: float) -> float:
+        return max(0.0, round(gross_min - float(rollup.get('duration_s') or 0.0) / 60.0, 1))
+
+    # Per agent for the breakdown table, so the page never re-derives this.
+    by_agent = {name: net(r, gross(r))
+                for name, r in ((agents or {}).get('by_agent') or {}).items()}
+    # Per agent per day, for the trend. Each day is floored on its own, so a
+    # window holding an agent's net-negative day adds up to a little more than
+    # the tile, which floors each agent over the whole window.
+    by_agent_day = {name: {d['bucket']: net(d, gross(d)) for d in days}
+                    for name, days in ((agents or {}).get('series_by_agent') or {}).items()}
+    by_agent_day['test-design-agent'] = {
+        d['bucket']: net(d, int(d.get('tests_generated') or 0) * baselines['min_per_test_case_written'])
+        for d in (studio or {}).get('requirements_series') or []}
+    # The tile is the sum of those rows. Flooring only the overall let an agent
+    # whose own run time exceeded its output show 0 in its row yet still pull
+    # the tile down (18.8 h over rows adding to 18.9 h).
+    agents_min = round(sum(by_agent.values()), 1)
+    studio_min = max(0.0, round(studio_gross - studio_spent, 1))
     return {
-        'agents_min': max(0.0, round(agent_gross - agent_spent, 1)),
-        'studio_min': max(0.0, round(studio_gross - studio_spent, 1)),
-        'total_min': max(0.0, round(agent_gross + studio_gross - agent_spent - studio_spent, 1)),
-        # Per agent for the breakdown table, so the page never re-derives this.
-        'by_agent': {name: max(0.0, round(gross(r) - float(r.get('duration_s') or 0.0) / 60.0, 1))
-                     for name, r in ((agents or {}).get('by_agent') or {}).items()},
+        'agents_min': agents_min,
+        'studio_min': studio_min,
+        'total_min': round(agents_min + studio_min, 1),
+        'by_agent': by_agent,
+        'by_agent_day': by_agent_day,
         'basis': 'estimate',
     }
 
