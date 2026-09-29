@@ -14609,13 +14609,14 @@
                         } else if (status === 'skipped') {
                             setStep(key, 'skipped');
                         } else if (status === 'running') {
+                            // Chip only, for this and 'failed': run.sh's own
+                            // "▶ <stage>" header already opens each section, in
+                            // stream order. A console line from this event landed
+                            // wherever the watcher's poll happened to fire.
                             setStep(key, 'running');
-                            appendLine('step', '⟳ ' + (payload.display || key));
                             clearStepRetryButton(key);
                         } else if (status === 'failed') {
                             setStep(key, 'failed');
-                            appendLine('error', '✗ ' + (payload.display || key)
-                                + QA_STEP_SUFFIX(payload));
                             // Reveal this step's own retry button right now — don't
                             // wait for the whole run to finish. run.sh keeps going
                             // past a failed step (e.g. Ship still runs after Run &
