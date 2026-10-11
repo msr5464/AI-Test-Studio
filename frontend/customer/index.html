@@ -12909,17 +12909,24 @@
                     delete _defaults[inputId];
                     el.placeholder = '(uses the configured default)';
                 }
+                // A panel sets its mode from its own /config call, which can land
+                // before this one does. Re-applying here rather than hoping the
+                // two resolve in order is what stops a first paint that offers a
+                // branch choice the run would ignore.
+                if (_mode[inputId]) applyLocalMode(inputId, true, _notes[inputId]);
+                // Not awaited. The list only feeds the menu and is a round trip
+                // to the remote, while a panel waiting on seed() wants to know
+                // which branch is in the field — and that is settled by now.
+                loadBranches(inputId, base);
+            }
+
+            async function loadBranches(inputId, base) {
                 try {
                     const body = await fetch(base + '/branches').then(function (r) { return r.json(); });
                     _branches[inputId] = (body && Array.isArray(body.branches)) ? body.branches : [];
                 } catch (e) {
                     _branches[inputId] = [];   // the field is free text; the run still validates
                 }
-                // A panel sets its mode from its own /config call, which can land
-                // before this one does. Re-applying here rather than hoping the
-                // two resolve in order is what stops a first paint that offers a
-                // branch choice the run would ignore.
-                if (_mode[inputId]) applyLocalMode(inputId, true, _notes[inputId]);
             }
 
             // ── Local-checkout mode ─────────────────────────────────────────
@@ -12961,7 +12968,18 @@
                 return { base_branch: value };
             }
 
-            return { seed: seed, payload: payload, applyLocalMode: applyLocalMode };
+            // The branch whose tests a run started now would see: '' when it
+            // would execute in the local checkout, whatever the field shows.
+            // Unlike payload(), the default is named — a run on the default is
+            // cut from that branch on the remote, not from the checkout.
+            function effective(inputId) {
+                if (_mode[inputId]) return '';
+                const el = $(inputId);
+                return ((el && el.value) || '').trim();
+            }
+
+            return { seed: seed, payload: payload, applyLocalMode: applyLocalMode,
+                     effective: effective };
         })();
 
         window.qaHealing = (function () {
@@ -12972,6 +12990,9 @@
             const state = {
                 initialised: false, defaultsApplied: false,
                 eventSource: null, session: null, catalog: [], source: null,
+                // Which branch the pickers were filled from ('' = the local
+                // checkout, null = not loaded yet), and why they are empty.
+                catalogBranch: null, catalogSeq: 0, catalogWhy: '',
                 target: null, lastSeq: 0, startTs: null, elapsedTimer: null,
                 terminal: false, logs: [], sawOutput: false,
             };
@@ -13531,9 +13552,11 @@
             // The checkbox is not a neutral default: whatever it holds is sent with
             // the run and beats config/.env. So it must start showing what .env
             // actually says, and the user overrides from there.
+            // Resolves once the box and the branch field both hold what the
+            // run would use, because the pickers are loaded for that branch.
             function applyDefaults() {
-                qaBranchField.seed('healBaseBranch', 'healBranchList', BASE);
-                fetchJson(BASE + '/config').then(function (res) {
+                const seeded = qaBranchField.seed('healBaseBranch', 'healBranchList', BASE);
+                return fetchJson(BASE + '/config').then(function (res) {
                     if (!res.ok || !res.body) return;
                     const box = $('healAutoPush');
                     if (box && !state.defaultsApplied) {
@@ -13541,6 +13564,7 @@
                         state.defaultsApplied = true;
                     }
                 }).catch(function () { /* leave the box as-is */ })
+                  .then(function () { return seeded; })
                   .then(syncLocalMode);
             }
 
@@ -13551,33 +13575,66 @@
                 const box = $('healAutoPush');
                 qaBranchField.applyLocalMode('healBaseBranch', !(box && box.checked),
                                              'healLocalNote');
+                onBranchChange();
             }
 
+            // The pickers list the tests of the tree the run will execute in:
+            // the base branch as it stands on the remote, or with auto-push off
+            // the local checkout. They used to list the checkout either way, so
+            // a run based on another branch was offered tests it would not find.
             function loadCatalog() {
-                fetchJson(BASE + '/tests').then(function (res) {
-                    state.catalog = (res.ok && res.body && res.body.classes) || [];
-                    state.source = (res.ok && res.body) || null;
-                    renderPicker();
-                    renderCatalogSource();
-                }).catch(function () {
+                const seq = ++state.catalogSeq;
+                const branch = qaBranchField.effective('healBaseBranch');
+                if (branch !== state.catalogBranch) {
+                    // A different tree, and reading a branch is a fetch: empty
+                    // the lists and say so rather than leave the old branch's
+                    // tests on offer until the answer lands.
                     state.catalog = [];
                     state.source = null;
+                    state.catalogWhy = 'reading ' + (branch || 'your local checkout') + '…';
                     renderPicker();
                     renderCatalogSource();
-                });
+                }
+                state.catalogBranch = branch;
+                fetchJson(BASE + '/tests' + (branch ? '?branch=' + encodeURIComponent(branch) : ''))
+                    .then(function (res) {
+                        // A slower answer for an earlier branch must not overwrite this one's.
+                        if (seq !== state.catalogSeq) return;
+                        state.catalog = (res.ok && res.body && res.body.classes) || [];
+                        state.source = (res.ok && res.body) || null;
+                        state.catalogWhy = res.ok ? ''
+                            : ((res.body && (res.body.detail || res.body.error)) || '');
+                        renderPicker();
+                        renderCatalogSource();
+                    }).catch(function () {
+                        if (seq !== state.catalogSeq) return;
+                        state.catalog = [];
+                        state.source = null;
+                        state.catalogWhy = '';
+                        renderPicker();
+                        renderCatalogSource();
+                    });
             }
 
-            // Which checkout these dropdowns are describing. The picker reads the
-            // automation repo's working tree, not a branch on the remote, so after
-            // a fix run leaves that clone on chore/qa-autofix/... the list is of
-            // that branch's tests — and nothing on the page used to say so.
+            // The field or the auto-push box moved. Nothing to do before the
+            // first load (init does that one), or when the tree is the same.
+            function onBranchChange() {
+                if (state.catalogBranch === null) return;
+                if (qaBranchField.effective('healBaseBranch') !== state.catalogBranch) loadCatalog();
+            }
+
+            // Which tree these dropdowns are describing: the base branch on the
+            // remote, or the local checkout with whatever is uncommitted in it.
+            // The checkout is not always where one expects — a fix run with
+            // auto-push off leaves it on chore/qa-autofix/... — so it is named.
             function renderCatalogSource() {
                 const el = $('healCatalogSource');
                 if (!el) return;
                 const src = state.source;
                 if (!src || !src.branch) { el.textContent = ''; return; }
                 el.innerHTML = 'Reading branch <code>' + esc(src.branch) + '</code>' +
-                    (src.dirty ? ' · uncommitted changes included' : '');
+                    (src.source === 'branch' ? ' from origin'
+                        : (src.dirty ? ' · uncommitted changes included' : ''));
             }
 
             // Why the list is empty, in the select itself. Hiding the picker
@@ -13588,6 +13645,8 @@
                 if (window.agentGate && !window.agentGate.isOnline()) {
                     return '— unavailable while the agent server is offline —';
                 }
+                // Still reading the branch, or the server's reason it could not.
+                if (state.catalogWhy) return '— ' + state.catalogWhy + ' —';
                 return '— no tests found —';
             }
 
@@ -13971,12 +14030,16 @@
                 if (first) {
                     const box = $('healAutoPush');
                     if (box) box.addEventListener('change', syncLocalMode);
+                    // 'change', not 'input': a pick, Enter or leaving the field,
+                    // never a fetch per keystroke.
+                    const branchBox = $('healBaseBranch');
+                    if (branchBox) branchBox.addEventListener('change', onBranchChange);
                     window.addEventListener('beforeunload', closeStream);
                 }
                 // Every call refreshes: the first open may have happened while the
                 // server was down, leaving the catalogue and defaults unfetched.
-                applyDefaults();
-                loadCatalog();
+                // The catalogue waits for the defaults, which decide its branch.
+                applyDefaults().then(loadCatalog);
                 loadQueue();
                 loadHistory();
                 if (first) resumeActive();
@@ -15907,6 +15970,9 @@
 
             const state = {
                 catalog: [], selected: [], note: '', intent: null,
+                // Which branch the pickers were filled from ('' = the local
+                // checkout, null = not loaded yet), and why they are empty.
+                catalogBranch: null, catalogSeq: 0, catalogWhy: '',
                 rawOverride: false, intentSeq: 0, intentTimer: null,
                 preamble: [], epilogue: [], affectsRaw: '', outcomeAuto: null,
                 // The outcome line's own words ("Expected outcome unchanged",
@@ -15965,6 +16031,8 @@
                 if (window.agentGate && !window.agentGate.isOnline()) {
                     return '— unavailable while the agent server is offline —';
                 }
+                // Still reading the branch, or the server's reason it could not.
+                if (state.catalogWhy) return '— ' + state.catalogWhy + ' —';
                 return '— no tests found —';
             }
 
@@ -15978,14 +16046,63 @@
                 });
             }
 
+            // The pickers list the tests of the tree the run will execute in:
+            // the base branch as it stands on the remote, or with auto-push off
+            // the local checkout. They used to list the checkout either way, so
+            // a note scoped to a test on another branch loaded with its chips set
+            // and its pickers empty.
+            function branchParam(sep) {
+                return state.catalogBranch
+                    ? sep + 'branch=' + encodeURIComponent(state.catalogBranch) : '';
+            }
+
             function loadCatalog() {
-                return fetchJson(BASE + '/tests').then(function (res) {
-                    state.catalog = (res.ok && res.body && res.body.classes) || [];
-                    renderPicker();
-                }).catch(function () {
+                const seq = ++state.catalogSeq;
+                const branch = qaBranchField.effective('adaptBaseBranch');
+                if (branch !== state.catalogBranch) {
+                    // A different tree, and reading a branch is a fetch: empty
+                    // the lists and say so rather than leave the old branch's
+                    // tests on offer until the answer lands.
                     state.catalog = [];
+                    state.catalogWhy = 'reading ' + (branch || 'your local checkout') + '…';
                     renderPicker();
+                    renderIntent(null);     // it describes a test on the old tree
+                }
+                state.catalogBranch = branch;
+                return fetchJson(BASE + '/tests' + branchParam('?')).then(function (res) {
+                    // A slower answer for an earlier branch must not overwrite this one's.
+                    if (seq !== state.catalogSeq) return;
+                    state.catalog = (res.ok && res.body && res.body.classes) || [];
+                    state.catalogWhy = res.ok ? ''
+                        : ((res.body && (res.body.detail || res.body.error)) || '');
+                    onCatalogLoaded();
+                }).catch(function () {
+                    if (seq !== state.catalogSeq) return;
+                    state.catalog = [];
+                    state.catalogWhy = '';
+                    onCatalogLoaded();
                 });
+            }
+
+            function onCatalogLoaded() {
+                // What was read about a test belongs to the tree it was read
+                // from, and so does an answer still on its way.
+                state.intentCache = {};
+                state.intentSeq++;
+                clearTimeout(state.intentTimer);
+                renderPicker();
+                // Only when nothing is picked: a class the user browsed to is
+                // theirs, and renderClasses has just kept it.
+                if (!($('adaptClass') || {}).value) pointPickersAtScope();
+                // `Type:` is derived from the catalogue's entry for each test.
+                onFormChange();
+            }
+
+            // The field or the auto-push box moved. Nothing to do before the
+            // first load (init does that one), or when the tree is the same.
+            function onBranchChange() {
+                if (state.catalogBranch === null) return;
+                if (qaBranchField.effective('adaptBaseBranch') !== state.catalogBranch) loadCatalog();
             }
 
             function renderPicker() {
@@ -16186,7 +16303,7 @@
                 const seq = ++state.intentSeq;
                 const pane = $('adaptIntentPane');
                 if (pane) pane.innerHTML = '<div class="qa-intent-empty">Reading the test…</div>';
-                fetchJson(BASE + '/tests/intent?test=' + encodeURIComponent(test))
+                fetchJson(BASE + '/tests/intent?test=' + encodeURIComponent(test) + branchParam('&'))
                     .then(function (res) {
                         // A slower earlier request must not overwrite a newer answer.
                         if (seq !== state.intentSeq) return;
@@ -16570,38 +16687,41 @@
                     });
                     if (match) { $('adaptModule').value = match.module; renderClasses(); }
                 }
-                // The chips are the real scope, but leaving the pickers reading
-                // "select a class" / "pick a class first" looks like the note failed
-                // to load. Point them at the first named test so the note's scope is
-                // visible without re-picking it. onTestChange only loads the intent
-                // pane — chips are added by addSelected() alone, so nothing is
-                // selected twice here.
-                if (state.selected.length && $('adaptClass')) {
-                    const first = state.selected[0];
-                    const hash = first.indexOf('#');
-                    const qualified = hash === -1 ? first : first.slice(0, hash);
-                    const cls = (state.catalog || []).find(function (c) {
-                        return c.qualified_name === qualified;
-                    });
-                    if (cls) {
-                        // A note may name tests from a module its own header omits.
-                        if ($('adaptModule') && $('adaptModule').value !== cls.module) {
-                            $('adaptModule').value = cls.module;
-                            renderClasses();
-                        }
-                        $('adaptClass').value = cls.qualified_name;
-                        renderMethods();
-                        if ($('adaptTest')) {
-                            $('adaptTest').value = hash === -1 ? '__CLASS__' : first.slice(hash + 1);
-                            onTestChange();
-                        }
-                    }
-                }
+                pointPickersAtScope();
                 renderSelected();
                 // A note the healing agent drafted is a claim, not a fact.
                 const isDraft = /^\s*#\s*DRAFT/.test(text || '');
                 const banner = $('adaptDraftBanner');
                 if (banner) banner.style.display = isDraft ? '' : 'none';
+            }
+
+            // The chips are the real scope, but leaving the pickers reading
+            // "select a class" / "pick a class first" looks like the note failed
+            // to load. Point them at the first named test so the note's scope is
+            // visible without re-picking it. onTestChange only loads the intent
+            // pane — chips are added by addSelected() alone, so nothing is
+            // selected twice here. Also run when the catalogue arrives, since a
+            // note can be on screen before the branch its tests live on is read.
+            function pointPickersAtScope() {
+                if (!state.selected.length || !$('adaptClass')) return;
+                const first = state.selected[0];
+                const hash = first.indexOf('#');
+                const qualified = hash === -1 ? first : first.slice(0, hash);
+                const cls = (state.catalog || []).find(function (c) {
+                    return c.qualified_name === qualified;
+                });
+                if (!cls) return;
+                // A note may name tests from a module its own header omits.
+                if ($('adaptModule') && $('adaptModule').value !== cls.module) {
+                    $('adaptModule').value = cls.module;
+                    renderClasses();
+                }
+                $('adaptClass').value = cls.qualified_name;
+                renderMethods();
+                if ($('adaptTest')) {
+                    $('adaptTest').value = hash === -1 ? '__CLASS__' : first.slice(hash + 1);
+                    onTestChange();
+                }
             }
 
             // The form owns the note until the user edits the raw text, at which
@@ -16848,12 +16968,15 @@
 
             // Seed the box from config/.env, as Authoring does: its value overrides
             // the .env setting, so a box that always starts unticked is a silent dry run.
+            // Resolves once the box and the branch field both hold what the run
+            // would use, because the pickers are loaded for that branch.
             function applyDefaults() {
-                qaBranchField.seed('adaptBaseBranch', 'adaptBranchList', BASE);
+                const seeded = qaBranchField.seed('adaptBaseBranch', 'adaptBranchList', BASE);
                 return fetchJson(BASE + '/config').then(function (res) {
                     const box = $('adaptAutoPush');
                     if (res.ok && res.body && box) box.checked = !!res.body.auto_push_default;
                 }).catch(function () { /* leave the box as-is */ })
+                  .then(function () { return seeded; })
                   .then(syncLocalMode);
             }
 
@@ -16862,6 +16985,7 @@
                 const box = $('adaptAutoPush');
                 qaBranchField.applyLocalMode('adaptBaseBranch', !(box && box.checked),
                                              'adaptLocalNote');
+                onBranchChange();
             }
 
             // ── Running ──────────────────────────────────────────────────────
@@ -17638,6 +17762,10 @@
                 window.addEventListener('beforeunload', closeStream);
                 const pushBox = $('adaptAutoPush');
                 if (pushBox) pushBox.addEventListener('change', syncLocalMode);
+                // 'change', not 'input': a pick, Enter or leaving the field, never
+                // a fetch per keystroke.
+                const branchBox = $('adaptBaseBranch');
+                if (branchBox) branchBox.addEventListener('change', onBranchChange);
                 document.querySelectorAll('#adaptProgressSteps .qa-step-retry-btn')
                     .forEach(function (btn) {
                         btn.addEventListener('click', function (e) {
@@ -17650,7 +17778,8 @@
             async function init() {
                 wireOnce();
                 try {
-                    await Promise.all([loadNotes(), loadCatalog(), applyDefaults()]);
+                    // The catalogue waits for the defaults, which decide its branch.
+                    await Promise.all([loadNotes(), applyDefaults().then(loadCatalog)]);
                     loadHistory();
                     onFormChange();
                     msg('');
