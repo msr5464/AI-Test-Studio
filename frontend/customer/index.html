@@ -13335,19 +13335,10 @@
                         const s = res.body || {};
                         applyVerdict(s.status || d.status);
                         const bits = [];
-                        if (s.located_deterministically) {
-                            bits.push('<span class="qa-live-badge badge-done">' +
-                                      s.located_deterministically + ' located' +
-                                      (s.locate_mode === 'shadow' ? ' (shadow)' : '') +
-                                      '</span>');
-                        } else if (s.locate_attempted) {
-                            // Nothing located is an outcome with a reason, and the
-                            // most common one on day one is "no baseline recorded
-                            // yet" — which the user can fix by running a green suite.
-                            bits.push('<span class="qa-live-badge">0 located' +
-                                      (QA_TOP_VERDICT(s.locate_verdicts) ? ' · ' +
-                                       QA_TOP_VERDICT(s.locate_verdicts) : '') + '</span>');
-                        }
+                        // No badge for Locate. The Result card carries the count
+                        // and the console carries the reason for every locator,
+                        // in full; a badge repeated the first and squeezed the
+                        // second into two words that stood for the whole run.
                         if (s.distinct_fixes) {
                             bits.push('<span class="qa-live-badge badge-done">' + s.distinct_fixes +
                                       ' fix' + (s.distinct_fixes === 1 ? '' : 'es') + ' → ' +
@@ -13450,8 +13441,12 @@
                     // failure_headline is the sentence a human wrote; failure_shape
                     // is the enum behind it and reads badly on its own ("queued").
                     meta('Diagnosis', esc(s.failure_headline || s.failure_shape || '—')) +
+                    // In shadow mode Locate only proposes; the model still wrote
+                    // the fix, so "without a model call" would be false.
                     meta('Located', esc(String(s.located_deterministically || 0)) +
-                                    ' without a model call') +
+                                    (s.healing_locate_mode === 'shadow'
+                                        ? ' proposed (shadow mode)'
+                                        : ' without a model call')) +
                     meta('Fixes', esc(String(s.distinct_fixes || 0)) + ' → ' +
                                   esc(String(s.tests_fixed || 0)) + ' green') +
                     '</div>';
@@ -13769,17 +13764,6 @@
                 ['ship', 'Ship', null],
             ];
 
-            // The verdict that accounts for most of a Locate run, in words a
-            // human reads: LOCATOR_DRIFT -> "locator drift", NO_BASELINE ->
-            // "no baseline".
-            function QA_TOP_VERDICT(verdicts) {
-                if (!verdicts) return '';
-                const keys = Object.keys(verdicts);
-                if (!keys.length) return '';
-                keys.sort(function (a, b) { return verdicts[b] - verdicts[a]; });
-                return keys[0].toLowerCase().replace(/_/g, ' ');
-            }
-
             function resultSummary(s) {
                 const bits = [];
                 if (s.distinct_fixes) {
@@ -13794,8 +13778,9 @@
                 if (s.located_deterministically) {
                     bits.push(s.located_deterministically + ' located');
                 } else if (s.locate_attempted && !bits.length) {
-                    bits.push('0 located' + (QA_TOP_VERDICT(s.locate_verdicts)
-                              ? ' · ' + QA_TOP_VERDICT(s.locate_verdicts) : ''));
+                    // The count only. Why is one line per locator in the run's
+                    // console, which a label here can only abbreviate.
+                    bits.push('0 located');
                 }
                 if (bits.length) return esc(bits.join(' · '));
                 // No counts does not mean no outcome — a test that already passed,
