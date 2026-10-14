@@ -17393,22 +17393,29 @@
             }
 
             // ── Results ──────────────────────────────────────────────────────
-            // Guard rejections and escalations are plain sections, not badges or
-            // tooltips: the detail is what matters and it has to be readable and
-            // copyable, not hovered over.
+            // Guard rejections are plain sections, not badges or tooltips: the
+            // detail is what matters and it has to be readable and copyable, not
+            // hovered over. An escalation gets a section too, plus a badge with
+            // its count, because it is the one outcome that waits on a person.
             // Same shapes as the other agents: badges in the Live Run footer, and a
             // Healing-style body (meta row, h4 sections, console blocks) for the
             // result card and the history modal.
             function resultBadges(s) {
                 const c = s.counts || {};
                 const bits = [];
-                if (c.applied) bits.push('<span class="qa-live-badge badge-completed">' + esc(c.applied) + ' applied</span>');
-                if (c.verified) bits.push('<span class="qa-live-badge badge-completed">' + esc(c.verified) + ' verified</span>');
+                // One outcome badge, the shape Healing uses: what landed and what
+                // proved it. No badge for rejected or covered items. The Result
+                // card lists every item with its status and its reason in full; a
+                // badge repeated the count and turned a run that shipped red.
+                if (c.applied || c.verified) {
+                    const outcome = [];
+                    if (c.applied) outcome.push(c.applied + ' applied');
+                    if (c.verified) outcome.push(c.verified + ' test' + (c.verified === 1 ? '' : 's') + ' verified');
+                    bits.push('<span class="qa-live-badge badge-completed">' + esc(outcome.join(' → ')) + '</span>');
+                }
                 if (c.proposed) bits.push('<span class="qa-live-badge">' + esc(c.proposed) + ' proposed</span>');
-                if (c.covered) bits.push('<span class="qa-live-badge">' + esc(c.covered) + ' covered by another item</span>');
                 if (c.checks_changed) bits.push('<span class="qa-live-badge">⚠️ ' + esc(c.checks_changed) + ' check(s) changed</span>');
                 if (c.escalated) bits.push('<span class="qa-live-badge">⚠️ ' + esc(c.escalated) + ' escalated</span>');
-                if (c.rejected) bits.push('<span class="qa-live-badge badge-failed">' + esc(c.rejected) + ' rejected</span>');
                 if (!bits.length) {
                     const k = (s.status || '').toLowerCase();
                     bits.push('<span class="qa-live-badge">' + esc(STATUS_LABEL[k] || s.status || 'no changes') + '</span>');
