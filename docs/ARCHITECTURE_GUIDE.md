@@ -238,6 +238,32 @@ What the proxy adds, because the agent server has no login of its own:
 Keep the agent server on `127.0.0.1` unless both repos share
 `QA_AGENT_PROXY_SECRET` — it trusts these headers.
 
+### Feedback for the agents to learn from
+
+QA Agent Network keeps one store of what people said about and did to the agents'
+work (its ARCHITECTURE.md, "Human feedback"). The Studio feeds it two ways:
+
+- **A verdict on an agent run.** The session detail of every agent page has a
+  *Your verdict* section (`QA_VERDICT_HTML` in `frontend/customer/index.html`):
+  accept as is, accept after edits, or reject, with optional reasons and a note.
+  It goes through the proxy to `/agents/<agent>/sessions/<id>/verdict`, and shows
+  the run's latest verdict wherever it was given (the PR, the CLI or here).
+- **Requirements → Tests.** `backend/services/agent_feedback.py` posts, from the
+  backend and never the browser, to the agent server's `/feedback/test-design`:
+  what a completed run offered, and each AI-written case a person pushed with the
+  AI's text beside the pushed text. It runs in a background thread with a short
+  timeout, so a push never waits on the agent server.
+- **Lessons for Requirements → Tests.** At the start of a run,
+  `RequirementAnalysisService` asks the agent server for its lessons
+  (`agent_feedback.fetch_lessons`, `GET /lessons/test-design-agent`). The answer
+  fills the `{lessons}` variable of the three generation prompts. The text is empty
+  unless the agent server's `LESSONS_MODE` is `on`, and also when the server is down,
+  so the run goes ahead without lessons. The run result's `lessons_applied` names
+  them, and they are reported with the run's tests.
+- **Review outcomes.** Admin → Analytics adds QA Agent Network's
+  `/feedback/summary` to its response (`review`, or `review_error`), shown as the
+  *Review Outcomes* card. The card counts the same runs as the agent table.
+
 ### Where to read about the agents
 
 | Topic | QA Agent Network doc |

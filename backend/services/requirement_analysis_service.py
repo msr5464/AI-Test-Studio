@@ -496,6 +496,10 @@ class RequirementAnalysisService:
         combined_text = "\n\n---\n\n".join(spec_parts)
         return all_reqs, combined_text
 
+    def _lessons_text(self) -> str:
+        """This run's lessons as prompt text (a template value, so braces are safe)."""
+        return (getattr(self, "_lessons", None) or {}).get("block") or ""
+
     def analyze(
         self,
         text: Optional[str] = None,
@@ -546,6 +550,10 @@ class RequirementAnalysisService:
         # threaded into every LLM helper, so call volume rides along free.
         run_cost = [0.0, 0]
         run_started = time.time()
+        # Lessons people taught test design, from QA Agent Network (empty when it is
+        # unreachable or LESSONS_MODE is not on); put in every generation prompt.
+        from backend.services import agent_feedback
+        self._lessons = agent_feedback.fetch_lessons()
 
         # Per-stage timing and cost. The pipeline already has stage boundaries —
         # report() is called with stage 1, 2 or 3 at 13 sites — so instrumenting
@@ -1365,6 +1373,7 @@ class RequirementAnalysisService:
             "generated_tests": generated_tests,
             "e2e_workflow_tests": e2e_workflow_tests,
             "existing_e2e_tests": existing_e2e_tests,
+            "lessons_applied": (getattr(self, "_lessons", None) or {}).get("ids") or [],
             "coverage_gap_reason_per_req": coverage_gap_reason_per_req,
             "coverage_per_req": coverage_per_req,
             "run_id": run_id,
@@ -2072,7 +2081,7 @@ Important:
 - Title should be descriptive of the business flow. Do NOT include priority labels like (P0) or (P1) in the title.
 - Steps should be numbered, detailed, and written from user perspective
 - Include realistic test data examples where relevant
-- Expected result should be specific and verifiable"""),
+- Expected result should be specific and verifiable{lessons}"""),
             ("human", """Workflow: {workflow_name}
 Description: {workflow_desc}
 Entry Point: {entry_point}
@@ -2095,6 +2104,7 @@ JSON:"""),
             chain = prompt | rag.llm
             result = chain.invoke({
                 "company_name": _get_company_name(),
+                "lessons": self._lessons_text(),
                 "workflow_name": workflow.get("name", "E2E Workflow"),
                 "workflow_desc": workflow.get("description", ""),
                 "entry_point": workflow.get("existing_entry_point", "User logged into the application dashboard"),
@@ -2203,7 +2213,7 @@ Rules:
 - One object per workflow, same order as input
 - Title: descriptive test case title, no suffixes like (P0), (Regression), (Integration), or (New Feature)
 - Steps: numbered, detailed, written from user perspective
-- Include realistic test data examples where relevant"""),
+- Include realistic test data examples where relevant{lessons}"""),
             ("human", """{workflows}
 
 JSON array ({count} test cases):"""),
@@ -2214,6 +2224,7 @@ JSON array ({count} test cases):"""),
             result = chain.invoke({
                 "company_name": _get_company_name(),
                 "workflows": workflows_text,
+                "lessons": self._lessons_text(),
                 "count": len(workflows),
             })
             c = record_from_langchain_result("requirement_analysis.generate_e2e_tests_batch", result, run_id=run_id)
@@ -2529,12 +2540,13 @@ Rules:
 7. Structure: Each test must have Title, Priority (""" + allowed_priorities_str + """), Preconditions, Steps (numbered list, one step per line), Expected Result. Match the TestRail template.
 8. TITLE: Do NOT include priority labels in the title (no "(P0)", "(P1)", etc.) — priority is a separate field.
 9. Return a JSON array only (no markdown): [{{"title": "...", "priority": "P0", "preconditions": "...", "steps": "1. ...\\n2. ...", "expected_result": "..."}}, ...]
-Do not fabricate product details; use only the requirement and prior specs."""),
+Do not fabricate product details; use only the requirement and prior specs.{lessons}"""),
             ("human", "Context:\n{context}\n\nGenerate ONLY additional functional test cases as a JSON array (do not duplicate existing tests). Use " + priority_rule + f" Return up to {_total_target} tests total (target ~{_per_priority_count} per priority level). Generate at least 1 test for each priority in: {', '.join(priorities_set)}. If existing tests already fully cover the requirement, return []. Order by priority: P0 first, then P1, then P2/P3. Automation-friendly. No unit-level tests."),
         ])
         try:
             chain = prompt | rag.llm
-            result = chain.invoke({"context": "\n".join(context_parts), "company_name": _get_company_name()})
+            result = chain.invoke({"context": "\n".join(context_parts), "company_name": _get_company_name(),
+                                   "lessons": self._lessons_text()})
             c = record_from_langchain_result("requirement_analysis.generate_tests", result, extra={"requirement_id": req_id}, run_id=run_id)
             if run_cost is not None and c is not None:
                 run_cost[0] += c

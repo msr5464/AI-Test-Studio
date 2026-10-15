@@ -10298,6 +10298,7 @@
                     session_id: window.reqRun.session(),
                     target: { kind: 'e2e', index: item.index }
                 };
+                payload.ai_original = QA_AI_AS_PUSHED(payload);
                 fetch(API_BASE + '/requirement-analysis/create-case', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -10388,6 +10389,7 @@
         }
         var reqCaseEditTestrailId = null;
         var reqCaseEditSourceCard = null;
+        var reqCaseEditAiOriginal = null;
         document.addEventListener('click', function (e) {
             if (e.target && e.target.closest && e.target.closest('.req-tc-card-header')) {
                 var card = e.target.closest('.req-tc-card');
@@ -10478,6 +10480,7 @@
         var reqGenEditProjectId = null;
         var reqGenEditSuiteId = null;
         var reqGenEditSourceRow = null;
+        var reqGenEditAiOriginal = null;
         var reqGenEditReqId = null;
         var reqGenEditIndex = null;
 
@@ -10695,6 +10698,7 @@
                 return;
             }
             reqCaseEditSourceCard = item;
+            reqCaseEditAiOriginal = null;
             // Auto-select Type based on source tab
             var _isFromE2ePane = !!item.closest('#reqResultPaneE2eflows');
             document.getElementById('reqCaseEditType').value = _isFromE2ePane ? 'FCT / Regression' : 'All / Functional';
@@ -10731,6 +10735,7 @@
                     document.getElementById('reqCaseEditPreconditions').value = data.preconditions || '';
                     document.getElementById('reqCaseEditSteps').value = data.steps || '';
                     document.getElementById('reqCaseEditExpected').value = data.expected_result || '';
+                    reqCaseEditAiOriginal = QA_AI_SNAPSHOT('reqCaseEdit', 'suggested_update');
                     formEl.style.display = 'block';
                     updateBtn.style.display = 'inline-block';
                     insertBtn.style.display = 'inline-block';
@@ -10878,6 +10883,7 @@
                 payload.session_id = window.reqRun.session();
                 payload.target = target;
             }
+            if (reqGenEditAiOriginal) payload.ai_original = reqGenEditAiOriginal;
             var btn = document.getElementById('reqGenEditSubmit');
             var btnText = btn.textContent || '';
             btn.disabled = true;
@@ -10930,6 +10936,7 @@
             document.getElementById('reqGenEditPreconditions').value = row.getAttribute('data-preconditions') || '';
             document.getElementById('reqGenEditSteps').value = row.getAttribute('data-steps') || '';
             document.getElementById('reqGenEditExpected').value = row.getAttribute('data-expected') || '';
+            reqGenEditAiOriginal = QA_AI_SNAPSHOT('reqGenEdit', 'generated');
             // Load projects, apply saved selection, and show modal
             reqGenEditLoadProjects().then(function () {
                 return reqGenEditApplyPrefill();
@@ -10962,6 +10969,7 @@
             document.getElementById('reqGenEditPreconditions').value = row.getAttribute('data-preconditions') || '';
             document.getElementById('reqGenEditSteps').value = row.getAttribute('data-steps') || '';
             document.getElementById('reqGenEditExpected').value = row.getAttribute('data-expected') || '';
+            reqGenEditAiOriginal = QA_AI_SNAPSHOT('reqGenEdit', 'generated');
             // Load projects, apply saved selection, and show modal
             reqGenEditLoadProjects().then(function () {
                 return reqGenEditApplyPrefill();
@@ -11030,6 +11038,7 @@
                 session_id: window.reqRun.session(),
                 target: { kind: 'existing', testrail_id: reqCaseEditTestrailId }
             };
+            if (reqCaseEditAiOriginal) payload.ai_original = reqCaseEditAiOriginal;
             var updateBtn = document.getElementById('reqCaseEditUpdateBtn');
             updateBtn.disabled = true;
             fetch(API_BASE + '/requirement-analysis/update-case', {
@@ -11077,6 +11086,7 @@
             var sourceId = (reqCaseEditSourceCard && reqCaseEditSourceCard.getAttribute('data-testrail-id')) || reqCaseEditTestrailId;
             payload.session_id = window.reqRun.session();
             payload.target = { kind: 'existing', testrail_id: sourceId };
+            if (reqCaseEditAiOriginal) payload.ai_original = reqCaseEditAiOriginal;
             fetch(API_BASE + '/requirement-analysis/create-case', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -11300,6 +11310,7 @@
                     session_id: window.reqRun.session(),
                     target: { kind: 'generated', req_id: item.reqId, index: item.index }
                 };
+                payload.ai_original = QA_AI_AS_PUSHED(payload);
                 if (requirementText) payload.requirement_text = requirementText;
                 fetch(API_BASE + '/requirement-analysis/create-case', {
                     method: 'POST',
@@ -11903,6 +11914,8 @@
         //              trade. Optional.
         //   retryHtml: fn(stepNumber, label) -> html, or null when the agent has no
         //              resume (healing re-investigates internally; the server 405s).
+        //   verdict:   {base, sessionId} — the agent's API base. Adds "Your verdict"
+        //              for a finished run (QA_VERDICT_HTML). Optional.
         // }
         function QA_SESSION_DETAIL(d, config) {
             const reports = d.reports || {};
@@ -11920,6 +11933,7 @@
                 out += '<p style="margin:12px 0 0 0;"><a href="' + QA_ESC_ATTR(d.pr_url)
                      + '" target="_blank" rel="noopener">View PR →</a></p>';
             }
+            if (config.verdict) out += QA_VERDICT_HTML(d, config.verdict);
             const stageTable = QA_STAGE_TABLE(d.metrics);
             if (stageTable) {
                 out += '<h4 style="margin:16px 0 6px 0;font-size:13px;">Time &amp; cost</h4>'
@@ -11982,6 +11996,125 @@
         }
         window.QA_RESULT_CARD = QA_RESULT_CARD;
         window.QA_SESSION_DETAIL = QA_SESSION_DETAIL;
+
+        // A person's verdict on one agent run. It joins the agents' feedback store
+        // (QA Agent Network, shared/feedback.py), which is how they learn what was
+        // accepted; the PR's own checklist and `make verdict` write the same event.
+        // Labels and reason codes mirror shared/feedback.py's VERDICTS and REASONS
+        // — a change there is a two-repo change.
+        const QA_VERDICTS = [
+            ['accept', 'Accept as is'],
+            ['edited', 'Accept after my edits'],
+            ['reject', 'Reject'],
+        ];
+        const QA_REASONS = [
+            ['wrong-locator', 'Wrong locator'], ['wrong-flow', 'Wrong flow or page'],
+            ['weak-assertion', 'Weak or missing assertion'], ['convention', 'Convention or style'],
+            ['no-reuse', "Didn't reuse existing code"], ['test-data', 'Test data'],
+            ['flaky', 'Flaky or timing'], ['product-bug', 'Product bug misread'],
+            ['wrong-scope', 'Wrong scope'], ['other', 'Other'],
+        ];
+        // A run with nothing of its own to judge: still going, stopped, or blocked
+        // by infrastructure before it did anything.
+        const QA_VERDICT_SKIP = ['running', 'in_progress', 'queued', 'cancelled',
+                                 'interrupted', 'blocked'];
+
+        function QA_VERDICT_SAID(v) {
+            if (!v || !v.verdict) return 'No verdict yet.';
+            const label = (QA_VERDICTS.find(function (p) { return p[0] === v.verdict; }) || [0, v.verdict])[1];
+            const why = (v.reasons || []).map(function (r) {
+                return (QA_REASONS.find(function (p) { return p[0] === r; }) || [0, r])[1];
+            });
+            const via = { github: 'on the PR', cli: 'from the CLI', studio: 'here' }[v.source] || v.source || '';
+            return 'Recorded: <b>' + escapeHtml(label) + '</b>'
+                 + (why.length ? ' — ' + escapeHtml(why.join(', ')) : '')
+                 + (v.text ? ' · “' + escapeHtml(v.text) + '”' : '')
+                 + ' <span style="color:var(--text-light);">'
+                 + escapeHtml([v.who, via, (v.at || '').slice(0, 10)].filter(Boolean).join(' · '))
+                 + '</span>';
+        }
+
+        function QA_VERDICT_HTML(d, cfg) {
+            const status = String(d.status || '').toLowerCase();
+            if (!cfg || !cfg.sessionId || QA_VERDICT_SKIP.indexOf(status) !== -1) return '';
+            const box = 'qaVerdict-' + String(cfg.sessionId).replace(/[^A-Za-z0-9_-]/g, '_');
+            // reviewer_verdict, not verdict: that one is the agent's own APPROVED / NEEDS-REVIEW.
+            const current = d.reviewer_verdict || {};
+            const choices = QA_VERDICTS.map(function (p) {
+                return '<label style="margin-right:14px;cursor:pointer;"><input type="radio" name="' + box
+                     + '-v" value="' + p[0] + '"' + (current.verdict === p[0] ? ' checked' : '')
+                     + '> ' + escapeHtml(p[1]) + '</label>';
+            }).join('');
+            const reasons = QA_REASONS.map(function (p) {
+                const on = (current.reasons || []).indexOf(p[0]) !== -1;
+                return '<label style="display:inline-block;margin:2px 12px 2px 0;cursor:pointer;">'
+                     + '<input type="checkbox" data-reason value="' + p[0] + '"' + (on ? ' checked' : '')
+                     + '> ' + escapeHtml(p[1]) + '</label>';
+            }).join('');
+            return '<div class="qa-modal-section" id="' + box + '"><h4>Your verdict</h4>'
+                 + '<p style="margin:0 0 8px 0;font-size:12px;color:var(--text-light);">'
+                 + 'How did this run\'s work hold up? This is how the agents learn what was accepted.</p>'
+                 + '<div class="qa-verdict-said" style="font-size:13px;margin-bottom:8px;">'
+                 + QA_VERDICT_SAID(current) + '</div>'
+                 + '<div style="margin-bottom:6px;">' + choices + '</div>'
+                 + '<details style="margin-bottom:6px;"><summary style="cursor:pointer;font-size:12px;">'
+                 + 'Why? Optional</summary><div style="margin-top:6px;font-size:13px;">' + reasons + '</div></details>'
+                 + '<input type="text" class="qa-verdict-note" maxlength="500" '
+                 + 'placeholder="What should it do next time? (optional)" '
+                 + 'style="width:100%;box-sizing:border-box;margin-bottom:8px;" value="'
+                 + QA_ESC_ATTR(current.text || '') + '">'
+                 + '<button class="qa-action-btn" onclick="QA_SAVE_VERDICT(\'' + QA_ESC_ATTR(cfg.base)
+                 + '\',\'' + QA_ESC_ATTR(cfg.sessionId) + '\',\'' + box + '\')">Save verdict</button> '
+                 + '<span class="qa-verdict-status" style="font-size:12px;margin-left:8px;"></span></div>';
+        }
+
+        function QA_SAVE_VERDICT(base, sessionId, boxId) {
+            const box = document.getElementById(boxId);
+            if (!box) return;
+            const status = box.querySelector('.qa-verdict-status');
+            const picked = box.querySelector('input[name="' + boxId + '-v"]:checked');
+            if (!picked) { status.textContent = 'Pick a verdict first.'; return; }
+            const reasons = Array.prototype.map.call(
+                box.querySelectorAll('input[data-reason]:checked'), function (i) { return i.value; });
+            status.textContent = 'Saving…';
+            fetch(base + '/sessions/' + encodeURIComponent(sessionId) + '/verdict', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ verdict: picked.value, reasons: reasons,
+                                       note: box.querySelector('.qa-verdict-note').value }),
+            }).then(function (r) {
+                return r.json().then(function (b) { return { ok: r.ok, body: b || {} }; });
+            }).then(function (res) {
+                if (!res.ok) { status.textContent = 'Not saved: ' + (res.body.error || 'unknown error'); return; }
+                box.querySelector('.qa-verdict-said').innerHTML = QA_VERDICT_SAID(res.body.verdict);
+                status.textContent = res.body.judged_proposals
+                    ? 'Saved, and ' + res.body.judged_proposals + ' proposal(s) marked.' : 'Saved.';
+            }).catch(function (e) {
+                status.textContent = 'Not saved: ' + ((e && e.message) || 'network error');
+            });
+        }
+        window.QA_VERDICT_HTML = QA_VERDICT_HTML;
+        window.QA_SAVE_VERDICT = QA_SAVE_VERDICT;
+
+        // The AI-written test text a form was just filled with, exactly as the
+        // person saw it. Sent with the push as `ai_original`, so what they changed
+        // reaches the agents' feedback store (backend/services/agent_feedback.py).
+        // Taken from the form, not the source data: the form fills in defaults
+        // (a missing priority), and those are not the person's edits.
+        function QA_AI_SNAPSHOT(prefix, source) {
+            function v(id) { const el = document.getElementById(prefix + id); return el ? (el.value || '') : ''; }
+            return { source: source, title: v('Title'), priority: v('Priority'),
+                     preconditions: v('Preconditions'), steps: v('Steps'), expected_result: v('Expected') };
+        }
+        // A test pushed straight from the results, as generated.
+        function QA_AI_AS_PUSHED(payload) {
+            return { source: 'generated', title: payload.title, priority: payload.priority,
+                     preconditions: payload.preconditions, steps: payload.steps,
+                     expected_result: payload.expected_result };
+        }
+        window.QA_AI_SNAPSHOT = QA_AI_SNAPSHOT;
+        window.QA_AI_AS_PUSHED = QA_AI_AS_PUSHED;
         window.QA_STAGE_TABLE = QA_STAGE_TABLE;
         window.QA_STEP_SUFFIX = QA_STEP_SUFFIX;
         window.QA_UPDATE_METRIC_TILES = QA_UPDATE_METRIC_TILES;
@@ -14002,6 +14135,7 @@
                         // own internal retry loop, so there is no partial pipeline
                         // to resume into and the server returns 405 for it.
                         retryHtml: null,
+                        verdict: { base: BASE, sessionId: sessionId },
                     });
                 }).catch(function (e) {
                     body.innerHTML = '<div class="qa-empty-hint">Failed: ' + esc(e && e.message || e) + '</div>';
@@ -15051,6 +15185,7 @@
                         if (!canRetry || stepNum < 2) return '';
                         return retryButtonHtml(d.session_id, stepNum, label);
                     },
+                    verdict: { base: AGENT_BASE, sessionId: d.session_id },
                 });
             }
 
@@ -15268,6 +15403,7 @@
             var _improved = {};   // idx -> {title, priority, preconditions, steps, expected_result}
             var _queued = {};     // idx -> true once added to queue
             var _aiIdx = null;    // index of case currently open in AI modal
+            var _aiOriginal = null;   // what the AI suggested, as the form first showed it
             var _initialised = false;
 
             function $(id) { return document.getElementById(id); }
@@ -15607,6 +15743,7 @@
                         $('qaImportAiPreconditions').value = data.preconditions || '';
                         $('qaImportAiSteps').value = data.steps || '';
                         $('qaImportAiExpected').value = data.expected_result || '';
+                        _aiOriginal = QA_AI_SNAPSHOT('qaImportAi', 'improved');
                         form.style.display = '';
                         acceptBtn.style.display = '';
                         queueBtn.style.display = '';
@@ -15628,6 +15765,7 @@
                 _setAiError('');
                 $('qaImportAiModal').classList.remove('visible');
                 _aiIdx = null;
+                _aiOriginal = null;
             }
 
             function _readAiForm() {
@@ -15676,6 +15814,7 @@
                     expected_result: (form.expected_result || '').trim() || undefined,
                     priority: form.Priority || undefined,
                 };
+                if (_aiOriginal) payload.ai_original = _aiOriginal;
 
                 try {
                     const res = await fetch('/api/requirement-analysis/update-case', {
@@ -17731,6 +17870,7 @@
                                 'onclick="qaAdapt.retryFromStep(\'' + QA_ESC_ATTR(sessionId) +
                                 '\',' + stepNum + ')">↻ Retry from here</button>';
                         },
+                        verdict: { base: BASE, sessionId: sessionId },
                     });
                 } catch (e) {
                     detail.innerHTML = '<div class="qa-empty-hint">Could not open ' +

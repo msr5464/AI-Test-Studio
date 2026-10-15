@@ -23,6 +23,23 @@ Changes since 1.0.0 (March–September 2026).
   `AUTOCREATE_*` → `AUTHORING_*`, `AUTOFIX_*` → `HEALING_*`, `DB_*` → `TRIAGING_DB_*`.
 
 ### Added
+- **Your verdict** in the session detail of every agent page: accept, accept after
+  edits or reject a run, with reasons and a note, for QA Agent Network's feedback
+  store. Shows the latest verdict, from the PR, the CLI or here.
+- Requirements → Tests tells QA Agent Network what each run offered and what a
+  person pushed to TestRail, with the AI's text beside the pushed text, so the
+  agents can learn from the edits.
+- Requirements → Tests asks QA Agent Network for the lessons people's edits have
+  taught it (`GET /lessons/test-design-agent`). Its generation prompts include them
+  when QA Agent Network's `LESSONS_MODE` is `on`, and each run records which lessons
+  it was given.
+- **Review Outcomes** card on Admin → Analytics, from QA Agent Network's
+  `/feedback/summary`:
+  - for each agent, its runs accepted as is, accepted after edits, rejected or not
+    reviewed
+  - tests offered and pushed
+  - each lesson's runs and verdicts
+  - where explicit feedback came from
 - **Auto-Heal Failing Tests** page (Test Healing Agent): pick a test or a
   triaging handoff; Reproduce → Locate → Fix → Ship.
 - **Adapt to Product Changes** page (Test Adaptation Agent): change notes, affected

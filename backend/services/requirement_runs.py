@@ -335,6 +335,14 @@ def _work(run: _Run, svc, text, file_paths, confluence_urls, opts) -> None:
                                    user_id=meta["user_id"])
         except Exception:
             pass
+        if status == "completed":
+            # What the run offered, so the agents' feedback store can tell later
+            # which tests a person never pushed (backend/services/agent_feedback.py).
+            try:
+                from backend.services import agent_feedback
+                agent_feedback.record_generation(meta["session_id"], meta["user_id"], result)
+            except Exception as exc:
+                print(f"[agent-feedback] generation not recorded: {exc}")
         _finish(run, result, status, error)
         _unlink_all(file_paths)
 

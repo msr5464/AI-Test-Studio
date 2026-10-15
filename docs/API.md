@@ -245,6 +245,13 @@ ChromaDB so the next analysis sees them.
 
 `priority` is `P0`–`P3`.
 
+`update-case` and `create-case` also take `ai_original`: the AI-written text the
+form showed before the person edited it (`{"source": "generated" |
+"suggested_update" | "improved", "title", "priority", "preconditions", "steps",
+"expected_result"}`). After a successful push, both texts are sent to QA Agent
+Network's feedback store (`backend/services/agent_feedback.py`), in the background
+and never failing the push. A case a person wrote from scratch sends none.
+
 ### TestRail browsing (for the pickers)
 
 All return **503** when TestRail is not configured.
@@ -314,6 +321,8 @@ anything else is a 400. `user_id` narrows to one user.
   "baselines": {"min_per_test_authored": 240, "min_per_test_fixed": 60, "min_per_test_adapted": 150, "min_per_test_case_written": 15},
   "agents": {"window": {…}, "overall": {…}, "by_agent": {…}, "series": [ … ]},
   "agents_error": null,
+  "review": {"window": {…}, "by_agent": {…}, "lessons": [ … ], "explicit_by_source": {…}},
+  "review_error": null,
   "studio": {"window": {…}, "outcomes": {…}, "run_duration_s": 0, "requirements": {…}, "requirements_series": [ … ], "by_operation": {…}, "…": "…"},
   "time_saved": {"agents_min": 0, "studio_min": 0, "total_min": 0, "by_agent": {"test-healing-agent": 0}, "basis": "estimate"}
 }
@@ -327,6 +336,11 @@ the same shape as an agent (`runs`, `succeeded`, `failed`, `cost_usd`,
 and `studio.requirements_series` splits them by day. The QA Agents tab shows
 them as `test-design-agent` and adds them to its totals, labelled as estimated.
 If the agent server is down, `agents` is empty and `agents_error` says why.
+
+`review` comes from QA Agent Network's `/feedback/summary`. For the same runs, it
+gives the verdicts people gave them and how each lesson's runs were received (the
+*Review Outcomes* card). It is null when that call fails, and `review_error` says
+why.
 
 ```
 DELETE /api/admin/analytics?window=7d&user_id=&from=&to=

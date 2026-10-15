@@ -13,7 +13,7 @@ import tempfile
 
 from flask import Blueprint, request, jsonify, current_app, Response, session
 
-from backend.services import requirement_runs
+from backend.services import agent_feedback, requirement_runs
 from backend.services.requirement_analysis_service import RequirementAnalysisService
 from backend.api.auth.routes import require_auth
 
@@ -427,6 +427,7 @@ def requirement_analysis_update_case():
         )
         if result.get("success"):
             _record_push(data, "updated", testrail_id, title)
+            agent_feedback.record_push(data, "updated", testrail_id)
             # Re-ingest updated test into ChromaDB so the next analysis sees the new version
             try:
                 ingested = svc.ingest_pushed_case_into_rag(
@@ -497,6 +498,7 @@ def requirement_analysis_create_case():
         )
         if result.get("success"):
             _record_push(data, "created", result.get("testrail_id", ""), title)
+            agent_feedback.record_push(data, "created", result.get("testrail_id", ""))
             # Ingest into ChromaDB so next requirement analysis sees it as an existing test
             try:
                 ingested = svc.ingest_pushed_case_into_rag(

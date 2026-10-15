@@ -555,6 +555,7 @@ def get_analytics():
         agents_error = str(exc)
 
     baselines = _analytics_baselines()
+    review, review_error = _review_outcomes(window, since, until, user_id_param)
     return jsonify({
         'success': True,
         'window': window,
@@ -564,7 +565,30 @@ def get_analytics():
         'agents_error': agents_error,
         'studio': studio,
         'time_saved': _time_saved(agents, studio, baselines),
+        # How people received the agents' work, from QA Agent Network's feedback
+        # store. Counts no run, cost or minute: those stay the halves above.
+        'review': review,
+        'review_error': review_error,
     })
+
+
+def _review_outcomes(window, since, until, user_id):
+    """(summary, error) from the agent server's /feedback/summary, never raising."""
+    try:
+        response = _forward_json('GET', _analytics_upstream(
+            '/feedback/summary', window, since, until, user_id))
+        status = response[1] if isinstance(response, tuple) else 200
+        body = response[0] if isinstance(response, tuple) else response
+        payload = body.get_json(silent=True) if hasattr(body, 'get_json') else None
+        if status >= 400 or not isinstance(payload, dict) or 'by_agent' not in payload:
+            if status == 404:
+                return None, ('Review outcomes need the QA Agent Network server restarted '
+                              '(it does not have /feedback/summary yet).')
+            detail = (payload or {}).get('detail') or (payload or {}).get('error') if isinstance(payload, dict) else ''
+            return None, detail or f'agent server returned HTTP {status}'
+        return payload, None
+    except Exception as exc:
+        return None, str(exc)
 
 
 def _analytics_baselines() -> dict:

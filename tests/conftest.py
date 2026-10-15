@@ -55,3 +55,21 @@ def isolated_studio_stores(monkeypatch, tmp_path):
     monkeypatch.setenv("OPERATION_COSTS_FILE", str(tmp_path / "operation_costs.jsonl"))
     monkeypatch.setenv("REQUIREMENT_RUNS_FILE", str(tmp_path / "requirement_runs.jsonl"))
     monkeypatch.setenv("REQUIREMENT_SESSIONS_DIR", str(tmp_path / "requirement_sessions"))
+
+
+@pytest.fixture(autouse=True)
+def captured_agent_feedback(monkeypatch):
+    """Capture what would be sent to QA Agent Network's feedback store, never send it.
+
+    A test that pushes a case carrying `ai_original`, or completes a Requirements →
+    Tests run, would otherwise post to whatever agent server is running locally
+    and write a reviewer's feedback that nobody gave. Returns the payloads.
+    """
+    from backend.services import agent_feedback
+    sent = []
+    monkeypatch.setattr(agent_feedback, "_post", lambda payload, headers: sent.append(
+        {"payload": payload, "headers": headers}))
+    # And no lessons from it either: a run's prompts must not depend on what the
+    # local agent server happens to hold.
+    monkeypatch.setattr(agent_feedback, "fetch_lessons", lambda timeout_s=3.0: {"ids": [], "block": ""})
+    return sent

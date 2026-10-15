@@ -3692,7 +3692,8 @@
             authoring: '✍️ Test Authoring',
             healing: '🩹 Test Healing',
             adaptation: '🔁 Test Adaptation',
-            triaging: '🔍 Test Triaging'
+            triaging: '🔍 Test Triaging',
+            learning: '🧠 Lessons & Learning'
         };
 
         // Long values that read badly in a half-width cell
@@ -4252,6 +4253,75 @@
                     + 'No data in this window.</td></tr>');
             }
             parts.push('</tbody></table></div></div>');
+
+            // How people received the runs above: QA Agent Network's feedback store
+            // (PR checklist, Studio verdict, make verdict, Slack). Same window and
+            // runs as the breakdown; it counts no run, cost or minute of its own.
+            const review = data.review || {};
+            const rAgents = review.by_agent || {};
+            parts.push('<div class="analytics-group"><h3>Review Outcomes</h3>');
+            parts.push('<p class="analytics-basis">How people judged each agent\'s runs: the PR '
+                + 'checklist, the session verdict, <code>make verdict</code> and Slack replies. '
+                + 'Not reviewed is not rejected.</p>');
+            if (data.review_error) {
+                parts.push('<p class="analytics-note">⚠️ ' + anEsc(data.review_error) + '</p>');
+            }
+            parts.push('<div style="overflow-x: auto; margin-top: 10px;">');
+            parts.push('<table><thead><tr><th>Agent</th><th>Runs</th><th>Accepted as is</th>'
+                + '<th>After edits</th><th>Rejected</th><th>Not reviewed</th><th>Active lessons</th>'
+                + '</tr></thead><tbody>');
+            let rShown = 0;
+            WORKFLOW.concat(Object.keys(rAgents).filter(n => !WORKFLOW.includes(n)
+                    && n !== 'test-design-agent').sort()).forEach(function (name) {
+                const r = rAgents[name];
+                if (!r || !(r.runs || r.active_lessons)) return;
+                rShown++;
+                parts.push('<tr><td style="font-weight: 500;">' + anEsc(name) + '</td>'
+                    + '<td>' + anFmtNum(r.runs || 0) + '</td>'
+                    + '<td>' + anFmtNum(r.accept || 0) + '</td>'
+                    + '<td>' + anFmtNum(r.edited || 0) + '</td>'
+                    + '<td>' + anFmtNum(r.reject || 0) + '</td>'
+                    + '<td>' + anFmtNum(r.not_reviewed || 0) + '</td>'
+                    + '<td>' + anFmtNum(r.active_lessons || 0) + '</td></tr>');
+            });
+            if (!rShown) {
+                parts.push('<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">'
+                    + (data.review ? 'No reviewed runs in this window.' : 'Not available.') + '</td></tr>');
+            }
+            parts.push('</tbody></table></div>');
+            const design = rAgents['test-design-agent'];
+            if (design) {
+                parts.push('<p class="analytics-basis" style="margin-top: 10px;">test-design-agent: '
+                    + anFmtNum(design.tests_offered || 0) + ' test(s) offered, '
+                    + anFmtNum(design.pushed_as_is || 0) + ' pushed to TestRail as written, '
+                    + anFmtNum(design.pushed_after_edits || 0) + ' pushed after edits.</p>');
+            }
+            const rLessons = review.lessons || [];
+            if (rLessons.length) {
+                parts.push('<h4 style="margin: 16px 0 6px 0; font-size: 13px;">Lessons</h4>');
+                parts.push('<div style="overflow-x: auto;"><table><thead><tr><th>Lesson</th><th>Agent</th>'
+                    + '<th>Says</th><th>Runs given it</th><th>Accepted as is</th><th>After edits</th>'
+                    + '<th>Rejected</th><th>Not reviewed</th></tr></thead><tbody>');
+                rLessons.forEach(function (l) {
+                    parts.push('<tr><td style="font-weight: 500;">' + anEsc(l.id) + '</td>'
+                        + '<td>' + anEsc(l.agent || '—') + '</td>'
+                        + '<td style="max-width: 380px; white-space: normal;">' + anEsc(l.statement || '—') + '</td>'
+                        + '<td>' + anFmtNum(l.runs || 0) + '</td>'
+                        + '<td>' + anFmtNum(l.accept || 0) + '</td>'
+                        + '<td>' + anFmtNum(l.edited || 0) + '</td>'
+                        + '<td>' + anFmtNum(l.reject || 0) + '</td>'
+                        + '<td>' + anFmtNum(l.not_reviewed || 0) + '</td></tr>');
+                });
+                parts.push('</tbody></table></div>');
+            }
+            const bySource = review.explicit_by_source || {};
+            const sourceNames = { github: 'on PRs', studio: 'in the Studio', cli: 'from the CLI', slack: 'in Slack' };
+            const sourceText = Object.keys(bySource).map(k => anFmtNum(bySource[k]) + ' ' + (sourceNames[k] || k));
+            if (sourceText.length) {
+                parts.push('<p class="analytics-basis" style="margin-top: 10px;">Feedback given in this window: '
+                    + anEsc(sourceText.join(', ')) + '.</p>');
+            }
+            parts.push('</div>');
             parts.push('</div>'); // end QA Agents Tab
 
             // ── AI TEST STUDIO TAB ──
