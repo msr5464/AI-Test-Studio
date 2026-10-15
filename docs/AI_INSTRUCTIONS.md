@@ -3,11 +3,11 @@
 **Before you tell the user that any task is completed:**
 
 1. **Run self-testing** so the task is not marked done with broken behavior.
-2. **If the change touched backend/API or tests:** run the relevant test suite (e.g. `pytest tests/` or the specific test file).
+2. **If the change touched backend/API or tests:** run the relevant tests — `FLASK_DEBUG=true python -m pytest -m "not integration"` or the specific file (see [tests/README.md](../tests/README.md#running-the-suite); `pip install pytest` first if needed).
 3. **If the change touched the UI (customer portal, admin portal, or any frontend HTML/JS/CSS):** run the **UI self-test checklist** and only then say the task is complete.
    - **Before UI self-test:** Kill the old server and start it again so the app loads fresh code/data; wait until the server responds (e.g. curl returns 200).
    - **Checklist:** [tests/README.md](../tests/README.md#ui-self-test-checklist-run-after-any-uifrontend-change) — **UI self-test checklist** section.
-   - **Scope:** Customer portal (Ask, Requirement Analysis, Generated tests, Push selected), Admin portal (TestRail Sync, Confluence Sync, documents, ChromaDB). For Confluence Sync, click the **Confluence** "Sync Now" button (id `confluenceSyncNowBtn`), not TestRail's; wait for logs in UI and runtime.
+   - **Scope:** whatever pages the change touched — the checklist covers each customer page and admin section.
 
 **Do not report "task complete" or "done" until you have run the appropriate self-testing (unit/integration and/or UI checklist) and confirmed it passes (or documented the failure and fixed it).**
 

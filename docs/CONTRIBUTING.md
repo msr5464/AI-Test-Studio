@@ -32,7 +32,7 @@ This project adheres to a code of conduct that all contributors are expected to 
    ```
 3. **Add the upstream repository**:
    ```bash
-   git remote add upstream https://github.com/original-owner/AI-Test-Studio.git
+   git remote add upstream https://github.com/msr5464/AI-Test-Studio.git
    ```
 
 ---
@@ -70,9 +70,10 @@ This project adheres to a code of conduct that all contributors are expected to 
    # Copy environment template
    cp config/env.example config/.env
    
-   # Edit config/.env with your settings
-   # At minimum, set:
-   # - SECRET_KEY (generate a secure key)
+   # Edit config/.env. At minimum, either set a real SECRET_KEY:
+   #   python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+   # or set FLASK_DEBUG=true for local development — the app refuses to
+   # start with the placeholder key otherwise.
    ```
 
 4. **Install and start Ollama** (if not already installed):
@@ -94,6 +95,11 @@ This project adheres to a code of conduct that all contributors are expected to 
    ```bash
    python backend/app.py
    ```
+   The first start prints a random password for the `admin` user, once.
+
+7. **Optional — the agent pages** need a running
+   [QA Agent Network](https://github.com/msr5464/QA-AI-Agent) server (a sibling
+   repo); see its README.
 
 ---
 
@@ -203,38 +209,32 @@ def process_document(file_path: str) -> dict:
 
 ## Project Structure
 
-Understanding the project structure helps you contribute effectively:
-
-```
-AI-Test-Studio/
-├── backend/              # Backend API server
-│   ├── api/             # API routes (admin, customer, auth, agents)
-│   ├── services/        # Business logic (RAG, sync, settings, etc.)
-│   ├── rag/             # RAG classes (base, multi-format, ChromaDB, caching)
-│   ├── connectors/      # External integrations (TestRail, Confluence)
-│   ├── extractors/      # Requirement extraction logic
-│   └── app.py          # Main Flask application
-├── frontend/             # Frontend interfaces
-│   ├── admin/           # Admin UI
-│   └── customer/        # Customer UI
-├── config/              # Configuration files (env.example)
-├── docs/                # Documentation
-├── scripts/             # Deployment scripts
-├── tests/               # Automated tests
-└── storage/             # Data storage (gitignored at runtime)
-```
+See the [README's project structure](../README.md#project-structure) and
+[ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) for how the pieces fit.
 
 ### Where to Make Changes
 
-- **New API endpoints**: `backend/api/`
+- **New API endpoints**: `backend/api/` (and document them in [API.md](API.md))
+- **Business logic**: `backend/services/`
 - **RAG functionality**: `backend/rag/`
-- **Frontend UI**: `frontend/`
-- **Configuration**: `config/env.example`
+- **Frontend UI**: `frontend/customer/index.html`, `frontend/admin/`
+- **Configuration**: `config/env.example` — every new setting goes there
+- **Tests**: `tests/`
 - **Documentation**: `docs/`
 
 ---
 
 ## Testing
+
+### Automated tests
+
+```bash
+pip install pytest
+FLASK_DEBUG=true python -m pytest -m "not integration"
+```
+
+See [tests/README.md](../tests/README.md) for what the suite covers, the
+integration tests, and the UI self-test checklist to run after any frontend change.
 
 ### Manual Testing
 
@@ -242,8 +242,8 @@ Before submitting a PR, test your changes:
 
 1. **Test the feature you added/modified**
 2. **Test related features** to ensure no regressions
-3. **Test on different platforms** if possible (Windows, macOS, Linux)
-4. **Test with different document types** (PDF, CSV, Excel, Text)
+3. **Run the UI self-test checklist** in [tests/README.md](../tests/README.md) for any UI change
+4. **Test on different platforms** if possible (Windows, macOS, Linux)
 
 ### Testing Checklist
 
@@ -267,7 +267,7 @@ Before submitting a PR, test your changes:
 
 ### PR Review Process
 
-1. **Automated checks** (if configured) must pass
+1. **Tests pass locally** — there is no CI in this repo yet
 2. **Code review** by maintainers
 3. **Address feedback** and update PR
 4. **Approval** from maintainers

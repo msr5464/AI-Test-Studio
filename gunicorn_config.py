@@ -24,7 +24,9 @@ backlog = 2048
 # I/O-bound so threads run truly in parallel despite the GIL.
 workers = 1
 worker_class = 'gthread'
-threads = int(os.getenv('GUNICORN_THREADS', max(8, multiprocessing.cpu_count() * 2)))
+# Every open page holds a thread per stream (agent consoles, Requirements → Tests runs),
+# so the default leaves room for several viewers plus ordinary requests.
+threads = int(os.getenv('GUNICORN_THREADS', max(32, multiprocessing.cpu_count() * 4)))
 worker_connections = 1000
 # Analyses can take up to 15 min; keepalives every 25s keep the worker alive.
 timeout = int(os.getenv('GUNICORN_TIMEOUT', 900))
@@ -52,8 +54,11 @@ tmp_upload_dir = None
 # certfile = '/path/to/certfile'
 
 # Performance tuning
-max_requests = 2000  # Restart worker after 2000 requests to reclaim leaked memory
-max_requests_jitter = 200  # Randomize restart to avoid thundering herd
+# No periodic worker recycling. There is only one worker, so a recycle drops every live
+# stream, and Requirements → Tests runs live in this process: each recycle (pages poll,
+# so 2000 requests came every hour or two) ended them as "Interrupted".
+max_requests = 0
+max_requests_jitter = 0
 preload_app = False  # Set to False to avoid issues with ChromaDB and path resolution
 
 # Graceful timeout for worker restart

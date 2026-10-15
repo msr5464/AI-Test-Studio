@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AI Test Studio - Admin Login — Powered by QA Agent Network</title>
     <style>
         /* Theme system – match Customer portal (dark default) */
@@ -492,11 +495,18 @@
 
         checkAuth();
 
+        window.addEventListener('pageshow', function (event) {
+            checkAuth();
+        });
+
         async function checkAuth() {
             try {
                 const response = await fetch(API_BASE + '/me', { credentials: 'include' });
                 if (response.ok) {
-                    window.location.href = '/admin';
+                    const data = await response.json();
+                    if (data && data.success && data.user && data.user.role === 'admin') {
+                        window.location.replace('/admin');
+                    }
                 }
             } catch (e) { }
         }
@@ -518,7 +528,7 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    window.location.href = '/admin';
+                    window.location.replace('/admin');
                 } else {
                     errorMessage.textContent = data.error || 'Login failed';
                     errorMessage.classList.add('show');

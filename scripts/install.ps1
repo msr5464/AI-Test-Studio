@@ -119,10 +119,9 @@ if (-not (Test-Path "config\.env")) {
     Write-Host "   To generate a secure SECRET_KEY, run:" -ForegroundColor White
     Write-Host "   python -c \"import secrets; print(secrets.token_hex(32))\"" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "   For development, the default values will work, but change SECRET_KEY for production!" -ForegroundColor Yellow
+    Write-Host "   Set SECRET_KEY in config\.env (or FLASK_DEBUG=true for local use) - the app refuses to start with the placeholder." -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "   Default admin credentials: admin / admin123" -ForegroundColor White
-    Write-Host "   ⚠️  Change the default admin password after first login!" -ForegroundColor Yellow
+    Write-Host "   Admin user: admin - its random password is printed once when the app first starts. Save it!" -ForegroundColor White
 } else {
     Write-Host "⚠️  Configuration file already exists: config\.env" -ForegroundColor Yellow
     Write-Host "   Skipping creation. Edit it manually if needed." -ForegroundColor White
@@ -141,8 +140,8 @@ Write-Host "   ollama pull llama3.2:3b" -ForegroundColor Gray
 Write-Host ""
 Write-Host "2. Configure your environment (optional for development):" -ForegroundColor White
 Write-Host "   - Edit config\.env to customize settings" -ForegroundColor Gray
-Write-Host "   - For production: Change SECRET_KEY" -ForegroundColor Gray
-Write-Host "   - Default admin credentials: admin / admin123 (change after first login!)" -ForegroundColor Gray
+Write-Host "   - Set a real SECRET_KEY in config\.env before starting the app" -ForegroundColor Gray
+Write-Host "   - Admin user: admin (password printed once on first start)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "3. Start the application:" -ForegroundColor White
 Write-Host "   .\scripts\run.ps1" -ForegroundColor Gray

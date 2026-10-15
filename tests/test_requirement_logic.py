@@ -45,7 +45,7 @@ def _make_test_pct(priority="P0", similarity_pct=85.0, testrail_id="TC-1"):
 
 def _import_funcs(coverage_min_sim="80", min_tests_per_priority="3"):
     """Re-import requirement_analysis_service with specific env vars set."""
-    os.environ["REQUIREMENT_COVERAGE_SUFFICIENT_MIN_SIMILARITY"] = coverage_min_sim
+    os.environ["REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY"] = coverage_min_sim
     os.environ["REQUIREMENT_MIN_TESTS_PER_PRIORITY"] = min_tests_per_priority
     import backend.services.requirement_analysis_service as m
     importlib.reload(m)
@@ -64,14 +64,14 @@ class TestSettingsSchema:
             "requirement_needs_update_confidence_threshold must be removed from SETTINGS_SCHEMA"
         )
 
-    def test_coverage_sufficient_min_similarity_present(self):
+    def test_coverage_min_similarity_present(self):
         from backend.services.settings_service import SETTINGS_SCHEMA
         keys = [e["key"] for e in SETTINGS_SCHEMA]
-        assert "requirement_coverage_sufficient_min_similarity" in keys
+        assert "requirement_tests_coverage_min_similarity" in keys
 
-    def test_coverage_sufficient_min_similarity_in_requirements_category(self):
+    def test_coverage_min_similarity_in_requirements_category(self):
         from backend.services.settings_service import SETTINGS_SCHEMA
-        entry = next(e for e in SETTINGS_SCHEMA if e["key"] == "requirement_coverage_sufficient_min_similarity")
+        entry = next(e for e in SETTINGS_SCHEMA if e["key"] == "requirement_tests_coverage_min_similarity")
         assert entry["category"] == "requirements"
         assert entry["type"] == "number"
         assert entry["min"] == 0
@@ -82,11 +82,13 @@ class TestSettingsSchema:
         req_keys = {e["key"] for e in SETTINGS_SCHEMA if e["category"] == "requirements"}
         expected = {
             "requirement_retrieval_k",
-            "requirement_retrieval_similarity_threshold",
+            "requirement_tests_similarity_threshold",
+            "requirement_specs_similarity_threshold",
             "requirement_use_hybrid_search",
             "requirement_use_reranking",
             "requirement_min_tests_per_priority",
-            "requirement_coverage_sufficient_min_similarity",
+            "requirement_tests_coverage_min_similarity",
+            "requirement_parallel_processing",
         }
         assert req_keys == expected
 
@@ -437,7 +439,7 @@ class TestRemovedEnvVarNotUsed:
     def test_old_env_var_not_read_by_analyze_function(self):
         """
         Set REQUIREMENT_NEEDS_UPDATE_CONFIDENCE_THRESHOLD to a nonsense value.
-        The band split should use REQUIREMENT_COVERAGE_SUFFICIENT_MIN_SIMILARITY
+        The band split should use REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY
         instead. We verify by inspecting the source code directly.
         """
         import backend.services.requirement_analysis_service as m
@@ -450,11 +452,11 @@ class TestRemovedEnvVarNotUsed:
         )
 
     def test_coverage_min_similarity_env_var_controls_band(self):
-        """REQUIREMENT_COVERAGE_SUFFICIENT_MIN_SIMILARITY must appear in the source."""
+        """REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY must appear in the source."""
         import backend.services.requirement_analysis_service as m
         import inspect
         src = inspect.getsource(m)
-        assert "REQUIREMENT_COVERAGE_SUFFICIENT_MIN_SIMILARITY" in src
+        assert "REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY" in src
 
 
 # ===========================================================================

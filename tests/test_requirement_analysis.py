@@ -66,7 +66,7 @@ class TestRequirementAnalysisAPI:
         return create_app()
 
     @pytest.fixture
-    def client(self, app):
+    def client(self, app, signed_in):
         return app.test_client()
 
     @patch("backend.api.customer.routes.RequirementAnalysisService")
@@ -168,7 +168,7 @@ class TestStreamTrim:
 
     def test_trim_result_for_stream_preserves_recommended_e2e_set(self):
         """_trim_result_for_stream preserves recommended_e2e_set and coverage_gap_reason_per_req."""
-        from backend.api.customer.routes import _trim_result_for_stream
+        from backend.services.requirement_runs import _trim_result_for_stream
 
         result = {
             "success": True,
@@ -184,7 +184,7 @@ class TestStreamTrim:
         assert out.get("coverage_gap_reason_per_req") == result["coverage_gap_reason_per_req"]
 
     def test_trim_requirement_result_preserves_related_tests_and_needing_update(self):
-        from backend.api.customer.routes import _trim_requirement_result_for_stream
+        from backend.services.requirement_runs import _trim_requirement_result_for_stream
 
         data = {
             "requirement": {"id": "REQ-1", "title": "Login", "description": "Login flow"},
@@ -462,7 +462,12 @@ class TestCoverageSufficientGeneration:
             {"testrail_id": "C1", "title": "Partial flow", "content": "Only one step.", "priority": "P0", "similarity_score": 0.82},
         ]
 
-        with patch.object(RequirementAnalysisService, "_assess_updates", return_value=([], ["C1"])):
+        # Two gates decide generation: Gate 1 (too few tests per priority) and
+        # Gate 2 (the LLM content check). Both must find a gap; a mocked LLM
+        # otherwise reads as "covered" and nothing is generated.
+        with patch.object(RequirementAnalysisService, "_assess_updates", return_value=([], ["C1"])), \
+             patch.object(RequirementAnalysisService, "_is_coverage_sufficient",
+                          return_value=(False, "dashboard verification is not covered")):
             with patch.object(RequirementAnalysisService, "_generate_tests_for_requirement", return_value=[{"title": "E2E full flow", "priority": "P1", "generated": True}]) as gen_mock:
                 svc = RequirementAnalysisService(rag_service=mock_rag)
                 result = svc.analyze(text="REQ-001: User must complete login and verify dashboard.", generate_new_tests=True)
@@ -539,7 +544,7 @@ class TestComputeGeneratePriorities:
         assert _compute_generate_priorities(tests, generate_p2_p3=False) == ["P1"]
 
     def test_ignores_weak_matches_below_similarity_threshold(self):
-        """Tests with similarity_score below REQUIREMENT_COVERAGE_SUFFICIENT_MIN_SIMILARITY don't count toward cap."""
+        """Tests with similarity_score below REQUIREMENT_TESTS_COVERAGE_MIN_SIMILARITY don't count toward cap."""
         from backend.services.requirement_analysis_service import _compute_generate_priorities
 
         # 3 P0 and 3 P1 but all with low similarity (0.5) -> they don't count, so we need both P0 and P1
@@ -609,12 +614,12 @@ class TestCoverageSufficientShortcut:
 class TestRequirementAnalysisConfig:
     """Config loading: requirement analysis env vars (renamed for clarity)."""
 
-    def test_config_has_requirement_retrieval_similarity_threshold(self):
-        """REQUIREMENT_RETRIEVAL_SIMILARITY_THRESHOLD loads as requirement_retrieval_similarity_threshold."""
+    def test_config_has_requirement_tests_similarity_threshold(self):
+        """REQUIREMENT_TESTS_SIMILARITY_THRESHOLD loads as requirement_tests_similarity_threshold."""
         from backend.rag.rag_settings import get_config
         config = get_config()
-        assert hasattr(config, "requirement_retrieval_similarity_threshold")
-        val = config.requirement_retrieval_similarity_threshold
+        assert hasattr(config, "requirement_tests_similarity_threshold")
+        val = config.requirement_tests_similarity_threshold
         assert isinstance(val, (int, float))
         assert 0 <= val <= 100
 
@@ -733,7 +738,7 @@ class TestAssessUpdatesNeedsUpdateAndPartial:
         with patch("backend.services.requirement_analysis_service.record_from_langchain_result", return_value=None):
             with patch("langchain_core.prompts.ChatPromptTemplate") as mock_prompt_class:
                 mock_prompt_class.from_messages.return_value = mock_prompt
-                needing, ok_ids = svc._assess_updates("Requirement text", related_tests, confidence_threshold=0.7)
+                needing, ok_ids = svc._assess_updates("Requirement text", related_tests)
         assert len(needing) == 2
         statuses = {n["testrail_id"]: n["status"] for n in needing}
         assert statuses.get("C1") == "needs_update"
@@ -760,7 +765,7 @@ class TestAssessUpdatesNeedsUpdateAndPartial:
         with patch("backend.services.requirement_analysis_service.record_from_langchain_result", return_value=None):
             with patch("langchain_core.prompts.ChatPromptTemplate") as mock_prompt_class:
                 mock_prompt_class.from_messages.return_value = mock_prompt
-                needing, ok_ids = svc._assess_updates("Requirement", related_tests, confidence_threshold=0.7)
+                needing, ok_ids = svc._assess_updates("Requirement", related_tests)
         assert len(needing) == 1
         assert needing[0]["testrail_id"] == "C123"
         assert needing[0]["status"] == "ok"
@@ -914,7 +919,7 @@ class TestRequirementAnalysisSuggestAndUpdateAPI:
         return create_app()
 
     @pytest.fixture
-    def client(self, app):
+    def client(self, app, signed_in):
         return app.test_client()
 
     @patch("backend.api.customer.routes.RequirementAnalysisService")
@@ -1038,7 +1043,7 @@ class TestRequirementAnalysisCreateCaseAPI:
         return create_app()
 
     @pytest.fixture
-    def client(self, app):
+    def client(self, app, signed_in):
         return app.test_client()
 
     @patch("backend.api.customer.routes.RequirementAnalysisService")
@@ -1123,7 +1128,7 @@ class TestRequirementAnalysisIntegration:
         return create_app()
 
     @pytest.fixture
-    def client(self, app):
+    def client(self, app, signed_in):
         return app.test_client()
 
     def test_requirement_analysis_paste_integration(self, client):

@@ -375,7 +375,7 @@ SETTINGS_SCHEMA: List[Dict[str, Any]] = [
         "description": "Min similarity % to retrieve a related test case (0–100). Raise to keep only strong matches; lower to cast a wider net.",
         "type": "number",
         "category": "requirements",
-        "default": 60.0,
+        "default": 50.0,
         "sensitive": False,
         "min": 0,
         "max": 100,
@@ -432,7 +432,7 @@ SETTINGS_SCHEMA: List[Dict[str, Any]] = [
         "description": "Min similarity % for a test to count toward coverage (0–100). Tests below this score are retrieved but excluded from the coverage count.",
         "type": "number",
         "category": "requirements",
-        "default": 80,
+        "default": 70,
         "sensitive": False,
         "min": 0,
         "max": 100,
@@ -461,6 +461,62 @@ SETTINGS_SCHEMA: List[Dict[str, Any]] = [
             {"value": "dark",  "label": "🌙 Dark"},
             {"value": "light", "label": "☀️ Light"},
         ],
+    },
+    # ── Analytics ────────────────────────────────────────────────────────────
+    # Human-minutes-per-outcome baselines. These live here, in ONE place, for
+    # all four AI flows (the three QA agents plus Requirements→Tests) — the
+    # Studio's analytics endpoint applies them to counts from every source.
+    # Splitting them across two settings systems would put halves of one formula
+    # in two different admin tabs.
+    {
+        "key": "analytics_min_per_test_authored",
+        "env_var": "ANALYTICS_MIN_PER_TEST_AUTHORED",
+        "label": "Minutes to hand-write one automated test",
+        "description": "Baseline used to estimate time saved by the authoring agent.",
+        "type": "number",
+        "category": "analytics",
+        "default": 240,
+        "sensitive": False,
+    },
+    {
+        "key": "analytics_min_per_test_fixed",
+        "env_var": "ANALYTICS_MIN_PER_TEST_FIXED",
+        "label": "Minutes to diagnose and fix one broken test",
+        "description": "Baseline used to estimate time saved by the healing agent.",
+        "type": "number",
+        "category": "analytics",
+        "default": 60,
+        "sensitive": False,
+    },
+    {
+        "key": "analytics_min_per_test_adapted",
+        "env_var": "ANALYTICS_MIN_PER_TEST_ADAPTED",
+        "label": "Minutes to adapt one test to a product change",
+        "description": "Baseline used to estimate time saved by the adaptation agent.",
+        "type": "number",
+        "category": "analytics",
+        "default": 150,
+        "sensitive": False,
+    },
+    {
+        "key": "analytics_min_per_test_case_written",
+        "env_var": "ANALYTICS_MIN_PER_TEST_CASE_WRITTEN",
+        "label": "Minutes to write one test case from a requirement",
+        "description": "Baseline used to estimate time saved by Requirements → Tests.",
+        "type": "number",
+        "category": "analytics",
+        "default": 15,
+        "sensitive": False,
+    },
+    {
+        "key": "analytics_default_window",
+        "env_var": "ANALYTICS_DEFAULT_WINDOW",
+        "label": "Default analytics window",
+        "description": "Window the analytics dashboard opens on (24h, 7d, 30d or all).",
+        "type": "text",
+        "category": "analytics",
+        "default": "7d",
+        "sensitive": False,
     },
 ]
 

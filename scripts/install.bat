@@ -143,9 +143,9 @@ if not exist config\.env (
     echo    To generate a secure SECRET_KEY, run:
     echo    python -c "import secrets; print(secrets.token_hex(32))"
     echo.
-    echo    For development, the default values will work, but change SECRET_KEY for production!
+    echo    Set SECRET_KEY in config\.env ^(or FLASK_DEBUG=true for local use^) - the app refuses to start with the placeholder.
     echo.
-    echo    Default admin credentials: admin / admin123
+    echo    Admin user: admin - its random password is printed once when the app first starts. Save it!
     echo    WARNING: Change the default admin password after first login!
 ) else (
     echo WARNING: Configuration file already exists: config\.env
@@ -161,8 +161,8 @@ echo Next Steps:
 echo.
 echo 1. Configure your environment (optional for development):
 echo    - Edit config\.env to customize settings
-echo    - For production: Change SECRET_KEY
-echo    - Default admin credentials: admin / admin123 (change after first login!)
+echo    - Set a real SECRET_KEY in config\.env before starting the app
+echo    - Admin user: admin ^(password printed once on first start^)
 echo.
 echo 2. Start the application:
 echo    scripts\run.bat

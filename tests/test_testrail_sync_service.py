@@ -323,3 +323,18 @@ class TestSyncFrontend:
         assert 'id="syncLogContainer" style="margin-top: 16px;">' in admin_html or (
             "syncLogContainer" in admin_html and 'display: none' not in admin_html.split("syncLogContainer")[1].split(">")[0]
         ), "syncLogContainer should be visible (no display:none)"
+
+
+def test_a_sync_interrupted_by_a_restart_is_cleared_at_startup(tmp_path, monkeypatch):
+    """Syncs run in-process, so is_syncing at boot can only be a dead sync."""
+    import json
+    from backend import app as app_module
+    monkeypatch.setenv("STORAGE_DIR", str(tmp_path))
+    (tmp_path / "testrail_sync_metadata.json").write_text(json.dumps(
+        {"is_syncing": True, "sync_started_at": "2026-09-24T17:00:09", "sync_log": []}))
+
+    app_module._clear_interrupted_syncs()
+
+    data = json.loads((tmp_path / "testrail_sync_metadata.json").read_text())
+    assert data["is_syncing"] is False
+    assert any("Interrupted" in line for line in data["sync_log"])

@@ -1,1189 +1,389 @@
-# API Documentation
+# API Reference
 
-Complete REST API reference for AI Test Studio.
+REST API of AI Test Studio. Base URL: `http://localhost:5001/api`.
 
-## Base URL
-
-```
-http://localhost:5001/api
-```
-
-Default port is `5001` (configurable via `PORT` in `config/.env`).
+- [Authentication and access](#authentication-and-access)
+- [Auth API](#auth-api) — `/api/auth`
+- [Customer API](#customer-api) — `/api/customer`
+- [Admin API](#admin-api) — `/api/admin`
+- [Agents proxy](#agents-proxy) — `/api/agents`
+- [Errors and limits](#errors-and-limits)
 
 ---
 
-## Authentication
+## Authentication and access
 
-### Session-Based Authentication
+The API uses the Flask **session cookie** set by `POST /api/auth/login`. Send it
+with every request (`curl -b cookies.txt`, `fetch(..., {credentials: 'include'})`).
 
-The system uses session-based authentication with username and password. All authenticated requests require session cookies.
+| Prefix | Who may call it |
+|--------|-----------------|
+| `/api/auth/login`, `/api/auth/signup`, `/api/auth/logout`, `/api/auth/me` | anyone |
+| `/api/customer/*`, `/api/agents/*`, `/api/auth/change-password` | any **active** user (admin, member or customer) |
+| `/api/admin/*`, `/api/auth/users*` | admins only |
+| `GET /api/admin/settings/public`, `GET /health` | anyone |
 
-**Default Admin Credentials:**
-- **Username**: `admin`
-- **Password**: `admin123`
+A user who is not signed in gets **401**; a signed-in user who is
+`pending_approval`, `rejected` or `suspended`, or a non-admin on an admin route,
+gets **403**.
 
-⚠️ **IMPORTANT**: Change the default admin password immediately after first login!
-
-### Admin Endpoints
-
-All admin endpoints require an authenticated admin session. Login via `/api/auth/login` first to establish a session.
-
-**Login Example:**
 ```bash
-curl -X POST http://localhost:5001/api/auth/login \
+# Log in and keep the cookie
+curl -c cookies.txt -X POST http://localhost:5001/api/auth/login \
   -H "Content-Type: application/json" \
-  -c cookies.txt \
-  -d '{"username": "admin", "password": "admin123"}'
-```
+  -d '{"username": "admin", "password": "<printed at first start>"}'
 
-**Using Session:**
-```bash
-# Include cookies in subsequent requests
-curl -X GET http://localhost:5001/api/admin/documents \
-  -b cookies.txt
-```
-
-### Customer Endpoints
-
-Customer endpoints are publicly accessible (no authentication required).
-
----
-
-## Authentication & User Management Endpoints
-
-### Login
-
-Authenticate and create a session.
-
-**Endpoint:** `POST /api/auth/login`
-
-**Body:**
-```json
-{
-  "username": "admin",
-  "password": "admin123"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "user": {
-    "user_id": "uuid-here",
-    "username": "admin",
-    "role": "admin"
-  }
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/auth/login \
+# Use it
+curl -b cookies.txt -X POST http://localhost:5001/api/customer/query \
   -H "Content-Type: application/json" \
-  -c cookies.txt \
-  -d '{"username": "admin", "password": "admin123"}'
+  -d '{"question": "Which tests cover password reset?"}'
 ```
+
+The default `admin` account is created on first start with a random password,
+printed once to the console. User ids are `md5(username)[:12]`.
 
 ---
 
-### Logout
+## Auth API
 
-End the current session.
+### `POST /api/auth/login`
 
-**Endpoint:** `POST /api/auth/logout`
-
-**Response:**
 ```json
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
+{"username": "admin", "password": "…"}
+```
+**200** `{"success": true, "user": {"user_id", "username", "role"}}` — sets the
+session cookie. **401** invalid credentials, or
+`{"success": false, "error": "Account pending approval or suspended", "status": "pending_approval"}`.
+**429** after 10 failed attempts from one IP in 15 minutes.
+
+### `POST /api/auth/signup`
+
+```json
+{"username": "jane", "password": "…"}
+```
+**201** `{"success": true, "status": "pending_approval", "message": "…"}`. Creates a
+`member` who cannot use the app until an admin approves them. **400** for a taken
+or invalid username. Limited to 10 sign-ups per IP per 15 minutes (**429**).
+
+### `POST /api/auth/logout`
+
+**200** `{"success": true, "message": "Logged out successfully"}`
+
+### `GET /api/auth/me`
+
+**200** `{"success": true, "user": {"user_id", "username", "role", "status"}}`.
+**403** `{"success": false, "status": "<status>", …}` for an inactive account,
+**401** when not signed in.
+
+### `POST /api/auth/change-password` (signed in)
+
+```json
+{"old_password": "…", "new_password": "…"}
 ```
 
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/auth/logout \
-  -b cookies.txt
-```
+### User management (admin)
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| `GET` | `/api/auth/users` | — | `{"success", "users": [{"user_id", "username", "role", "status", "created_at", …}]}` |
+| `POST` | `/api/auth/users` | `{"username", "password", "role"}` | `role` is `admin` or `customer` (default `customer`). **201** `{"success", "user": {…}}` |
+| `PUT` | `/api/auth/users/<user_id>` | `{"role"?, "status"?}` | `role`: `admin` / `customer` / `member`; `status`: `pending_approval` / `active` / `rejected` / `suspended`. Refuses (400) to demote or deactivate the last active admin. **200** `{"success": true}` |
+| `DELETE` | `/api/auth/users/<user_id>` | — | |
+| `POST` | `/api/auth/users/<user_id>/reset-password` | `{"new_password"}` | |
+
+A user created through `POST /users` is `active` immediately — an admin creating
+the account is its approval.
 
 ---
 
-### Get Current User
+## Customer API
 
-Get information about the currently authenticated user.
+All routes need an active account.
 
-**Endpoint:** `GET /api/auth/me`
+### `GET /api/customer/config`
 
-**Response:**
+`{"testrail_url": "https://yourcompany.testrail.io"}` — used by the page to link case ids.
+
+### `GET /api/customer/health`
+
+`{"success": true, "status": "healthy", "service": "rag-customer-api"}`. For an
+unauthenticated health check use `GET /health`.
+
+### `POST /api/customer/query` — Talk to your Tests
+
+```json
+{"question": "Which tests cover password reset?", "use_rag": true, "bypass_cache": false, "session_id": "optional"}
+```
+
+`use_rag: false` asks the LLM directly, without retrieval (`"mode": "direct_llm"`
+in the response); the page always sends `true` (`"mode": "rag"`).
+
+**200**
 ```json
 {
   "success": true,
-  "user": {
-    "user_id": "uuid-here",
-    "username": "admin",
-    "role": "admin",
-    "created_at": "2024-01-01T12:00:00",
-    "last_login": "2024-01-01T12:00:00"
-  }
+  "question": "…",
+  "answer": "…",
+  "mode": "rag",
+  "sources": ["…"],
+  "source_documents": [{"…": "…"}],
+  "query_time_ms": 1840,
+  "cache_hit": false,
+  "metrics": {"calls": 1, "cost_usd": 0.0012, "input_tokens": 2310, "output_tokens": 240, "duration_s": 1.9}
 }
 ```
+**400** missing or empty `question`; **500** on an LLM or retrieval error.
 
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/auth/me \
-  -b cookies.txt
-```
+### Requirements → Tests
 
----
+#### Input (shared by the two endpoints below)
 
-### List Users (Admin Only)
+JSON, or `multipart/form-data` for files. Provide **exactly one** input type
+(mixing them is a 400):
 
-Get list of all users in the system.
+| Field | Type | |
+|-------|------|---|
+| `requirement_spec` | string | Pasted text |
+| `file` | file, repeatable | `.txt`, `.pdf`, `.docx`, `.doc` |
+| `confluence_urls` (or `confluence_url`) | list, or newline-separated string | Confluence page URLs (needs `CONFLUENCE_*` configured) |
 
-**Endpoint:** `GET /api/auth/users`
+Options: `generate_new_tests` (default `true`), `generate_p2_p3_tests` (default
+`false`; P0–P1 otherwise), `push_to_testrail` (default `false`),
+`target_section_id` (int), `use_section_of_related` (push each requirement's
+tests into the section of its first related test).
 
-**Response:**
+#### `POST /api/customer/requirement-analysis/runs` — background run (what the UI uses)
+
+A run executes in the background, so it survives a refresh or a closed tab, and
+is stopped after 20 minutes. Every event it emits is recorded for History. Runs
+are private to the user who started them — anyone else gets **404**.
+
+**201** — the run's History row:
 ```json
 {
-  "success": true,
-  "users": [
-    {
-      "user_id": "uuid-here",
-      "username": "admin",
-      "role": "admin",
-      "created_at": "2024-01-01T12:00:00",
-      "last_login": "2024-01-01T12:00:00"
-    }
-  ],
-  "count": 1
+  "session_id": "20260916-143012-req-3f9a1c",
+  "status": "running",
+  "started_at": "2026-09-16T14:30:12",
+  "started_epoch": 1789551012.4,
+  "source": "Pasted text",
+  "title": "",
+  "source_type": "text",
+  "generate_new_tests": true,
+  "duration_s": null, "cost_usd": null, "input_tokens": null, "output_tokens": null,
+  "llm_calls": null, "requirements": null, "tests_generated": null, "error": ""
 }
 ```
 
-**Example:**
+| Method | Path | |
+|--------|------|---|
+| `GET` | `/requirement-analysis/runs?limit=20` | `{"items": [row, …]}`, newest first (limit 1–50; 50 kept per user). `status`: `running`, `completed`, `failed`, `cancelled`, `interrupted` (server restarted mid-run) |
+| `GET` | `/requirement-analysis/runs/<session_id>/stream` | `text/event-stream`: every recorded event, then live ones until the run ends. Frames carry `id:`; reconnecting with `Last-Event-ID` resumes after it |
+| `GET` | `/requirement-analysis/runs/<session_id>/events` | `{"events": […]}` — the same events in one response, for replay |
+| `POST` | `/requirement-analysis/runs/<session_id>/cancel` | `{"status": "cancelling", "session_id"}`; **409** if not running. Ends `cancelled` with what it analysed so far |
+
+Events (each carries `ts`, epoch seconds), in order:
+- `{"type": "config", …}` — session, source, options and similarity thresholds
+- `{"type": "phase", "state": "start" | "done", "index", "total", "key", "name", "duration_s"?, "cost_usd"?, "llm_calls"?}` — six phases in order: Extract Requirements (`extract`), Derive Acceptance Criteria (`criteria`), Find Related Tests (`find-tests`), Check Coverage (`coverage`), Write Missing Tests (`write-tests`), Build E2E Tests (`e2e`)
+- `{"type": "log", "phase", "text"}` — a console line within the open phase
+- `{"stage", "message", "progress", "closed_stage"?}` — progress (0–1)
+- `{"type": "doc_summary", "data"}`, `{"type": "requirement_step", "req_id", "step"}`
+- `{"type": "requirement_result", "req_id", "data"}` — one per requirement
+- `{"type": "testrail_push", …}` — a later push recorded against the run
+- the final event: the full analysis result (below) plus `"status"`, or `{"success": false, "error", "status"}`
+
 ```bash
-curl -X GET http://localhost:5001/api/auth/users \
-  -b cookies.txt
-```
-
----
-
-### Create User (Admin Only)
-
-Create a new user account.
-
-**Endpoint:** `POST /api/auth/users`
-
-**Body:**
-```json
-{
-  "username": "newuser",
-  "password": "securepassword",
-  "role": "customer"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "user": {
-    "user_id": "uuid-here",
-    "username": "newuser",
-    "role": "customer",
-    "created_at": "2024-01-01T12:00:00"
-  }
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/auth/users \
+curl -b cookies.txt -X POST http://localhost:5001/api/customer/requirement-analysis/runs \
   -H "Content-Type: application/json" \
-  -b cookies.txt \
-  -d '{"username": "newuser", "password": "securepassword", "role": "customer"}'
+  -d '{"requirement_spec": "REQ-001: User must reset password via email.", "generate_new_tests": true}'
+curl -b cookies.txt -N http://localhost:5001/api/customer/requirement-analysis/runs/<session_id>/stream
 ```
 
----
+#### `POST /api/customer/requirement-analysis` — synchronous
 
-### Update User Role (Admin Only)
+Same input; blocks until the analysis finishes and returns the result directly.
+Kept for scripts — the UI uses runs.
 
-Change a user's role (admin/customer).
-
-**Endpoint:** `PUT /api/auth/users/<user_id>`
-
-**Body:**
-```json
-{
-  "role": "admin"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "user": {
-    "user_id": "uuid-here",
-    "username": "user",
-    "role": "admin"
-  }
-}
-```
-
-**Example:**
-```bash
-curl -X PUT http://localhost:5001/api/auth/users/uuid-here \
-  -H "Content-Type: application/json" \
-  -b cookies.txt \
-  -d '{"role": "admin"}'
-```
-
----
-
-### Delete User (Admin Only)
-
-Delete a user account.
-
-**Endpoint:** `DELETE /api/auth/users/<user_id>`
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "User deleted successfully"
-}
-```
-
-**Example:**
-```bash
-curl -X DELETE http://localhost:5001/api/auth/users/uuid-here \
-  -b cookies.txt
-```
-
----
-
-### Reset User Password (Admin Only)
-
-Reset a user's password (admin can reset any user's password).
-
-**Endpoint:** `POST /api/auth/users/<user_id>/reset-password`
-
-**Body:**
-```json
-{
-  "new_password": "newsecurepassword"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Password reset successfully"
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/auth/users/uuid-here/reset-password \
-  -H "Content-Type: application/json" \
-  -b cookies.txt \
-  -d '{"new_password": "newsecurepassword"}'
-```
-
----
-
-### Change Password
-
-Change your own password.
-
-**Endpoint:** `POST /api/auth/change-password`
-
-**Body:**
-```json
-{
-  "old_password": "oldpassword",
-  "new_password": "newpassword"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Password changed successfully"
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/auth/change-password \
-  -H "Content-Type: application/json" \
-  -b cookies.txt \
-  -d '{"old_password": "oldpassword", "new_password": "newpassword"}'
-```
-
----
-
-## Admin Endpoints
-
-### Upload Document
-
-Upload and process a document.
-
-**Endpoint:** `POST /api/admin/upload`
-
-**Authentication:** Requires admin session (login first)
-
-**Body:** `multipart/form-data`
-- `file`: Document file (PDF, CSV, Excel, Text)
-
-**Response:**
-```json
-{
-  "success": true,
-  "document_id": "uuid-here",
-  "message": "Document uploaded and processed successfully",
-  "replaced": false
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/admin/upload \
-  -b cookies.txt \
-  -F "file=@document.pdf"
-```
-
----
-
-### List Documents
-
-Get list of all uploaded documents.
-
-**Endpoint:** `GET /api/admin/documents`
-
-**Authentication:** Requires admin session (login first)
-
-**Response:**
-```json
-{
-  "success": true,
-  "documents": [
-    {
-      "id": "uuid-here",
-      "name": "document.pdf",
-      "path": "/path/to/document",
-      "uploaded_at": "2024-01-01T12:00:00",
-      "status": "processed"
-    }
-  ],
-  "count": 1
-}
-```
-
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/admin/documents \
-  -b cookies.txt
-```
-
----
-
-### Delete Document
-
-Delete a document by ID.
-
-**Endpoint:** `DELETE /api/admin/documents/<document_id>`
-
-**Authentication:** Requires admin session (login first)
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Document deleted successfully"
-}
-```
-
-**Example:**
-```bash
-curl -X DELETE http://localhost:5001/api/admin/documents/uuid-here \
-  -b cookies.txt
-```
-
----
-
-### Download Document
-
-Download a document file.
-
-**Endpoint:** `GET /api/admin/documents/<document_id>/download`
-
-**Authentication:** Requires admin session (login first)
-
-**Response:** File download
-
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/admin/documents/uuid-here/download \
-  -b cookies.txt \
-  -o downloaded-file.pdf
-```
-
----
-
-### Get System Statistics
-
-Get system statistics (document count, chunk count, etc.).
-
-**Endpoint:** `GET /api/admin/stats`
-
-**Authentication:** Requires admin session (login first)
-
-**Response:**
-```json
-{
-  "success": true,
-  "total_documents": 5,
-  "total_chunks": 42,
-  "rag_config": {
-    "use_hybrid_search": false,
-    "use_reranking": false,
-    "enable_query_cache": true,
-    "enable_embedding_cache": true
-  }
-}
-```
-
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/admin/stats \
-  -b cookies.txt
-```
-
----
-
-### Get ChromaDB Contents
-
-View all chunks stored in ChromaDB.
-
-**Endpoint:** `GET /api/admin/chromadb`
-
-**Authentication:** Requires admin session (login first)
-
-**Response:**
-```json
-{
-  "success": true,
-  "collection_name": "rag_collection",
-  "total_chunks": 42,
-  "has_embeddings": true,
-  "embedding_dimension": 384,
-  "chunks": [
-    {
-      "id": "chunk-id",
-      "index": 1,
-      "content": "Chunk content preview...",
-      "content_full": "Full chunk content...",
-      "content_length": 500,
-      "metadata": {...},
-      "file_path": "/path/to/document.pdf",
-      "source": "document.pdf",
-      "document_id": "uuid-here"
-    }
-  ]
-}
-```
-
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/admin/chromadb \
-  -b cookies.txt
-```
-
----
-
-### Reset ChromaDB
-
-Reset the entire database (deletes all documents, chunks, and cache).
-
-**⚠️ Warning:** This action cannot be undone!
-
-**Endpoint:** `POST /api/admin/chromadb/reset`
-
-**Authentication:** Requires admin session (login first)
-- `Content-Type`: application/json
-
-**Body:**
-```json
-{
-  "delete_all": true
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Database reset successfully. Deleted 5 document file(s), 10 ChromaDB file(s), 15 embedding cache file(s) and all vector data.",
-  "deleted_files": 30,
-  "details": {
-    "documents": 5,
-    "chroma_db_files": 10,
-    "embedding_cache_files": 15
-  }
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/admin/chromadb/reset \
-  -H "Content-Type: application/json" \
-  -b cookies.txt \
-  -d '{"delete_all": true}'
-```
-
----
-
-### Trigger TestRail Sync
-
-Start a background sync that pulls all TestRail test cases into the vector store.
-
-**Endpoint:** `POST /api/admin/sync/testrail`
-
-**Authentication:** Requires admin session
-
-**Response (202 Accepted):**
-```json
-{
-  "success": true,
-  "message": "TestRail sync started in background",
-  "status": "started"
-}
-```
-
-**Returns 409** if a sync is already in progress.
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/admin/sync/testrail \
-  -b cookies.txt
-```
-
----
-
-### Trigger Confluence Sync
-
-Start a background sync that pulls Confluence pages (via CQL) into the vector store.
-
-**Endpoint:** `POST /api/admin/sync/confluence`
-
-**Authentication:** Requires admin session
-
-**Response (202 Accepted):**
-```json
-{
-  "success": true,
-  "message": "Confluence sync started in background (CQL)",
-  "status": "started"
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/admin/sync/confluence \
-  -b cookies.txt
-```
-
----
-
-### Get Sync Status
-
-Get the current sync status for both TestRail and Confluence.
-
-**Endpoint:** `GET /api/admin/sync/status`
-
-**Authentication:** Requires admin session
-
-**Response:**
-```json
-{
-  "success": true,
-  "status": {
-    "is_syncing": false,
-    "last_sync": "2024-01-01T12:00:00",
-    "last_sync_count": 42,
-    "confluence": {
-      "is_syncing": false,
-      "last_sync": "2024-01-01T11:00:00",
-      "last_sync_count": 10
-    }
-  }
-}
-```
-
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/admin/sync/status \
-  -b cookies.txt
-```
-
----
-
-### Get Sync Schedule
-
-Get next scheduled run times for automatic TestRail and Confluence syncs.
-
-**Endpoint:** `GET /api/admin/sync/schedule`
-
-**Authentication:** Requires admin session
-
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/admin/sync/schedule \
-  -b cookies.txt
-```
-
----
-
-### Confluence Diagnose
-
-Run a connectivity diagnostic to troubleshoot Confluence configuration (credentials, API path, CQL query).
-
-**Endpoint:** `GET /api/admin/confluence-diagnose`
-
-**Authentication:** Requires admin session
-
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/admin/confluence-diagnose \
-  -b cookies.txt
-```
-
----
-
-### Get Settings (Public)
-
-Return non-sensitive public settings (e.g. default theme). No authentication required.
-
-**Endpoint:** `GET /api/admin/settings/public`
-
-**Response:**
-```json
-{
-  "success": true,
-  "default_theme": "dark"
-}
-```
-
-**Example:**
-```bash
-curl http://localhost:5001/api/admin/settings/public
-```
-
----
-
-### Get Settings
-
-Return full settings schema with current values. Sensitive values are masked as `****`.
-
-**Endpoint:** `GET /api/admin/settings`
-
-**Authentication:** Requires admin session
-
-**Example:**
-```bash
-curl -X GET http://localhost:5001/api/admin/settings \
-  -b cookies.txt
-```
-
----
-
-### Update Settings
-
-Save one or more settings. Sensitive fields submitted as `****` are not overwritten.
-
-**Endpoint:** `PUT /api/admin/settings`
-
-**Authentication:** Requires admin session
-
-**Body:** Key-value map of settings to update.
-```json
-{
-  "default_theme": "light",
-  "CHAT_RETRIEVAL_K": 10
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Settings saved and applied successfully"
-}
-```
-
-**Example:**
-```bash
-curl -X PUT http://localhost:5001/api/admin/settings \
-  -H "Content-Type: application/json" \
-  -b cookies.txt \
-  -d '{"default_theme": "light"}'
-```
-
----
-
-## Customer Endpoints
-
-### Customer Config
-
-Get public customer configuration (e.g. TestRail push enabled, available features).
-
-**Endpoint:** `GET /api/customer/config`
-
-**Response:**
-```json
-{
-  "success": true,
-  "testrail_push_enabled": true
-}
-```
-
-**Example:**
-```bash
-curl http://localhost:5001/api/customer/config
-```
-
----
-
-### Query the System
-
-Ask a question and get an AI-powered answer based on uploaded documents.
-
-**Endpoint:** `POST /api/customer/query`
-
-**Body:**
-```json
-{
-  "question": "What is the main topic?",
-  "session_id": "optional-session-id",
-  "bypass_cache": false
-}
-```
-
-**Parameters:**
-- `question` (required): Your question in natural language
-- `session_id` (optional): Session ID for conversation context
-- `bypass_cache` (optional): If `true`, skip cache and force fresh LLM query
-
-**Response:**
-```json
-{
-  "success": true,
-  "answer": "The main topic is...",
-  "sources": [
-    {
-      "content": "Source content...",
-      "similarity_percent": 85.5
-    }
-  ],
-  "source_documents": [
-    {
-      "content": "Document chunk content...",
-      "metadata": {...}
-    }
-  ],
-  "query_time_ms": 1234.56,
-  "cache_hit": false
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/customer/query \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "What is the main topic?",
-    "bypass_cache": false
-  }'
-```
-
----
-
-### Requirement Analysis
-
-Analyze a requirement spec: find related test cases, identify uncovered requirements, generate new tests.
-
-**Endpoint:** `POST /api/customer/requirement-analysis`
-
-**Input (provide exactly one):**
-- `requirement_spec`: Pasted text (JSON body)
-- `confluence_url`: Confluence page URL (JSON body)
-- `file`: Uploaded file (PDF, DOCX, TXT) via multipart/form-data
-
-**Options (JSON body or form):**
-- `generate_new_tests`: bool (default: true) – generate tests for uncovered requirements
-- `push_to_testrail`: bool (default: false) – push generated tests to TestRail (requires TESTRAIL_PUSH_ENABLED and credentials)
-- `use_section_of_related`: bool (default: false) – when true, push each requirement’s generated tests into the **same section as its first related test** (fallback: `target_section_id`)
-- `target_section_id`: int (optional) – TestRail section ID for push when not using “same as related”; chosen in UI (Project → Suite → Section) or passed in request
-
-**Request (JSON with pasted text):**
-```json
-{
-  "requirement_spec": "REQ-001: User must reset password via email.\nREQ-002: System shall send verification email within 60 seconds.",
-  "generate_new_tests": true
-}
-```
-
-**Request (JSON with Confluence URL):**
-```json
-{
-  "confluence_url": "https://company.atlassian.net/wiki/spaces/DEV/pages/123456/Requirements",
-  "generate_new_tests": true
-}
-```
-
-**Request (multipart with file):**
-```bash
-curl -X POST http://localhost:5001/api/customer/requirement-analysis \
-  -F "file=@requirements.pdf" \
-  -F "generate_new_tests=true"
-```
-
-**Response:**
+**Result** (also the final event of a run):
 ```json
 {
   "success": true,
   "requirements_analyzed": 2,
-  "requirements": [
-    {"id": "REQ-001", "title": "...", "description": "..."},
-    {"id": "REQ-002", "title": "...", "description": "..."}
-  ],
-  "related_tests": {
-    "REQ-001": [
-      {"testrail_id": "C123", "title": "...", "content": "...", "similarity_score": 0.85}
-    ],
-    "REQ-002": []
-  },
-  "tests_needing_update": {
-    "REQ-001": [
-      {"testrail_id": "C123", "title": "...", "status": "needs_update", "suggested_changes": ["..."], "reason": "...", "confidence": 0.85}
-    ]
-  },
+  "requirements": [{"id": "REQ-001", "title": "…", "description": "…"}],
+  "related_tests": {"REQ-001": [{"testrail_id": "C123", "title": "…", "similarity_score": 0.85}]},
+  "related_specs": [], "related_specs_per_req": {},
+  "tests_needing_update": {"REQ-001": [{"testrail_id": "C123", "status": "needs_update", "suggested_changes": ["…"], "reason": "…"}]},
+  "tests_ok": {},
   "uncovered_requirements": ["REQ-002"],
-  "generated_tests": {
-    "REQ-002": [
-      {"title": "...", "priority": "P1", "steps": "...", "expected_result": "...", "generated": true}
-    ]
-  },
-  "pushed_to_testrail": [
-    {"requirement_id": "REQ-002", "testrail_id": "C456", "success": true}
-  ],
+  "generated_tests": {"REQ-002": [{"title": "…", "priority": "P1", "steps": "…", "expected_result": "…"}]},
+  "e2e_workflow_tests": [], "existing_e2e_tests": [],
+  "coverage_per_req": {}, "coverage_gap_reason_per_req": {},
+  "pushed_to_testrail": [],
+  "run_id": "…", "duration_s": 312.4, "stage_timings": [],
+  "llm_calls": 24, "total_estimated_cost_usd": 0.041, "input_tokens": 48210, "output_tokens": 9120,
   "summary": {
-    "total_requirements": 2,
-    "requirements_with_coverage": 1,
-    "needing_update_count": 1,
-    "uncovered_count": 1,
-    "generated_count": 1,
-    "pushed_count": 1
+    "total_requirements": 2, "requirements_with_coverage": 1, "uncovered_count": 1,
+    "generated_count": 1, "total_generated_tests": 3, "e2e_workflow_tests_count": 1,
+    "needing_update_count": 1, "pushed_count": 0, "overall_coverage_pct": 50.0,
+    "requirements_fully_covered": 1, "coverage_min_similarity": 70, "retrieval_similarity_threshold": 60.0
   }
 }
 ```
 
-**Note:** Confluence URL requires CONFLUENCE_URL, CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN in .env.
+#### Working with TestRail cases
+
+Writes to TestRail need `TESTRAIL_PUSH_ENABLED=true` and TestRail credentials.
+Passing `session_id` (and optionally `target`) records the push on that
+Requirements → Tests run. Created and updated cases are re-ingested into
+ChromaDB so the next analysis sees them.
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| `POST` | `/requirement-analysis/push` | `{"generated_tests": {req_id: [test]}, "related_tests"?, "use_section_of_related"?, "target_section_id"?}` | `{"success", "pushed_to_testrail": […]}` |
+| `POST` | `/requirement-analysis/suggest-case-update` | `{"testrail_id", "requirement_text", "suggested_changes"?: [..], "reason"?, "current_title"?, "current_content"?}` | `{"success", "title", "steps", "preconditions", "expected_result", "priority"}` — AI-rewritten case; fetched from TestRail when `current_content` is omitted |
+| `POST` | `/requirement-analysis/update-case` | `{"testrail_id", "title", "steps"?, "preconditions"?, "expected_result"?, "priority"?, "session_id"?, "target"?}` | `{"success", "testrail_id"}` |
+| `POST` | `/requirement-analysis/create-case` | `{"section_id", "title", "steps"?, "preconditions"?, "expected_result"?, "priority"?, "platform"?, "requirement_text"?, "case_type"?, "session_id"?, "target"?}` | `{"success", "testrail_id"}` |
+
+`priority` is `P0`–`P3`.
+
+### TestRail browsing (for the pickers)
+
+All return **503** when TestRail is not configured.
+
+| Method | Path | |
+|--------|------|---|
+| `GET` | `/testrail/projects` | `{"success", "projects": […]}` |
+| `GET` | `/testrail/projects/<project_id>/suites` | `{"success", "suites": […]}` |
+| `POST` | `/testrail/projects/<project_id>/suites` | body `{"name", "description"?}` → `{"success", "suite"}` |
+| `GET` | `/testrail/projects/<project_id>/sections?suite_id=` | `{"success", "sections": […]}` |
+| `POST` | `/testrail/projects/<project_id>/sections` | body `{"suite_id", "name", "parent_id"?, "description"?}` → `{"success", "section"}` |
+| `GET` | `/testrail/unautomated-cases?project_id=&suite_id=&section_id=` | Cases whose execution-mode field is "Automatable" and that carry a "Pending Automation" value; the fields are discovered by option label, not name. → `{"success", "cases": [{"ID", "Title", "Priority", "Steps", "Preconditions", "expected_result", "section", "automation_statuses", …}], "total_in_project", "pending_count", "_debug"}` |
+| `POST` | `/testrail/improve-for-automation` | body `{"testrail_id" or "title", "preconditions"?, "steps"?, "expected_result"?}` → `{"success", "title", "priority", "preconditions", "steps", "expected_result"}` — the LLM rewrites vague manual steps into deterministic ones |
 
 ---
 
-### Requirement Analysis (Streaming)
+## Admin API
 
-Same as `requirement-analysis` but streams progress events as Server-Sent Events (SSE). Used by the UI to show a live progress bar.
+All routes need an admin session, except `GET /settings/public`.
 
-**Endpoint:** `POST /api/customer/requirement-analysis/stream`
+### Knowledge base
 
-**Request:** Identical to `requirement-analysis`.
+| Method | Path | |
+|--------|------|---|
+| `POST` | `/api/admin/upload` | multipart `file`. **CSV/Excel test-case files only** (at least 7 of the 10 expected columns). Re-uploading a name replaces it. → `{"success", "document_id", "message", …}`; a file that fails validation returns **400** with the reason |
+| `GET` | `/api/admin/documents` | `{"success", "documents": [{"id", "name", "path", "uploaded_at", "status"}], "count"}` — manual uploads only (sync files are hidden) |
+| `DELETE` | `/api/admin/documents/<doc_id>` | removes the file, its chunks and metadata |
+| `GET` | `/api/admin/documents/<doc_id>/download` | the original file |
+| `GET` | `/api/admin/stats` | `{"success", "total_documents", "total_chunks", "rag_config", …}` |
+| `GET` | `/api/admin/chromadb?limit=N` | collection name and chunks (`limit` returns only the first N) |
+| `POST` | `/api/admin/chromadb/reset` | body `{"delete_all": true}`. Deletes the vector store **and** both sync logs |
 
-**Response:** `text/event-stream` — emits JSON events with fields `stage`, `message`, `progress` (0–100), and per-requirement results as they complete.
+### Sync
 
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/customer/requirement-analysis/stream \
-  -H "Content-Type: application/json" \
-  -d '{"requirement_spec": "REQ-001: ...", "generate_new_tests": true}'
+| Method | Path | |
+|--------|------|---|
+| `POST` | `/api/admin/sync/testrail` | **202** `{"success", "status": "started"}`; **409** if a TestRail sync is running |
+| `POST` | `/api/admin/sync/confluence` | **202**, or **409** if a Confluence sync is running |
+| `GET` | `/api/admin/sync/status` | `{"success", "status": {"last_sync", "is_syncing", "current_sync", "latest_sync_record", "sync_log", "total_syncs", …, "confluence": {…}}}` — TestRail at the top level, Confluence nested |
+| `GET` | `/api/admin/sync/schedule` | next scheduled runs: `{"success", "testrail": {…}, "confluence": {…}}` (times are UTC) |
+| `GET` | `/api/admin/confluence-diagnose` | tells credentials (401/403), API path (404) and CQL (400 / no results) problems apart |
+
+### Settings
+
+| Method | Path | |
+|--------|------|---|
+| `GET` | `/api/admin/settings` | `{"success", …schema and current values}`; secrets masked as `****` |
+| `PUT` | `/api/admin/settings` | body `{"<schema key>": value}` using the **lowercase schema keys** (`"chat_retrieval_k": 10`), not env names. Unknown keys are ignored; a masked secret sent back unchanged is kept. Writes `config/.env`, applies immediately, reconfigures the sync scheduler, and returns the full settings. LLM provider/model changes still need a restart |
+| `GET` | `/api/admin/settings/public` | **no auth**: `{"success", "default_theme"}` |
+| `GET` | `/api/admin/agent-settings` | QA Agent Network's settings schema and values (proxied to its admin-only `/settings`) |
+| `PUT` | `/api/admin/agent-settings` | saves them to QA Agent Network's `config/.env` — including `GITHUB_TOKEN` |
+
+### Analytics
+
 ```
-
----
-
-### Requirement Analysis — Push to TestRail
-
-Push already-generated tests (from a prior analysis) to TestRail. Used when the user clicks "Push to TestRail" after reviewing results.
-
-**Endpoint:** `POST /api/customer/requirement-analysis/push`
-
-**Body:**
-```json
-{
-  "generated_tests": {
-    "REQ-001": [
-      {"title": "...", "priority": "P1", "steps": "...", "expected_result": "..."}
-    ]
-  },
-  "target_section_id": 123,
-  "use_section_of_related": false
-}
+GET /api/admin/analytics?window=7d&user_id=&from=&to=
 ```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/customer/requirement-analysis/push \
-  -H "Content-Type: application/json" \
-  -d '{"generated_tests": {...}, "target_section_id": 123}'
-```
-
----
-
-### Requirement Analysis — Suggest Case Update
-
-Given a requirement and an existing TestRail case, get an AI suggestion for how to update the case to match the requirement.
-
-**Endpoint:** `POST /api/customer/requirement-analysis/suggest-case-update`
-
----
-
-### Requirement Analysis — Update Case
-
-Apply an AI-suggested update to an existing TestRail case.
-
-**Endpoint:** `POST /api/customer/requirement-analysis/update-case`
-
----
-
-### Requirement Analysis — Create Case
-
-Create a new TestRail case from a generated test object.
-
-**Endpoint:** `POST /api/customer/requirement-analysis/create-case`
-
----
-
-### List Unautomated TestRail Cases
-
-Fetch TestRail cases that are not yet automated (automation_type ≠ automated). Used by the automation improvement workflow.
-
-**Endpoint:** `GET /api/customer/testrail/unautomated-cases`
-
-**Query params:** `project_id` (required), `suite_id` (optional), `section_id` (optional)
-
-**Example:**
-```bash
-curl "http://localhost:5001/api/customer/testrail/unautomated-cases?project_id=1"
-```
-
----
-
-### Improve Case for Automation
-
-Given a manual TestRail test case, return an AI-rewritten version that is more suitable for automation (explicit steps, deterministic assertions, etc.).
-
-**Endpoint:** `POST /api/customer/testrail/improve-for-automation`
-
-**Body:**
-```json
-{
-  "case_id": "C123",
-  "title": "Login test",
-  "steps": "1. Go to login page\n2. Enter credentials",
-  "expected_result": "User is logged in"
-}
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:5001/api/customer/testrail/improve-for-automation \
-  -H "Content-Type: application/json" \
-  -d '{"case_id": "C123", "title": "Login test", "steps": "...", "expected_result": "..."}'
-```
-
----
-
-### TestRail structure (for Requirement Analysis push)
-
-Used by the UI to show **Project → Suite → Section** and to create new suites/sections. Requires TestRail credentials in .env.
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/customer/testrail/projects` | List all projects |
-| GET | `/api/customer/testrail/projects/<project_id>/suites` | List suites for a project |
-| GET | `/api/customer/testrail/projects/<project_id>/sections?suite_id=<id>` | List sections (suite_id optional for single-suite projects) |
-| POST | `/api/customer/testrail/projects/<project_id>/suites` | Create suite. Body: `{ "name": "...", "description": "..." }` |
-| POST | `/api/customer/testrail/projects/<project_id>/sections` | Create section. Body: `{ "suite_id": <id>, "name": "...", "parent_id": <id>? }` |
-
----
-
-### Health Check
-
-Check if the API is running.
-
-**Endpoint:** `GET /api/customer/health`
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "service": "rag-system"
-}
-```
-
-**Example:**
-```bash
-curl http://localhost:5001/api/customer/health
-```
-
----
-
-## Error Responses
-
-All endpoints return errors in the following format:
+`window`: `24h`, `7d`, `30d`, `all` or `custom` (default: the `ANALYTICS_DEFAULT_WINDOW`
+setting). `custom` needs `from` and `to` (epoch seconds, finite, `from <= to`);
+anything else is a 400. `user_id` narrows to one user.
 
 ```json
 {
-  "success": false,
-  "error": "Error message here"
+  "success": true,
+  "window": "7d",
+  "default_window": "7d",
+  "baselines": {"min_per_test_authored": 240, "min_per_test_fixed": 60, "min_per_test_adapted": 150, "min_per_test_case_written": 15},
+  "agents": {"window": {…}, "overall": {…}, "by_agent": {…}, "series": [ … ]},
+  "agents_error": null,
+  "studio": {"window": {…}, "outcomes": {…}, "run_duration_s": 0, "requirements": {…}, "requirements_series": [ … ], "by_operation": {…}, "…": "…"},
+  "time_saved": {"agents_min": 0, "studio_min": 0, "total_min": 0, "by_agent": {"test-healing-agent": 0}, "basis": "estimate"}
 }
 ```
 
-**HTTP Status Codes:**
-- `200` - Success
-- `400` - Bad Request (missing/invalid parameters)
-- `401` - Unauthorized (invalid admin key)
-- `404` - Not Found (document/resource not found)
-- `500` - Internal Server Error
+`agents` comes from QA Agent Network's `/analytics/summary` and is exact (the
+Claude CLI reports it); `studio` is estimated from the token rate card. The API
+never sums them. `studio.requirements` totals the Requirements → Tests runs in
+the same shape as an agent (`runs`, `succeeded`, `failed`, `cost_usd`,
+`duration_s`, `llm_calls`, `input_tokens`, `output_tokens`, `tests_generated`),
+and `studio.requirements_series` splits them by day. The QA Agents tab shows
+them as `test-design-agent` and adds them to its totals, labelled as estimated.
+If the agent server is down, `agents` is empty and `agents_error` says why.
+
+```
+DELETE /api/admin/analytics?window=7d&user_id=&from=&to=
+```
+**Irreversible.** Same `window`/`from`/`to` rules as the GET. Clears Studio analytics and run history for the window (and
+user, if given), and asks QA Agent Network to delete its analytics, run registry
+entries and session audit directories for the same window.
 
 ---
 
-## Rate Limiting
+## Agents proxy
 
-Currently, there are no rate limits. However, for production deployments, consider implementing rate limiting based on your needs.
+`/api/agents/*` forwards to the QA Agent Network server at `QA_AGENT_NETWORK_URL`
+(default `http://localhost:6001`). It requires an active session, strips any
+`X-User-*` headers from the client, and injects the signed-in user's
+`X-User-ID`, `X-User-Name`, `X-User-Role` (and `X-Proxy-Secret` when
+`QA_AGENT_PROXY_SECRET` is set).
 
----
+| Path | Forwards to |
+|------|-------------|
+| `GET /api/agents/health` | `/health` |
+| `/api/agents/<agent>/<path>` (any method, query string passed through) | `/agents/<agent>/<path>` |
 
-## Best Practices
+- `<agent>` must be `test-authoring-agent`, `test-healing-agent` or
+  `test-adaptation-agent`; anything else is **404**.
+- A `.` or `..` path segment (including encoded forms) is **404**.
+- A `GET` whose path ends in `/stream` is relayed as Server-Sent Events;
+  everything else is a JSON round trip with `QA_AGENT_NETWORK_TIMEOUT` (default 30 s).
+- An unreachable agent server returns an error the pages show as "offline".
 
-1. **Store Admin Key Securely**: Never commit `config/.env` to version control
-2. **Use HTTPS in Production**: Always use HTTPS for production deployments
-3. **Validate Input**: Always validate file types and sizes before uploading
-4. **Monitor Performance**: Use query time metrics to optimize performance
-5. **Cache Strategically**: Use `bypass_cache` only when you need fresh results
-
----
-
-## Examples
-
-### Complete Workflow
+Everything behind `<path>` — queues, runs, streams, history, retries,
+artefacts — is documented in QA Agent Network's
+[SERVER_API.md](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/SERVER_API.md).
 
 ```bash
-# 1. Login to get session
-curl -X POST http://localhost:5001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -c cookies.txt \
-  -d '{"username": "admin", "password": "admin123"}'
-
-# 2. Upload a document
-curl -X POST http://localhost:5001/api/admin/upload \
-  -b cookies.txt \
-  -F "file=@document.pdf"
-
-# 3. List documents
-curl -X GET http://localhost:5001/api/admin/documents \
-  -b cookies.txt
-
-# 4. Query the system (public endpoint, no auth needed)
-curl -X POST http://localhost:5001/api/customer/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is this document about?"}'
-
-# 5. Get statistics
-curl -X GET http://localhost:5001/api/admin/stats \
-  -b cookies.txt
-```
-
-### Python Example
-
-```python
-import requests
-
-BASE_URL = "http://localhost:5001/api"
-session = requests.Session()
-
-# Login to get session
-login_response = session.post(
-    f"{BASE_URL}/auth/login",
-    json={"username": "admin", "password": "admin123"}
-)
-print("Login:", login_response.json())
-
-# Upload document
-with open("document.pdf", "rb") as f:
-    response = session.post(
-        f"{BASE_URL}/admin/upload",
-        files={"file": f}
-    )
-    print("Upload:", response.json())
-
-# Query system (public endpoint, no auth needed)
-response = requests.post(
-    f"{BASE_URL}/customer/query",
-    json={"question": "What is the main topic?"}
-)
-result = response.json()
-print("Answer:", result["answer"])
-```
-
-### JavaScript Example
-
-```javascript
-const API_BASE = 'http://localhost:5001/api';
-
-// Login to get session (cookies handled automatically by browser)
-async function login() {
-  const response = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include', // Important: include cookies
-    body: JSON.stringify({ username: 'admin', password: 'admin123' })
-  });
-  return response.json();
-}
-
-// Upload document (after login)
-async function uploadDocument(file) {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetch(`${API_BASE}/admin/upload`, {
-    method: 'POST',
-    credentials: 'include', // Include session cookies
-    body: formData
-})
-.then(res => res.json())
-.then(data => console.log(data));
-
-// Query system
-fetch(`${API_BASE}/customer/query`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    question: 'What is the main topic?'
-  })
-})
-.then(res => res.json())
-.then(data => console.log(data.answer));
+curl -b cookies.txt http://localhost:5001/api/agents/test-healing-agent/run/active
 ```
 
 ---
 
-For more details, see [DEPLOYMENT.md](DEPLOYMENT.md) or the main [README.md](../README.md).
+## Errors and limits
 
+Errors are JSON: `{"success": false, "error": "…"}`.
+
+| Code | Meaning |
+|------|---------|
+| 200 / 201 | OK / created (sign-up, run started, user created) |
+| 202 | Sync started in the background |
+| 400 | Invalid input (missing field, mixed inputs, bad role/status, last-admin guard, rejected upload) |
+| 401 | Not signed in, or bad credentials |
+| 403 | Account not active, or admin required |
+| 404 | Unknown resource, another user's run, unknown agent |
+| 409 | A sync is already running; cancelling a run that is not running |
+| 429 | Too many login or sign-up attempts (10 per IP per 15 minutes) |
+| 500 | Server error |
+| 502 / 504 | Agents proxy: the agent server errored / timed out |
+| 503 | TestRail not configured |
+
+Other limits: uploads up to `ADMIN_UPLOAD_MAX_SIZE_MB` (default 50 MB); sessions
+last 2 hours; Requirements → Tests runs stop after 20 minutes.
