@@ -23,7 +23,7 @@ directory `WORKSPACE_DIR`):
 ```
 <WORKSPACE_DIR>/
 ├── AI-Test-Studio/          this repo — the web app people use
-├── QA-Agent-Network/        the agents + qa_agents_server (github.com/msr5464/QA-AI-Agent)
+├── QA-Agent-Network/        the agents + qa_agents_server (github.com/msr5464/AI-Agent-Network)
 └── <automation repo>/       Java + TestNG tests the agents write and fix
                              (GITHUB_REPO_AUTOMATION, e.g. Playwright-Automation-Framework)
 ```
@@ -242,10 +242,10 @@ Keep the agent server on `127.0.0.1` unless both repos share
 
 | Topic | QA Agent Network doc |
 |-------|---------------------|
-| What each agent does, handoffs, audit trails | [ARCHITECTURE.md](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/ARCHITECTURE.md) |
-| Every server endpoint, request and response | [SERVER_API.md](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/SERVER_API.md) |
-| What the automation repo must provide; other frameworks | [FRAMEWORK_INTEGRATION.md](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/FRAMEWORK_INTEGRATION.md) |
-| Running the agent server for a team; CI | [DEPLOYMENT.md](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/DEPLOYMENT.md) |
+| What each agent does, handoffs, audit trails | [ARCHITECTURE.md](https://github.com/msr5464/AI-Agent-Network/blob/main/docs/ARCHITECTURE.md) |
+| Every server endpoint, request and response | [SERVER_API.md](https://github.com/msr5464/AI-Agent-Network/blob/main/docs/SERVER_API.md) |
+| What the automation repo must provide; other frameworks | [FRAMEWORK_INTEGRATION.md](https://github.com/msr5464/AI-Agent-Network/blob/main/docs/FRAMEWORK_INTEGRATION.md) |
+| Running the agent server for a team; CI | [DEPLOYMENT.md](https://github.com/msr5464/AI-Agent-Network/blob/main/docs/DEPLOYMENT.md) |
 
 ### Keeping the two repos in step
 

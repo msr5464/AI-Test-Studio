@@ -98,7 +98,7 @@ This project adheres to a code of conduct that all contributors are expected to 
    The first start prints a random password for the `admin` user, once.
 
 7. **Optional — the agent pages** need a running
-   [QA Agent Network](https://github.com/msr5464/QA-AI-Agent) server (a sibling
+   [QA Agent Network](https://github.com/msr5464/AI-Agent-Network) server (a sibling
    repo); see its README.
 
 ---

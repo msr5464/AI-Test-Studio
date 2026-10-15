@@ -359,7 +359,7 @@ entries and session audit directories for the same window.
 
 Everything behind `<path>` — queues, runs, streams, history, retries,
 artefacts — is documented in QA Agent Network's
-[SERVER_API.md](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/SERVER_API.md).
+[SERVER_API.md](https://github.com/msr5464/AI-Agent-Network/blob/main/docs/SERVER_API.md).
 
 ```bash
 curl -b cookies.txt http://localhost:5001/api/agents/test-healing-agent/run/active

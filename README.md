@@ -54,7 +54,7 @@ knowledge base, analytics and settings.
 **Stack:** Flask backend, static HTML/JS frontends, **ChromaDB** vector store,
 a configurable LLM (**Ollama**, **OpenAI** or **Google Gemini**) for generation
 and chat. The three agent pages are served by
-[QA Agent Network](https://github.com/msr5464/QA-AI-Agent), a **separate repo**
+[QA Agent Network](https://github.com/msr5464/AI-Agent-Network), a **separate repo**
 that Studio reaches over HTTP; its agents use the Claude CLI.
 
 ---
@@ -72,13 +72,13 @@ that Studio reaches over HTTP; its agents use the Claude CLI.
   TestRail pushes require `TESTRAIL_PUSH_ENABLED=true` and are recorded on the run.
 
 ### Agent pages (Tests → Automation Code, Auto-Heal, Adapt)
-- **Authoring** — *Write* plain-English steps (module + platform; Mobile is coming
+- **Authoring**: *Write* plain-English steps (module + platform; Mobile is coming
   soon), load *Saved Drafts*, or pull *From TestRail* cases marked "Pending
   Automation" (with **Improve for Automation** to make vague steps deterministic).
-- **Healing** — *Pick a Test* from the automation repo's catalogue (standalone
+- **Healing**: *Pick a Test* from the automation repo's catalogue (standalone
   reproduce-then-fix), or *From Triaging Agent* handoffs. Options: repair mode
   (park the failing browser) and force.
-- **Adaptation** — *Write* a change note or load a *Saved Note*; pick the tests it
+- **Adaptation**: *Write* a change note or load a *Saved Note*; pick the tests it
   affects (their intent contract is shown beside the note); explore-only and
   propose-only switches.
 - On every agent page: a base-branch picker, live console with step progress,
@@ -86,7 +86,7 @@ that Studio reaches over HTTP; its agents use the Claude CLI.
   time and cost, a run queue when the agent server is busy, and an offline
   banner / sidebar health dot when it is unreachable.
 
-The Test Triaging Agent is not in the Studio — it runs from the CLI or CI.
+The Test Triaging Agent is not in the Studio; it runs from the CLI or CI.
 
 ### Talk to your Tests
 - Natural-language Q&A over the knowledge base, with sources and per-answer cost.
@@ -94,18 +94,18 @@ The Test Triaging Agent is not in the Studio — it runs from the CLI or CI.
 ### Admin portal (`/admin`)
 Users and sign-up approval, TestRail/Confluence connectors, the knowledge base,
 **Analytics** (cost and time saved across the agents and the Studio), and the
-settings of both the Studio and the agents — see [Admin portal](#admin-portal)
+settings of both the Studio and the agents. See [Admin portal](#admin-portal)
 below for each section.
 
 ### Platform
-- **Auth** — session login; every API except `/health`, login/sign-up and the
+- **Auth**: session login; every API except `/health`, login/sign-up and the
   public theme setting needs an approved account. Login and sign-up are rate-limited.
-- **Security** — the app refuses to start with a placeholder `SECRET_KEY`;
+- **Security**: the app refuses to start with a placeholder `SECRET_KEY`;
   cookie hardening, CORS limited to your origins, security headers, and a shared
   secret with the agent server. See [SECURITY.md](SECURITY.md).
-- **Cost tracking** — every LLM call is logged to `storage/operation_costs.jsonl`
+- **Cost tracking**: every LLM call is logged to `storage/operation_costs.jsonl`
   and feeds Analytics.
-- **Retrieval** — hybrid search (BM25 + vector), reranking, query expansion,
+- **Retrieval**: hybrid search (BM25 + vector), reranking, query expansion,
   query and embedding caches.
 
 ---
@@ -161,7 +161,7 @@ under them, live counts of documents, chunks and users.
   the app until approved. **Approve**, **Reject** or later suspend them with the
   status selector.
 - **Create User** makes an account directly (role `customer` or `admin`); it is
-  active immediately — creating it is the approval.
+  active immediately; creating it is the approval.
 - Change a role, **Reset** a password, or **Delete** a user. Demoting or
   deactivating the last active admin is refused.
 
@@ -174,7 +174,7 @@ duration). Failures show the connector's own error. Daily auto-sync and the
 connection settings live in Studio Settings → TestRail / Confluence; schedule
 times are UTC.
 
-![TestRail sync](docs/images/admin-testrail-row.png)
+![TestRail and Confluence syncs](docs/images/connectors.png)
 
 ### Knowledge Base
 
@@ -185,7 +185,7 @@ times are UTC.
   expected columns); a file that does not match is rejected with the reason.
 - **Knowledge Base Contents** shows the collection, total chunks and each chunk
   with its source file (the first 50 load by default; **Load all chunks** fetches the rest).
-- **Reset Knowledge Base** deletes every vector and both sync logs — re-sync
+- **Reset Knowledge Base** deletes every vector and both sync logs; re-sync
   afterwards. Needed after switching the embedding model (to or from OpenAI).
 
 ### Analytics
@@ -220,7 +220,7 @@ QA Agent Network's configuration without shell access, grouped as **Common**
 (framework, workspace, automation repo, GitHub, Slack), **Test Authoring**,
 **Test Healing**, **Test Adaptation** and **Test Triaging** (models, retry
 budgets, branch prefixes, timeouts, the triaging database). Saving writes the
-agent server's `config/.env` and applies from the next run — no restart. Secrets
+agent server's `config/.env` and applies from the next run, with no restart. Secrets
 are shown masked; leave a mask untouched to keep the stored value. A value also
 set in an agent's own `.env` is flagged, because that file wins at run time.
 
@@ -245,9 +245,9 @@ after an app restart.
 - **Python 3.9+**
 - **An LLM**: Ollama running locally (default), or an OpenAI or Google Gemini API key
 - **Optional:** `antiword` for `.doc` requirement files (`install.sh` tries to install it); LibreOffice for legacy `.doc` / `.ppt` in the document loader
-- **For the agent pages:** a running [QA Agent Network](https://github.com/msr5464/QA-AI-Agent)
-  server and its prerequisites — the signed-in `claude` CLI, `gh`, Node.js 18+,
-  JDK 21 and Maven — see its README
+- **For the agent pages:** a running [QA Agent Network](https://github.com/msr5464/AI-Agent-Network)
+  server and its prerequisites (the signed-in `claude` CLI, `gh`, Node.js 18+,
+  JDK 21 and Maven); see its README
 
 ### 1. Install
 
@@ -285,7 +285,7 @@ bash scripts/run.sh              # macOS / Linux  (scripts\run.bat or .\scripts\
 `run.sh` exits if `LLM_PROVIDER=ollama` and Ollama is not running.
 
 Open http://localhost:5001. On first start the console prints a random password
-for the **`admin`** user — it is shown once, so save it. Log in at
+for the **`admin`** user; it is shown once, so save it. Log in at
 http://localhost:5001/admin, then create or approve other users.
 
 ### 4. Connect the agents (optional)
@@ -306,7 +306,7 @@ set `QA_AGENT_PROXY_SECRET`, use the same value in both repos' `config/.env`.
 |---|---|
 | Studio | http://localhost:5001/ (per-page URLs above) |
 | Admin | http://localhost:5001/admin |
-| API | http://localhost:5001/api — see [docs/API.md](docs/API.md) |
+| API | http://localhost:5001/api (see [docs/API.md](docs/API.md)) |
 | Health (no auth) | http://localhost:5001/health |
 
 ---
@@ -344,7 +344,7 @@ AI-Test-Studio/
 │   ├── extractors/       # requirement extraction
 │   ├── models/           # users
 │   └── cost_tracker.py   # per-call LLM cost logging
-├── frontend/             # customer/ (the five pages) and admin/ — static HTML/JS
+├── frontend/             # customer/ (the five pages) and admin/, static HTML/JS
 ├── config/env.example    # every setting; copy to config/.env
 ├── docs/                 # documentation + images/
 ├── scripts/              # install.*, run.*, run-production.sh, init_storage.*, run_eval.sh
@@ -367,7 +367,7 @@ AI-Test-Studio/
 | [docs/AI_INSTRUCTIONS.md](docs/AI_INSTRUCTIONS.md) | Instructions for AI assistants working in this repo |
 | [SECURITY.md](SECURITY.md) | Security policy and hardening checklist |
 | [CHANGELOG.md](CHANGELOG.md) | Notable changes |
-| [QA Agent Network](https://github.com/msr5464/QA-AI-Agent) | The agents: setup, architecture, server API |
+| [QA Agent Network](https://github.com/msr5464/AI-Agent-Network) | The agents: setup, architecture, server API |
 
 ---
 
@@ -379,7 +379,7 @@ AI-Test-Studio/
 | Lost the admin password | It is printed once on first start. Reset it from another admin account, or see [DEPLOYMENT.md](docs/DEPLOYMENT.md#troubleshooting) |
 | Agent pages say offline | Start QA Agent Network (`cd ../QA-Agent-Network && bash scripts/run-server.sh`); check `QA_AGENT_NETWORK_URL` and that `QA_AGENT_PROXY_SECRET` matches in both repos |
 | Ollama not responding | `ollama serve`, or set `LLM_PROVIDER=openai` / `gemini` with an API key |
-| Nothing found by Requirements → Tests or chat | The knowledge base is empty — run TestRail / Confluence sync in Admin → Connectors |
+| Nothing found by Requirements → Tests or chat | The knowledge base is empty; run TestRail / Confluence sync in Admin → Connectors |
 
 More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#troubleshooting).
 
@@ -388,10 +388,10 @@ More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#troubleshooting).
 ## License & contact
 
 - **License:** see [LICENSE](LICENSE).
-- **Author:** Mukesh Rajput — [LinkedIn](https://www.linkedin.com/in/mukesh-rajput/)
+- **Author:** Mukesh Rajput · [LinkedIn](https://www.linkedin.com/in/mukesh-rajput/)
 
 ## Acknowledgments
 
 [LangChain](https://www.langchain.com/) · [ChromaDB](https://www.trychroma.com/) ·
-[Ollama](https://ollama.ai/) · [Anthropic Claude](https://www.anthropic.com/) (QA Agent Network) ·
+[Ollama](https://ollama.com/) · [Anthropic Claude](https://www.anthropic.com/) (QA Agent Network) ·
 [Playwright](https://playwright.dev/) · [Marked.js](https://marked.js.org/)

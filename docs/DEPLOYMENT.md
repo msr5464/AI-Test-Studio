@@ -183,7 +183,7 @@ See [SECURITY.md](../SECURITY.md) for why each matters.
 
 ## Connecting QA Agent Network
 
-The agent pages proxy to [QA Agent Network](https://github.com/msr5464/QA-AI-Agent)'s
+The agent pages proxy to [QA Agent Network](https://github.com/msr5464/AI-Agent-Network)'s
 server, which lives in its own repo (usually cloned next to this one):
 
 ```bash
@@ -199,7 +199,7 @@ cd ../QA-Agent-Network && bash scripts/run-server.sh    # 127.0.0.1:6001
 Studio authenticates the user and forwards their identity to the agent server;
 the agent server trusts those headers, which is why it binds to localhost by
 default and needs the shared secret otherwise. Team setup of the agent server:
-[its DEPLOYMENT guide](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/DEPLOYMENT.md).
+[its DEPLOYMENT guide](https://github.com/msr5464/AI-Agent-Network/blob/main/docs/DEPLOYMENT.md).
 
 ---
 
@@ -265,7 +265,7 @@ first — the embedding dimensions differ.
 ### Agent pages show offline
 The agent server is not reachable at `QA_AGENT_NETWORK_URL` — start it, and check
 that `QA_AGENT_PROXY_SECRET` matches in both repos. Agent run errors are
-explained in [QA Agent Network's troubleshooting guide](https://github.com/msr5464/QA-AI-Agent/blob/main/docs/TROUBLESHOOTING.md).
+explained in [QA Agent Network's troubleshooting guide](https://github.com/msr5464/AI-Agent-Network/blob/main/docs/TROUBLESHOOTING.md).
 
 ### Import errors or a broken venv
 ```bash
