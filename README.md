@@ -1,4 +1,4 @@
-# AI Test Studio
+# <a href="https://www.linkedin.com/in/mukesh-rajput/"><img align="right" src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-full.png" alt="Mukesh" height="40"></a> AI Test Studio
 
 **Powered by QA Agent Network**
 
@@ -6,6 +6,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+</div>
 
 ---
 
@@ -385,13 +386,22 @@ More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#troubleshooting).
 
 ---
 
-## License & contact
+## License
 
-- **License:** see [LICENSE](LICENSE).
-- **Author:** Mukesh Rajput · [LinkedIn](https://www.linkedin.com/in/mukesh-rajput/)
+MIT (see [LICENSE](LICENSE))
 
-## Acknowledgments
+---
+---
 
-[LangChain](https://www.langchain.com/) · [ChromaDB](https://www.trychroma.com/) ·
-[Ollama](https://ollama.com/) · [Anthropic Claude](https://www.anthropic.com/) (QA Agent Network) ·
-[Playwright](https://playwright.dev/) · [Marked.js](https://marked.js.org/)
+<div align="center">
+
+**Mukesh Rajput** · [LinkedIn](https://www.linkedin.com/in/mukesh-rajput/) · [Portfolio](https://msr5464.github.io/)
+
+<sub>Made with ❤️ for the Engineering Team</sub>
+
+</div>
+
+---
+---
+
+

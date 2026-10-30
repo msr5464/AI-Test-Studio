@@ -364,13 +364,24 @@ class BaseRAG:
             
             ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
             ollama_model = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+            # Ollama never ends a reply on its own: a model that starts repeating
+            # itself generates until stopped (one answer ran 21 minutes and
+            # 22,000 tokens). num_predict caps the reply length in tokens.
+            ollama_num_predict = 2048
+            try:
+                _n = os.getenv("OLLAMA_NUM_PREDICT", "").strip()
+                if _n:
+                    ollama_num_predict = max(256, int(_n))
+            except ValueError:
+                pass
             try:
                 self.llm = ChatOllama(
                     model=ollama_model,
                     base_url=ollama_base_url,
-                    temperature=0
+                    temperature=0,
+                    num_predict=ollama_num_predict,
                 )
-                debug_log(f"✅ Using Ollama LLM ({ollama_model})", self.debug_mode)
+                debug_log(f"✅ Using Ollama LLM ({ollama_model}, num_predict={ollama_num_predict})", self.debug_mode)
             except Exception as e:
                 if self.debug_mode:
                     print(f"⚠️  Failed to initialize Ollama: {e}")
