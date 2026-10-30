@@ -5,7 +5,7 @@
 **🌐 [msr5464.github.io/ai-agent-network](https://msr5464.github.io/ai-agent-network.html)**
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
 ---
 
@@ -387,7 +387,7 @@ More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#troubleshooting).
 
 ## License
 
-MIT (see [LICENSE](LICENSE))
+Apache 2.0 (see [LICENSE](LICENSE))
 
 ---
 ---
