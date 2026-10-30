@@ -1,4 +1,4 @@
-# <a href="https://www.linkedin.com/in/mukesh-rajput/"><img align="right" src="https://raw.githubusercontent.com/msr5464/Basic-Automation-Framework/refs/heads/master/Logo-full.png" alt="Mukesh" height="40"></a> AI Test Studio
+# <a href="https://www.linkedin.com/in/mukesh-rajput/"><img align="right" src="https://raw.githubusercontent.com/msr5464/Selenium-Automation-Framework/refs/heads/master/Logo-full.png" alt="Mukesh" height="40"></a> AI Test Studio
 
 **Powered by QA Agent Network**
 
@@ -6,7 +6,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-</div>
 
 ---
 
